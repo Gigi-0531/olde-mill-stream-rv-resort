@@ -39,8 +39,8 @@ export default function Landing() {
 
       <div className="w-full max-w-md space-y-8 animate-in fade-in zoom-in duration-500">
         <div className="text-center space-y-4">
-          <div className="relative w-32 h-32 mx-auto rounded-full overflow-hidden border-4 border-white shadow-xl">
-             <img src={logoImg} alt="Olde Mill Stream" className="w-full h-full object-cover" />
+          <div className="relative w-48 h-48 mx-auto">
+             <img src={logoImg} alt="Olde Mill Stream" className="w-full h-full object-contain" />
           </div>
           <div>
             <h1 className="text-4xl font-display font-bold text-[#2C5F6D] drop-shadow-sm">Olde Mill Stream</h1>

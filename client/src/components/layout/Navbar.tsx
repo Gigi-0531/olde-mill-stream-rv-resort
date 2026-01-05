@@ -44,8 +44,8 @@ export function Navbar() {
         <div className="flex justify-between h-16">
           <div className="flex items-center gap-3">
             <Link href={baseRoute} className="flex items-center gap-2 group">
-              <div className="relative w-10 h-10 overflow-hidden rounded-full border-2 border-primary shadow-sm group-hover:scale-105 transition-transform">
-                <img src={logoImg} alt="Olde Mill Stream" className="w-full h-full object-cover" />
+              <div className="relative w-12 h-12">
+                <img src={logoImg} alt="Olde Mill Stream" className="w-full h-full object-contain" />
               </div>
               <span className="font-display font-bold text-xl text-primary hidden sm:block">
                 Olde Mill Stream
