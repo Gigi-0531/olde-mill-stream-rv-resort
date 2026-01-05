@@ -44,7 +44,7 @@ export default function Landing() {
           </div>
           <div>
             <h1 className="text-4xl font-display font-bold text-[#2C5F6D] drop-shadow-sm">Olde Mill Stream</h1>
-            <p className="text-[#8B5E3C] font-medium tracking-wide uppercase text-sm mt-2">RV Resort & Campground</p>
+            <p className="text-[#8B5E3C] font-medium tracking-wide uppercase text-sm mt-2">RV Resort</p>
           </div>
         </div>
 
