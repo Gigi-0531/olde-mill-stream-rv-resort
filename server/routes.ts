@@ -129,8 +129,8 @@ export async function registerRoutes(
     console.log("Seeding database...");
     await storage.createUser({
       role: 'admin',
-      username: 'admin@oldemill.com',
-      password: 'admin', // Demo password
+      username: 'omsmanagement86@gmail.com',
+      password: 'admin',
       firstName: 'Admin',
       lastName: 'User'
     });

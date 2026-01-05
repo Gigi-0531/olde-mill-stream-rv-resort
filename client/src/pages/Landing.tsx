@@ -8,7 +8,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
 import { Redirect } from "wouter";
-import logoImg from "@assets/rv_park_1767537483812.jpg";
+import logoImg from "@/assets/logo.jpg";
 import { User, ShieldCheck, Loader2 } from "lucide-react";
 
 const residentSchema = z.object({
@@ -165,7 +165,7 @@ function AdminLogin({ onBack, onSubmit, isLoading }: { onBack: () => void, onSub
               <FormItem>
                 <FormLabel>Email</FormLabel>
                 <FormControl>
-                  <Input placeholder="admin@oldemill.com" {...field} />
+                  <Input placeholder="omsmanagement86@gmail.com" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>

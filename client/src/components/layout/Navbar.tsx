@@ -11,7 +11,7 @@ import {
   X
 } from "lucide-react";
 import { useState } from "react";
-import logoImg from "@assets/rv_park_1767537483812.jpg";
+import logoImg from "@/assets/logo.jpg";
 
 export function Navbar() {
   const { user, logout } = useAuth();
