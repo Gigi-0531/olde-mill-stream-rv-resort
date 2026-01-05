@@ -11,11 +11,15 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertActivitySchema } from "@shared/schema";
-import { Plus, Trash2, Calendar, Bell, Users, MapPin } from "lucide-react";
+import { Plus, Trash2, Calendar, Bell, Users, MapPin, Clock, Image, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { useState } from "react";
 import Directory from "./Directory";
 import { NotificationsWidget } from "@/components/NotificationsWidget";
+import { ObjectUploader } from "@/components/ObjectUploader";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import type { GalleryPhoto } from "@shared/schema";
 
 export default function Admin() {
   const { user } = useAuth();
@@ -45,6 +49,9 @@ export default function Admin() {
             <TabsTrigger value="directory" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               <Users className="w-4 h-4 mr-2" /> Directory
             </TabsTrigger>
+            <TabsTrigger value="gallery" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <Image className="w-4 h-4 mr-2" /> Gallery
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="activities">
@@ -60,6 +67,10 @@ export default function Admin() {
 
           <TabsContent value="directory">
             <Directory />
+          </TabsContent>
+
+          <TabsContent value="gallery">
+            <GalleryManager />
           </TabsContent>
         </Tabs>
       </div>
@@ -212,6 +223,145 @@ function ActivitiesManager() {
           ))
         )}
       </div>
+    </div>
+  );
+}
+
+function GalleryManager() {
+  const { data: photos, isLoading } = useQuery<GalleryPhoto[]>({
+    queryKey: ["/api/gallery"],
+  });
+
+  const deletePhoto = useMutation({
+    mutationFn: async (id: number) => {
+      await apiRequest("DELETE", `/api/gallery/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/gallery"] });
+    },
+  });
+
+  const [uploadedPath, setUploadedPath] = useState<string | null>(null);
+  const [photoTitle, setPhotoTitle] = useState("");
+
+  const savePhoto = useMutation({
+    mutationFn: async (data: { objectPath: string; title?: string }) => {
+      const res = await apiRequest("POST", "/api/gallery", data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/gallery"] });
+      setUploadedPath(null);
+      setPhotoTitle("");
+    },
+  });
+
+  const handleUploadComplete = async (result: any) => {
+    if (result.successful && result.successful.length > 0) {
+      const uploaded = result.successful[0];
+      const objectPath = uploaded.response?.body?.objectPath || uploaded.uploadURL?.split("?")[0];
+      if (objectPath) {
+        setUploadedPath(objectPath);
+      }
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center flex-wrap gap-4">
+        <h2 className="text-xl font-bold">Photo Gallery</h2>
+        <ObjectUploader
+          maxNumberOfFiles={1}
+          maxFileSize={10485760}
+          onGetUploadParameters={async (file) => {
+            const res = await fetch("/api/uploads/request-url", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                name: file.name,
+                size: file.size,
+                contentType: file.type,
+              }),
+            });
+            const { uploadURL } = await res.json();
+            return {
+              method: "PUT" as const,
+              url: uploadURL,
+              headers: { "Content-Type": file.type || "application/octet-stream" },
+            };
+          }}
+          onComplete={handleUploadComplete}
+        >
+          <Plus className="w-4 h-4 mr-2" /> Upload Photo
+        </ObjectUploader>
+      </div>
+
+      {uploadedPath && (
+        <Card className="p-4">
+          <div className="flex flex-col gap-4">
+            <p className="text-sm text-muted-foreground">Photo uploaded! Add a title and save:</p>
+            <Input
+              placeholder="Photo title (optional)"
+              value={photoTitle}
+              onChange={(e) => setPhotoTitle(e.target.value)}
+            />
+            <div className="flex gap-2">
+              <Button
+                onClick={() => savePhoto.mutate({ objectPath: uploadedPath, title: photoTitle || undefined })}
+                disabled={savePhoto.isPending}
+              >
+                {savePhoto.isPending ? "Saving..." : "Save to Gallery"}
+              </Button>
+              <Button variant="ghost" onClick={() => setUploadedPath(null)}>Cancel</Button>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {isLoading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      ) : photos && photos.length > 0 ? (
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {photos.map((photo) => (
+            <Card key={photo.id} className="overflow-hidden group relative" data-testid={`admin-photo-${photo.id}`}>
+              <div className="aspect-square">
+                <img
+                  src={photo.objectPath}
+                  alt={photo.title || "Gallery photo"}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <div className="absolute top-2 right-2">
+                <Button
+                  variant="destructive"
+                  size="icon"
+                  className="opacity-0 group-hover:opacity-100 transition-opacity"
+                  onClick={() => {
+                    if (confirm("Delete this photo?")) deletePhoto.mutate(photo.id);
+                  }}
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </div>
+              {photo.title && (
+                <div className="p-2 bg-background/80 backdrop-blur-sm">
+                  <p className="text-sm truncate">{photo.title}</p>
+                </div>
+              )}
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <Card className="p-12">
+          <div className="text-center text-muted-foreground">
+            <Image className="w-12 h-12 mx-auto mb-4 opacity-50" />
+            <p>No photos in the gallery yet.</p>
+            <p className="text-sm mt-1">Upload photos to share with residents!</p>
+          </div>
+        </Card>
+      )}
     </div>
   );
 }

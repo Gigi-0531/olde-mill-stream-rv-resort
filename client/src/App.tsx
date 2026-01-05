@@ -11,6 +11,7 @@ import Directory from "@/pages/Directory";
 import Activities from "@/pages/Activities";
 import MapPage from "@/pages/Map";
 import Admin from "@/pages/Admin";
+import Gallery from "@/pages/Gallery";
 
 function Router() {
   return (
@@ -23,6 +24,7 @@ function Router() {
           <Route path="/directory" component={Directory} />
           <Route path="/activities" component={Activities} />
           <Route path="/map" component={MapPage} />
+          <Route path="/gallery" component={Gallery} />
           <Route path="/admin" component={Admin} />
           <Route component={NotFound} />
         </Switch>

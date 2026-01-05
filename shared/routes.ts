@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { insertUserSchema, insertActivitySchema, insertNotificationSchema, users, activities, notifications } from './schema';
+import { insertUserSchema, insertActivitySchema, insertNotificationSchema, insertGalleryPhotoSchema, users, activities, notifications, galleryPhotos } from './schema';
 
 export const errorSchemas = {
   validation: z.object({
@@ -118,6 +118,32 @@ export const api = {
             condition: z.string(),
           })),
         }),
+      },
+    },
+  },
+  gallery: {
+    list: {
+      method: 'GET' as const,
+      path: '/api/gallery',
+      responses: {
+        200: z.array(z.custom<typeof galleryPhotos.$inferSelect>()),
+      },
+    },
+    create: {
+      method: 'POST' as const,
+      path: '/api/gallery',
+      input: insertGalleryPhotoSchema,
+      responses: {
+        201: z.custom<typeof galleryPhotos.$inferSelect>(),
+        400: errorSchemas.validation,
+      },
+    },
+    delete: {
+      method: 'DELETE' as const,
+      path: '/api/gallery/:id',
+      responses: {
+        204: z.void(),
+        404: errorSchemas.notFound,
       },
     },
   },

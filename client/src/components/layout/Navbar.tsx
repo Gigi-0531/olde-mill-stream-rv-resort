@@ -8,7 +8,8 @@ import {
   Users, 
   Home,
   Menu,
-  X
+  X,
+  Image
 } from "lucide-react";
 import { useState } from "react";
 import logoImg from "@/assets/logo.jpg";
@@ -58,6 +59,7 @@ export function Navbar() {
             <NavLink href={baseRoute} icon={Home}>Home</NavLink>
             {!isAdmin && <NavLink href="/map" icon={MapIcon}>Map</NavLink>}
             {!isAdmin && <NavLink href="/activities" icon={Calendar}>Activities</NavLink>}
+            {!isAdmin && <NavLink href="/gallery" icon={Image}>Gallery</NavLink>}
             <NavLink href="/directory" icon={Users}>Directory</NavLink>
             <div className="h-6 w-px bg-border mx-2" />
             <Button 
@@ -87,6 +89,7 @@ export function Navbar() {
             <NavLink href={baseRoute} icon={Home}>Home</NavLink>
             {!isAdmin && <NavLink href="/map" icon={MapIcon}>Map</NavLink>}
             {!isAdmin && <NavLink href="/activities" icon={Calendar}>Activities</NavLink>}
+            {!isAdmin && <NavLink href="/gallery" icon={Image}>Gallery</NavLink>}
             <NavLink href="/directory" icon={Users}>Directory</NavLink>
             <Button 
               variant="destructive" 

@@ -28,9 +28,17 @@ export const notifications = pgTable("notifications", {
   active: boolean("active").default(true),
 });
 
+export const galleryPhotos = pgTable("gallery_photos", {
+  id: serial("id").primaryKey(),
+  title: text("title"),
+  objectPath: text("object_path").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const insertUserSchema = createInsertSchema(users).omit({ id: true });
 export const insertActivitySchema = createInsertSchema(activities).omit({ id: true });
 export const insertNotificationSchema = createInsertSchema(notifications).omit({ id: true, createdAt: true });
+export const insertGalleryPhotoSchema = createInsertSchema(galleryPhotos).omit({ id: true, createdAt: true });
 
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -38,6 +46,8 @@ export type Activity = typeof activities.$inferSelect;
 export type InsertActivity = z.infer<typeof insertActivitySchema>;
 export type Notification = typeof notifications.$inferSelect;
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;
+export type GalleryPhoto = typeof galleryPhotos.$inferSelect;
+export type InsertGalleryPhoto = z.infer<typeof insertGalleryPhotoSchema>;
 
 export type LoginRequest = {
   role: 'admin' | 'resident';

@@ -5,6 +5,7 @@ import { api } from "@shared/routes";
 import { z } from "zod";
 import session from "express-session";
 import createMemoryStore from "memorystore";
+import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
 
 const MemoryStore = createMemoryStore(session);
 
@@ -123,6 +124,30 @@ export async function registerRoutes(
       ]
     });
   });
+
+  // Gallery
+  app.get(api.gallery.list.path, async (req, res) => {
+    const photos = await storage.getGalleryPhotos();
+    res.json(photos);
+  });
+
+  app.post(api.gallery.create.path, async (req, res) => {
+    try {
+      const input = api.gallery.create.input.parse(req.body);
+      const photo = await storage.createGalleryPhoto(input);
+      res.status(201).json(photo);
+    } catch (e) {
+      res.status(400).json({ message: "Invalid input" });
+    }
+  });
+
+  app.delete(api.gallery.delete.path, async (req, res) => {
+    await storage.deleteGalleryPhoto(Number(req.params.id));
+    res.status(204).send();
+  });
+
+  // Register Object Storage routes
+  registerObjectStorageRoutes(app);
 
   // Seed Data
   if ((await storage.searchUsers()).length === 0) {

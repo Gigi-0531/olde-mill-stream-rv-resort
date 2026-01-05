@@ -1,11 +1,12 @@
 import { db } from "./db";
 import {
-  users, activities, notifications,
+  users, activities, notifications, galleryPhotos,
   type User, type InsertUser,
   type Activity, type InsertActivity,
-  type Notification, type InsertNotification
+  type Notification, type InsertNotification,
+  type GalleryPhoto, type InsertGalleryPhoto
 } from "@shared/schema";
-import { eq, ilike, or, and } from "drizzle-orm";
+import { eq, ilike, or, and, desc } from "drizzle-orm";
 
 export interface IStorage {
   // Users
@@ -24,6 +25,11 @@ export interface IStorage {
   getNotifications(): Promise<Notification[]>;
   createNotification(notification: InsertNotification): Promise<Notification>;
   getActiveNotifications(): Promise<Notification[]>;
+
+  // Gallery
+  getGalleryPhotos(): Promise<GalleryPhoto[]>;
+  createGalleryPhoto(photo: InsertGalleryPhoto): Promise<GalleryPhoto>;
+  deleteGalleryPhoto(id: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -93,6 +99,19 @@ export class DatabaseStorage implements IStorage {
 
   async getActiveNotifications(): Promise<Notification[]> {
     return db.select().from(notifications).where(eq(notifications.active, true)).orderBy(notifications.createdAt);
+  }
+
+  async getGalleryPhotos(): Promise<GalleryPhoto[]> {
+    return db.select().from(galleryPhotos).orderBy(desc(galleryPhotos.createdAt));
+  }
+
+  async createGalleryPhoto(photo: InsertGalleryPhoto): Promise<GalleryPhoto> {
+    const [newPhoto] = await db.insert(galleryPhotos).values(photo).returning();
+    return newPhoto;
+  }
+
+  async deleteGalleryPhoto(id: number): Promise<void> {
+    await db.delete(galleryPhotos).where(eq(galleryPhotos.id, id));
   }
 }
 
