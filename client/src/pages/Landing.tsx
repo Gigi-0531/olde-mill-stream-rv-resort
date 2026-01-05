@@ -33,9 +33,9 @@ export default function Landing() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FDFBF7] flex flex-col items-center justify-center p-4 relative overflow-hidden">
+    <div className="min-h-screen bg-[#E6F3F7] flex flex-col items-center justify-center p-4 relative overflow-hidden">
       {/* Background decoration */}
-      <div className="absolute top-0 left-0 w-full h-1/2 bg-[#2C5F6D] rounded-b-[50%] scale-150 -translate-y-1/2 -z-10" />
+      <div className="absolute top-0 left-0 w-full h-1/2 bg-[#B8D9E8] rounded-b-[50%] scale-150 -translate-y-1/2 -z-10" />
 
       <div className="w-full max-w-md space-y-8 animate-in fade-in zoom-in duration-500">
         <div className="text-center space-y-4">
