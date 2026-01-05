@@ -53,7 +53,7 @@ export default function Landing() {
           <CardContent className="p-8">
             {mode === 'select' && (
               <div className="space-y-4">
-                <p className="text-center text-muted-foreground mb-6">Welcome! Please select your login type to continue.</p>
+                <p className="text-center text-muted-foreground mb-6">Welcome Home! Please select your login type to continue.</p>
                 <Button 
                   onClick={() => setMode('resident')} 
                   className="w-full h-14 text-lg gap-3 bg-[#2C5F6D] hover:bg-[#1f4550]"
