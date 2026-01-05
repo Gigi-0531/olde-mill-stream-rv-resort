@@ -137,20 +137,36 @@ function ActivitiesManager() {
                   <FormField
                     control={form.control}
                     name="date"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Date & Time</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="datetime-local" 
-                            {...field} 
-                            value={field.value ? new Date(field.value).toISOString().slice(0, 16) : ''}
-                            onChange={(e) => field.onChange(new Date(e.target.value))}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+                    render={({ field }) => {
+                      const formatDateForInput = (date: Date | string | undefined) => {
+                        if (!date) return '';
+                        try {
+                          const d = new Date(date);
+                          if (isNaN(d.getTime())) return '';
+                          return d.toISOString().slice(0, 16);
+                        } catch {
+                          return '';
+                        }
+                      };
+                      return (
+                        <FormItem>
+                          <FormLabel>Date & Time</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="datetime-local" 
+                              value={formatDateForInput(field.value)}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                if (val) {
+                                  field.onChange(new Date(val));
+                                }
+                              }}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      );
+                    }}
                   />
                   <FormField
                     control={form.control}
