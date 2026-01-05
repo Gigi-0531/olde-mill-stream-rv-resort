@@ -8,7 +8,8 @@ import {
   Users, 
   Home,
   Image,
-  ChevronDown
+  ChevronDown,
+  LogIn
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import logoImg from "@/assets/logo.jpg";
@@ -54,10 +55,9 @@ export function Navbar() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  if (!user) return null;
-
-  const isAdmin = user.role === 'admin';
-  const baseRoute = isAdmin ? '/admin' : '/dashboard';
+  const isLoggedIn = !!user;
+  const isAdmin = user?.role === 'admin';
+  const baseRoute = isAdmin ? '/admin' : isLoggedIn ? '/dashboard' : '/';
 
   const NavLink = ({ href, icon: Icon, children }: { href: string; icon: any; children: React.ReactNode }) => {
     const isActive = location === href;
@@ -71,7 +71,7 @@ export function Navbar() {
             : 'text-foreground hover:bg-accent'}
         `} 
         onClick={() => setIsMenuOpen(false)}
-        data-testid={`nav-link-${children?.toString().toLowerCase()}`}
+        data-testid={`nav-link-${children?.toString().toLowerCase().replace(/\s+/g, '-')}`}
       >
         <Icon className="w-5 h-5" />
         <span className="font-medium">{children}</span>
@@ -80,70 +80,62 @@ export function Navbar() {
   };
 
   return (
-    <nav className="sticky top-0 z-50 w-full bg-white/95 backdrop-blur-md border-b border-border shadow-sm">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
-          <div className="flex items-center gap-3">
-            <Link href={baseRoute} className="flex items-center gap-2 group">
-              <div className="relative w-12 h-12">
-                <img src={logoImg} alt="Olde Mill Stream" className="w-full h-full object-contain" />
+    <nav className="fixed top-4 right-4 z-50">
+      <div className="relative" ref={menuRef}>
+        <Button
+          variant="default"
+          onClick={() => setIsMenuOpen(!isMenuOpen)}
+          className="flex items-center gap-2 px-4 py-3 h-auto rounded-full shadow-lg bg-primary hover:bg-primary/90"
+          data-testid="button-rv-menu"
+        >
+          <RVIcon className="w-10 h-6 text-white" />
+          <ChevronDown className={`w-4 h-4 text-white transition-transform duration-200 ${isMenuOpen ? 'rotate-180' : ''}`} />
+        </Button>
+
+        {isMenuOpen && (
+          <div 
+            className="absolute right-0 top-full mt-2 w-56 bg-white rounded-lg shadow-xl border border-border overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200"
+            data-testid="dropdown-menu"
+          >
+            <div className="bg-gradient-to-r from-primary/10 to-primary/5 px-4 py-3 border-b border-border">
+              <div className="flex items-center gap-2">
+                <RVIcon className="w-8 h-5 text-primary" />
+                <span className="font-display font-semibold text-primary text-sm">Navigate</span>
               </div>
-              <span className="font-display font-bold text-xl text-primary hidden sm:block">
-                Olde Mill Stream
-              </span>
-            </Link>
-          </div>
-
-          <div className="relative" ref={menuRef}>
-            <Button
-              variant="ghost"
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="flex items-center gap-2 px-3 py-2 h-auto"
-              data-testid="button-rv-menu"
-            >
-              <RVIcon className="w-12 h-8 text-primary" />
-              <span className="hidden sm:inline font-medium text-primary">Menu</span>
-              <ChevronDown className={`w-4 h-4 text-primary transition-transform duration-200 ${isMenuOpen ? 'rotate-180' : ''}`} />
-            </Button>
-
-            {isMenuOpen && (
-              <div 
-                className="absolute right-0 top-full mt-2 w-56 bg-white rounded-lg shadow-xl border border-border overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200"
-                data-testid="dropdown-menu"
-              >
-                <div className="bg-gradient-to-r from-primary/10 to-primary/5 px-4 py-3 border-b border-border">
-                  <div className="flex items-center gap-2">
-                    <RVIcon className="w-8 h-5 text-primary" />
-                    <span className="font-display font-semibold text-primary text-sm">Navigate</span>
-                  </div>
-                </div>
-                
-                <div className="py-1">
+            </div>
+            
+            <div className="py-1">
+              {isLoggedIn ? (
+                <>
                   <NavLink href={baseRoute} icon={Home}>Home</NavLink>
                   {!isAdmin && <NavLink href="/map" icon={MapIcon}>Park Map</NavLink>}
                   {!isAdmin && <NavLink href="/activities" icon={Calendar}>Activities</NavLink>}
                   {!isAdmin && <NavLink href="/gallery" icon={Image}>Gallery</NavLink>}
                   <NavLink href="/directory" icon={Users}>Directory</NavLink>
-                </div>
+                </>
+              ) : (
+                <NavLink href="/" icon={LogIn}>Login</NavLink>
+              )}
+            </div>
 
-                <div className="border-t border-border p-2">
-                  <Button 
-                    variant="destructive" 
-                    className="w-full justify-start" 
-                    onClick={() => {
-                      setIsMenuOpen(false);
-                      logout();
-                    }}
-                    data-testid="button-logout"
-                  >
-                    <LogOut className="w-4 h-4 mr-2" />
-                    Logout
-                  </Button>
-                </div>
+            {isLoggedIn && (
+              <div className="border-t border-border p-2">
+                <Button 
+                  variant="destructive" 
+                  className="w-full justify-start" 
+                  onClick={() => {
+                    setIsMenuOpen(false);
+                    logout();
+                  }}
+                  data-testid="button-logout"
+                >
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Logout
+                </Button>
               </div>
             )}
           </div>
-        </div>
+        )}
       </div>
     </nav>
   );
