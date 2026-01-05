@@ -130,7 +130,7 @@ export async function registerRoutes(
     await storage.createUser({
       role: 'admin',
       username: 'omsmanagement86@gmail.com',
-      password: 'admin',
+      password: 'admin!',
       firstName: 'Admin',
       lastName: 'User'
     });
