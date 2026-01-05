@@ -7,17 +7,52 @@ import {
   Calendar, 
   Users, 
   Home,
-  Menu,
-  X,
-  Image
+  Image,
+  ChevronDown
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import logoImg from "@/assets/logo.jpg";
+
+function RVIcon({ className }: { className?: string }) {
+  return (
+    <svg 
+      viewBox="0 0 100 60" 
+      className={className}
+      fill="currentColor"
+    >
+      <rect x="5" y="20" width="70" height="30" rx="3" />
+      <rect x="60" y="15" width="35" height="35" rx="3" />
+      <rect x="65" y="20" width="12" height="10" rx="1" fill="currentColor" className="opacity-30" />
+      <rect x="80" y="20" width="12" height="10" rx="1" fill="currentColor" className="opacity-30" />
+      <rect x="10" y="25" width="15" height="10" rx="1" fill="currentColor" className="opacity-30" />
+      <rect x="28" y="25" width="15" height="10" rx="1" fill="currentColor" className="opacity-30" />
+      <rect x="46" y="25" width="10" height="20" rx="1" fill="currentColor" className="opacity-30" />
+      <circle cx="20" cy="52" r="7" />
+      <circle cx="20" cy="52" r="3" fill="currentColor" className="opacity-30" />
+      <circle cx="50" cy="52" r="7" />
+      <circle cx="50" cy="52" r="3" fill="currentColor" className="opacity-30" />
+      <circle cx="80" cy="52" r="7" />
+      <circle cx="80" cy="52" r="3" fill="currentColor" className="opacity-30" />
+      <rect x="0" y="35" width="8" height="3" rx="1" />
+    </svg>
+  );
+}
 
 export function Navbar() {
   const { user, logout } = useAuth();
   const [location] = useLocation();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   if (!user) return null;
 
@@ -27,22 +62,27 @@ export function Navbar() {
   const NavLink = ({ href, icon: Icon, children }: { href: string; icon: any; children: React.ReactNode }) => {
     const isActive = location === href;
     return (
-      <Link href={href} className={`
-        flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-200
-        ${isActive 
-          ? 'bg-primary text-primary-foreground shadow-md' 
-          : 'text-muted-foreground hover:bg-accent hover:text-foreground'}
-      `} onClick={() => setIsMobileMenuOpen(false)}>
-        <Icon className="w-4 h-4" />
+      <Link 
+        href={href} 
+        className={`
+          flex items-center gap-3 px-4 py-3 transition-all duration-200
+          ${isActive 
+            ? 'bg-primary text-primary-foreground' 
+            : 'text-foreground hover:bg-accent'}
+        `} 
+        onClick={() => setIsMenuOpen(false)}
+        data-testid={`nav-link-${children?.toString().toLowerCase()}`}
+      >
+        <Icon className="w-5 h-5" />
         <span className="font-medium">{children}</span>
       </Link>
     );
   };
 
   return (
-    <nav className="sticky top-0 z-50 w-full bg-white/90 backdrop-blur-md border-b border-border shadow-sm">
+    <nav className="sticky top-0 z-50 w-full bg-white/95 backdrop-blur-md border-b border-border shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16">
+        <div className="flex justify-between items-center h-16">
           <div className="flex items-center gap-3">
             <Link href={baseRoute} className="flex items-center gap-2 group">
               <div className="relative w-12 h-12">
@@ -54,54 +94,57 @@ export function Navbar() {
             </Link>
           </div>
 
-          {/* Desktop Nav */}
-          <div className="hidden md:flex items-center gap-2">
-            <NavLink href={baseRoute} icon={Home}>Home</NavLink>
-            {!isAdmin && <NavLink href="/map" icon={MapIcon}>Map</NavLink>}
-            {!isAdmin && <NavLink href="/activities" icon={Calendar}>Activities</NavLink>}
-            {!isAdmin && <NavLink href="/gallery" icon={Image}>Gallery</NavLink>}
-            <NavLink href="/directory" icon={Users}>Directory</NavLink>
-            <div className="h-6 w-px bg-border mx-2" />
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={() => logout()}
-              className="text-destructive hover:bg-destructive/10"
+          <div className="relative" ref={menuRef}>
+            <Button
+              variant="ghost"
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className="flex items-center gap-2 px-3 py-2 h-auto"
+              data-testid="button-rv-menu"
             >
-              <LogOut className="w-4 h-4 mr-2" />
-              Logout
+              <RVIcon className="w-12 h-8 text-primary" />
+              <span className="hidden sm:inline font-medium text-primary">Menu</span>
+              <ChevronDown className={`w-4 h-4 text-primary transition-transform duration-200 ${isMenuOpen ? 'rotate-180' : ''}`} />
             </Button>
-          </div>
 
-          {/* Mobile Menu Button */}
-          <div className="flex items-center md:hidden">
-            <Button variant="ghost" size="icon" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
-              {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-            </Button>
+            {isMenuOpen && (
+              <div 
+                className="absolute right-0 top-full mt-2 w-56 bg-white rounded-lg shadow-xl border border-border overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200"
+                data-testid="dropdown-menu"
+              >
+                <div className="bg-gradient-to-r from-primary/10 to-primary/5 px-4 py-3 border-b border-border">
+                  <div className="flex items-center gap-2">
+                    <RVIcon className="w-8 h-5 text-primary" />
+                    <span className="font-display font-semibold text-primary text-sm">Navigate</span>
+                  </div>
+                </div>
+                
+                <div className="py-1">
+                  <NavLink href={baseRoute} icon={Home}>Home</NavLink>
+                  {!isAdmin && <NavLink href="/map" icon={MapIcon}>Park Map</NavLink>}
+                  {!isAdmin && <NavLink href="/activities" icon={Calendar}>Activities</NavLink>}
+                  {!isAdmin && <NavLink href="/gallery" icon={Image}>Gallery</NavLink>}
+                  <NavLink href="/directory" icon={Users}>Directory</NavLink>
+                </div>
+
+                <div className="border-t border-border p-2">
+                  <Button 
+                    variant="destructive" 
+                    className="w-full justify-start" 
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      logout();
+                    }}
+                    data-testid="button-logout"
+                  >
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Logout
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
-
-      {/* Mobile Nav */}
-      {isMobileMenuOpen && (
-        <div className="md:hidden bg-white border-b border-border">
-          <div className="px-4 pt-2 pb-4 space-y-1">
-            <NavLink href={baseRoute} icon={Home}>Home</NavLink>
-            {!isAdmin && <NavLink href="/map" icon={MapIcon}>Map</NavLink>}
-            {!isAdmin && <NavLink href="/activities" icon={Calendar}>Activities</NavLink>}
-            {!isAdmin && <NavLink href="/gallery" icon={Image}>Gallery</NavLink>}
-            <NavLink href="/directory" icon={Users}>Directory</NavLink>
-            <Button 
-              variant="destructive" 
-              className="w-full justify-start mt-4" 
-              onClick={() => logout()}
-            >
-              <LogOut className="w-4 h-4 mr-2" />
-              Logout
-            </Button>
-          </div>
-        </div>
-      )}
     </nav>
   );
 }
