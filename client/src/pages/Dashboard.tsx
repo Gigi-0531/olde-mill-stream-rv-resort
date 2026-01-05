@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Link } from "wouter";
 import { Map, Calendar, Users, ArrowRight } from "lucide-react";
+import resortImage from "@assets/facebook_1767649108158_7414057724947186807_1767655553163.jpg";
 import { useActivities } from "@/hooks/use-resources";
 import { format } from "date-fns";
 
@@ -46,7 +47,7 @@ export default function Dashboard() {
                 <CardTitle className="font-display">Park Map</CardTitle>
               </CardHeader>
               <CardContent className="flex-1 min-h-[200px] flex items-center justify-center bg-accent/20 rounded-b-xl relative overflow-hidden group p-0">
-                <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1596422846543-75c6fc197f07?w=800&q=80')] bg-cover bg-center opacity-50 group-hover:scale-110 transition-transform duration-700" />
+                <img src={resortImage} alt="Resort lake view" className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:scale-110 transition-transform duration-700" />
                 <div className="absolute inset-0 bg-primary/20" />
                 
                 <Link href="/map" className="relative z-10">
