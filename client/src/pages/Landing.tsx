@@ -43,8 +43,7 @@ export default function Landing() {
              <img src={logoImg} alt="Olde Mill Stream" className="w-full h-full object-contain mix-blend-multiply" />
           </div>
           <div>
-            <h1 className="text-4xl font-display font-bold text-[#2C5F6D] drop-shadow-sm">Olde Mill Stream</h1>
-            <p className="text-[#8B5E3C] font-medium tracking-wide uppercase text-sm mt-2">RV Resort</p>
+            <h1 className="text-3xl font-serif font-bold text-[#2C5F6D] tracking-wide" style={{ fontFamily: "'Playfair Display', serif" }}>Olde Mill Stream RV Resort</h1>
             <p className="text-muted-foreground text-sm mt-1">1000 N. Central Ave Umatilla, FL 32784</p>
             <p className="text-muted-foreground text-sm">352.669.3141</p>
           </div>
