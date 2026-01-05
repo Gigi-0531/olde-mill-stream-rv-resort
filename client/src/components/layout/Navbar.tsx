@@ -13,31 +13,7 @@ import {
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import logoImg from "@/assets/logo.jpg";
-
-function RVIcon({ className }: { className?: string }) {
-  return (
-    <svg 
-      viewBox="0 0 100 60" 
-      className={className}
-      fill="currentColor"
-    >
-      <rect x="5" y="20" width="70" height="30" rx="3" />
-      <rect x="60" y="15" width="35" height="35" rx="3" />
-      <rect x="65" y="20" width="12" height="10" rx="1" fill="currentColor" className="opacity-30" />
-      <rect x="80" y="20" width="12" height="10" rx="1" fill="currentColor" className="opacity-30" />
-      <rect x="10" y="25" width="15" height="10" rx="1" fill="currentColor" className="opacity-30" />
-      <rect x="28" y="25" width="15" height="10" rx="1" fill="currentColor" className="opacity-30" />
-      <rect x="46" y="25" width="10" height="20" rx="1" fill="currentColor" className="opacity-30" />
-      <circle cx="20" cy="52" r="7" />
-      <circle cx="20" cy="52" r="3" fill="currentColor" className="opacity-30" />
-      <circle cx="50" cy="52" r="7" />
-      <circle cx="50" cy="52" r="3" fill="currentColor" className="opacity-30" />
-      <circle cx="80" cy="52" r="7" />
-      <circle cx="80" cy="52" r="3" fill="currentColor" className="opacity-30" />
-      <rect x="0" y="35" width="8" height="3" rx="1" />
-    </svg>
-  );
-}
+import rvIcon from "@assets/image_1767656588622.png";
 
 export function Navbar() {
   const { user, logout } = useAuth();
@@ -85,11 +61,11 @@ export function Navbar() {
         <Button
           variant="default"
           onClick={() => setIsMenuOpen(!isMenuOpen)}
-          className="flex items-center gap-2 px-4 py-3 h-auto rounded-full shadow-lg bg-primary hover:bg-primary/90"
+          className="flex items-center gap-2 px-3 py-2 h-auto rounded-full shadow-lg bg-white hover:bg-gray-50 border border-border"
           data-testid="button-rv-menu"
         >
-          <RVIcon className="w-10 h-6 text-white" />
-          <ChevronDown className={`w-4 h-4 text-white transition-transform duration-200 ${isMenuOpen ? 'rotate-180' : ''}`} />
+          <img src={rvIcon} alt="Menu" className="w-10 h-10 object-contain" />
+          <ChevronDown className={`w-4 h-4 text-primary transition-transform duration-200 ${isMenuOpen ? 'rotate-180' : ''}`} />
         </Button>
 
         {isMenuOpen && (
@@ -99,7 +75,7 @@ export function Navbar() {
           >
             <div className="bg-gradient-to-r from-primary/10 to-primary/5 px-4 py-3 border-b border-border">
               <div className="flex items-center gap-2">
-                <RVIcon className="w-8 h-5 text-primary" />
+                <img src={rvIcon} alt="RV" className="w-6 h-6 object-contain" />
                 <span className="font-display font-semibold text-primary text-sm">Navigate</span>
               </div>
             </div>
