@@ -75,44 +75,44 @@ export default function Dashboard() {
 
           {/* Column 3: Park Map & Directions */}
           <div className="space-y-4">
-            <Link href="/map" className="block">
-              <Card className="shadow-lg border-none overflow-hidden cursor-pointer hover:shadow-xl transition-shadow">
-                <div className="relative w-full h-[180px]">
-                  <img 
-                    src={parkMapImage} 
-                    alt="Park Map" 
-                    className="w-full h-full object-cover"
-                    data-testid="img-park-map-preview"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                  <div className="absolute bottom-0 left-0 right-0 p-3 flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-white">
-                      <Map className="w-4 h-4" />
-                      <span className="font-semibold text-sm">Park Map</span>
+            <div className="flex gap-3">
+              <Link href="/map" className="block flex-1">
+                <Card className="shadow-lg border-none overflow-hidden cursor-pointer hover:shadow-xl transition-shadow h-full">
+                  <div className="relative w-full h-[140px]">
+                    <img 
+                      src={parkMapImage} 
+                      alt="Park Map" 
+                      className="w-full h-full object-cover"
+                      data-testid="img-park-map-preview"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                    <div className="absolute bottom-0 left-0 right-0 p-2 flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-white">
+                        <Map className="w-4 h-4" />
+                        <span className="font-semibold text-sm">Park Map</span>
+                      </div>
+                      <ArrowRight className="w-4 h-4 text-white" />
                     </div>
-                    <ArrowRight className="w-4 h-4 text-white" />
+                  </div>
+                </Card>
+              </Link>
+
+              <Card 
+                className="shadow-lg border-none overflow-hidden cursor-pointer hover:shadow-xl transition-shadow flex-shrink-0"
+                onClick={() => window.open('https://www.google.com/maps/dir/?api=1&destination=1000+N+Central+Ave,+Umatilla,+FL+32784&travelmode=driving', '_blank')}
+                data-testid="button-directions-home"
+              >
+                <div className="h-[140px] w-[100px] bg-gradient-to-b from-[#2a4a6e] to-[#1E3A5F] flex flex-col items-center justify-center gap-2 p-3">
+                  <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+                    <Navigation className="w-5 h-5 text-white" />
+                  </div>
+                  <div className="text-white text-center">
+                    <p className="font-semibold text-xs">Get</p>
+                    <p className="font-semibold text-xs">Directions</p>
                   </div>
                 </div>
               </Card>
-            </Link>
-
-            <Card className="shadow-lg border-none overflow-hidden">
-              <div className="p-3 bg-gradient-to-r from-[#2a4a6e] to-[#1E3A5F] flex items-center justify-between gap-3">
-                <div className="text-white text-sm">
-                  <p className="font-semibold">Get Directions</p>
-                  <p className="text-white/70 text-xs">Umatilla, FL</p>
-                </div>
-                <Button 
-                  size="sm"
-                  onClick={() => window.open('https://www.google.com/maps/dir/?api=1&destination=1000+N+Central+Ave,+Umatilla,+FL+32784&travelmode=driving', '_blank')}
-                  className="bg-white text-[#1E3A5F] hover:bg-white/90 gap-1.5 font-semibold shrink-0"
-                  data-testid="button-directions-home"
-                >
-                  <Navigation className="w-3.5 h-3.5" />
-                  Directions
-                </Button>
-              </div>
-            </Card>
+            </div>
           </div>
         </div>
       </div>
