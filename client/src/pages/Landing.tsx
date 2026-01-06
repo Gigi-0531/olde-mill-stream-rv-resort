@@ -44,17 +44,17 @@ export default function Landing() {
           </div>
           
           {/* Decorative Gold Ribbon Banner */}
-          <div className="relative mx-auto" style={{ fontFamily: "'Libre Baskerville', serif" }}>
-            <div className="relative">
+          <div className="relative mx-auto">
+            <div className="relative inline-block">
               {/* Ribbon tails */}
-              <div className="absolute -left-6 top-1/2 -translate-y-1/2 w-8 h-10 bg-gradient-to-r from-amber-600 to-amber-500 transform -skew-y-12 shadow-md" />
-              <div className="absolute -right-6 top-1/2 -translate-y-1/2 w-8 h-10 bg-gradient-to-l from-amber-600 to-amber-500 transform skew-y-12 shadow-md" />
+              <div className="absolute -left-4 top-1/2 -translate-y-1/2 w-6 h-8 bg-gradient-to-br from-amber-500 to-amber-600 transform -skew-y-6 rounded-bl-lg shadow-md" />
+              <div className="absolute -right-4 top-1/2 -translate-y-1/2 w-6 h-8 bg-gradient-to-bl from-amber-500 to-amber-600 transform skew-y-6 rounded-br-lg shadow-md" />
               
-              {/* Main ribbon */}
-              <div className="relative bg-gradient-to-b from-amber-400 via-yellow-300 to-amber-400 px-8 py-2 shadow-lg border-t-2 border-b-2 border-amber-500/30">
+              {/* Main ribbon - curved edges */}
+              <div className="relative bg-gradient-to-b from-amber-300 via-yellow-200 to-amber-300 px-10 py-2.5 shadow-lg rounded-full">
                 <div className="text-center">
-                  <span className="text-amber-900 font-bold text-sm sm:text-base tracking-wide block">Celebrating 40 Years</span>
-                  <span className="text-amber-800 text-xs font-semibold">1986-2026</span>
+                  <span className="text-amber-800 font-semibold text-base sm:text-lg block" style={{ fontFamily: "'Dancing Script', cursive" }}>Celebrating 40 Years</span>
+                  <span className="text-amber-700 text-xs" style={{ fontFamily: "'Libre Baskerville', serif" }}>1986-2026</span>
                 </div>
               </div>
             </div>
