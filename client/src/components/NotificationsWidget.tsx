@@ -100,9 +100,9 @@ export function NotificationsWidget() {
               </AlertDescription>
               {isAdmin && (
                 <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute top-2 right-2 h-6 w-6 text-red-700 hover:text-red-900 hover:bg-red-100"
+                  variant="destructive"
+                  size="sm"
+                  className="absolute top-2 right-2"
                   onClick={() => {
                     if (confirm("Remove this alert?")) {
                       deleteNotification.mutate(notif.id);
@@ -110,7 +110,7 @@ export function NotificationsWidget() {
                   }}
                   data-testid={`button-delete-alert-${notif.id}`}
                 >
-                  <X className="h-4 w-4" />
+                  <X className="h-3 w-3 mr-1" /> Remove
                 </Button>
               )}
             </Alert>
