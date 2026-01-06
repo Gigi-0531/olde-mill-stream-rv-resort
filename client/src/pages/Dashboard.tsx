@@ -72,6 +72,24 @@ export default function Dashboard() {
               </CardContent>
             </Card>
             <NotificationsWidget />
+            
+            {/* Resort Website Link */}
+            <a 
+              href="https://www.oldemillstreamrvresort.com/" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="block"
+              data-testid="link-resort-website"
+            >
+              <Card className="shadow-lg border-none overflow-hidden cursor-pointer hover:shadow-xl transition-all bg-white p-4 flex items-center justify-center">
+                <img 
+                  src={logoImg} 
+                  alt="Visit Olde Mill Stream RV Resort Website" 
+                  className="h-20 w-auto"
+                  data-testid="img-logo-link"
+                />
+              </Card>
+            </a>
           </div>
 
           {/* Column 3: Park Map & Directions */}
@@ -117,24 +135,6 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
-
-      {/* Logo Link - Bottom Right */}
-      <a 
-        href="https://www.oldemillstreamrvresort.com/" 
-        target="_blank" 
-        rel="noopener noreferrer"
-        className="fixed bottom-6 right-6 z-50"
-        data-testid="link-resort-website"
-      >
-        <div className="bg-white rounded-xl p-2 shadow-xl hover:shadow-2xl transition-all hover:scale-105">
-          <img 
-            src={logoImg} 
-            alt="Olde Mill Stream RV Resort" 
-            className="h-24 w-auto"
-            data-testid="img-logo-link"
-          />
-        </div>
-      </a>
     </div>
   );
 }
