@@ -58,15 +58,16 @@ export function Navbar() {
     <>
       {/* Top Header with Logo */}
       <header className="fixed top-0 left-0 right-0 z-40 bg-[#1E3A5F] shadow-md">
-        <div className="flex items-center justify-between px-4 py-2">
+        <div className="flex items-center justify-between px-4 py-1">
           <Link href={baseRoute} className="flex items-center gap-3">
-            <img 
-              src={logoImg} 
-              alt="Olde Mill Stream RV Resort" 
-              className="h-12 w-auto rounded"
-              data-testid="img-header-logo"
-            />
-            <span className="font-display text-white text-lg hidden sm:block">Olde Mill Stream RV Resort</span>
+            <div className="bg-white rounded-lg p-1">
+              <img 
+                src={logoImg} 
+                alt="Olde Mill Stream RV Resort" 
+                className="h-14 w-auto"
+                data-testid="img-header-logo"
+              />
+            </div>
           </Link>
         </div>
       </header>
