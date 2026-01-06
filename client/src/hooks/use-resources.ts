@@ -75,6 +75,20 @@ export function useCreateNotification() {
   });
 }
 
+export function useDeleteNotification() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: number) => {
+      const url = buildUrl(api.notifications.delete.path, { id });
+      const res = await fetch(url, { method: api.notifications.delete.method });
+      if (!res.ok) throw new Error("Failed to delete notification");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [api.notifications.list.path] });
+    },
+  });
+}
+
 // --- Users / Directory ---
 export function useUsers(search?: string) {
   return useQuery({

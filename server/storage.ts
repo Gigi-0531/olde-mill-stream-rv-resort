@@ -25,6 +25,7 @@ export interface IStorage {
   getNotifications(): Promise<Notification[]>;
   createNotification(notification: InsertNotification): Promise<Notification>;
   getActiveNotifications(): Promise<Notification[]>;
+  deleteNotification(id: number): Promise<void>;
 
   // Gallery
   getGalleryPhotos(): Promise<GalleryPhoto[]>;
@@ -99,6 +100,10 @@ export class DatabaseStorage implements IStorage {
 
   async getActiveNotifications(): Promise<Notification[]> {
     return db.select().from(notifications).where(eq(notifications.active, true)).orderBy(notifications.createdAt);
+  }
+
+  async deleteNotification(id: number): Promise<void> {
+    await db.delete(notifications).where(eq(notifications.id, id));
   }
 
   async getGalleryPhotos(): Promise<GalleryPhoto[]> {

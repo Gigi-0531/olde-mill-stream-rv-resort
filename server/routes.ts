@@ -104,6 +104,11 @@ export async function registerRoutes(
     }
   });
 
+  app.delete(api.notifications.delete.path, async (req, res) => {
+    await storage.deleteNotification(Number(req.params.id));
+    res.status(204).send();
+  });
+
   // Users / Directory
   app.get(api.users.list.path, async (req, res) => {
     const query = req.query.search as string | undefined;

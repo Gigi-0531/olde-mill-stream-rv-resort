@@ -1,7 +1,7 @@
-import { useNotifications, useCreateNotification } from "@/hooks/use-resources";
+import { useNotifications, useCreateNotification, useDeleteNotification } from "@/hooks/use-resources";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Bell, AlertCircle, Plus } from "lucide-react";
+import { Bell, AlertCircle, Plus, X } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "./ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog";
@@ -20,6 +20,7 @@ export function NotificationsWidget() {
   const isAdmin = user?.role === 'admin';
   const [isOpen, setIsOpen] = useState(false);
   const createNotification = useCreateNotification();
+  const deleteNotification = useDeleteNotification();
 
   const form = useForm({
     resolver: zodResolver(insertNotificationSchema),
@@ -91,12 +92,27 @@ export function NotificationsWidget() {
           <p className="text-muted-foreground text-sm italic py-2">No active alerts at the moment.</p>
         ) : (
           activeNotifications.map((notif) => (
-            <Alert key={notif.id} variant="destructive" className="bg-red-50 border-red-200 text-red-900">
+            <Alert key={notif.id} variant="destructive" className="bg-red-50 border-red-200 text-red-900 relative">
               <AlertCircle className="h-4 w-4" />
               <AlertTitle className="font-semibold">Important Update</AlertTitle>
-              <AlertDescription className="mt-1 text-sm">
+              <AlertDescription className="mt-1 text-sm pr-8">
                 {notif.content}
               </AlertDescription>
+              {isAdmin && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute top-2 right-2 h-6 w-6 text-red-700 hover:text-red-900 hover:bg-red-100"
+                  onClick={() => {
+                    if (confirm("Remove this alert?")) {
+                      deleteNotification.mutate(notif.id);
+                    }
+                  }}
+                  data-testid={`button-delete-alert-${notif.id}`}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
             </Alert>
           ))
         )}
