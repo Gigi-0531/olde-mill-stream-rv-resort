@@ -40,8 +40,8 @@ export default function Landing() {
           className="absolute top-6 -left-14 w-60 bg-gradient-to-r from-amber-600 via-yellow-400 to-amber-600 text-center py-3.5 shadow-xl transform -rotate-45"
           style={{ boxShadow: '0 4px 15px rgba(0,0,0,0.4)' }}
         >
-          <span className="block text-amber-900 font-bold italic" style={{ fontFamily: "'Playfair Display', serif", fontSize: '19px' }}>40th Anniversary</span>
-          <span className="block text-amber-800 text-xs font-semibold tracking-wide">1986-2026</span>
+          <span className="block text-blue-900 font-bold italic" style={{ fontFamily: "'Playfair Display', serif", fontSize: '19px' }}>40th Anniversary</span>
+          <span className="block text-blue-800 text-xs font-semibold tracking-wide">1986-2026</span>
         </div>
       </div>
       
