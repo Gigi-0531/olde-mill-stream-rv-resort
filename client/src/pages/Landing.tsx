@@ -40,8 +40,8 @@ export default function Landing() {
           className="absolute top-6 -left-14 w-60 bg-gradient-to-r from-amber-600 via-yellow-400 to-amber-600 text-center py-3.5 shadow-xl transform -rotate-45"
           style={{ boxShadow: '0 4px 15px rgba(0,0,0,0.4)' }}
         >
-          <span className="block text-blue-900 font-bold italic" style={{ fontFamily: "'Playfair Display', serif", fontSize: '19px' }}>40th Anniversary</span>
-          <span className="block text-blue-800 text-xs font-semibold tracking-wide">1986-2026</span>
+          <span className="block text-black font-bold italic" style={{ fontFamily: "'Playfair Display', serif", fontSize: '19px' }}>40th Anniversary</span>
+          <span className="block text-black text-xs font-semibold tracking-wide">1986-2026</span>
         </div>
       </div>
       
@@ -70,14 +70,14 @@ export default function Landing() {
                 <p className="text-center text-muted-foreground mb-6">Please select your login type to continue.</p>
                 <Button 
                   onClick={() => setMode('resident')} 
-                  className="w-full h-14 text-lg gap-3 bg-[#2C5F6D] hover:bg-[#1f4550]"
+                  className="w-full h-14 text-lg gap-3 bg-[#1E3A5F] hover:bg-[#152a45]"
                 >
                   <User className="w-5 h-5" /> Resident Portal
                 </Button>
                 <Button 
                   onClick={() => setMode('admin')} 
                   variant="outline" 
-                  className="w-full h-14 text-lg gap-3 border-[#2C5F6D] text-[#2C5F6D] hover:bg-[#2C5F6D]/5"
+                  className="w-full h-14 text-lg gap-3 border-[#1E3A5F] text-[#1E3A5F] hover:bg-[#1E3A5F]/5"
                 >
                   <ShieldCheck className="w-5 h-5" /> Admin Access
                 </Button>

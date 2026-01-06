@@ -11,7 +11,7 @@ export default function MapPage() {
           <p className="text-muted-foreground">Navigate the park grounds</p>
         </div>
 
-        <Card className="aspect-video w-full border-4 border-[#2C5F6D] relative shadow-2xl overflow-hidden flex items-center justify-center">
+        <Card className="aspect-video w-full border-4 border-[#1E3A5F] relative shadow-2xl overflow-hidden flex items-center justify-center">
           <img 
             src={resortImage} 
             alt="Olde Mill Stream RV Resort" 
