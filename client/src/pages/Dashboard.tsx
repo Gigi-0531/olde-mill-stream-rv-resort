@@ -5,7 +5,7 @@ import { PermissionsPrompt } from "@/components/PermissionsPrompt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Link } from "wouter";
-import { Map, Calendar, Users, ArrowRight } from "lucide-react";
+import { Map, Calendar, ArrowRight, Navigation } from "lucide-react";
 import resortImage from "@assets/facebook_1767649108158_7414057724947186807_1767655553163.jpg";
 import { useActivities } from "@/hooks/use-resources";
 import { format } from "date-fns";
@@ -42,21 +42,42 @@ export default function Dashboard() {
             <NotificationsWidget />
           </div>
 
-          {/* Column 2: Quick Actions & Map */}
+          {/* Column 2: Google Maps Directions */}
           <div className="space-y-6">
-            <Card className="h-full shadow-lg border-none flex flex-col">
-              <CardHeader>
-                <CardTitle className="font-display">Park Map</CardTitle>
-              </CardHeader>
-              <CardContent className="flex-1 min-h-[200px] flex items-center justify-center bg-accent/20 rounded-b-xl relative overflow-hidden group p-0">
-                <img src={resortImage} alt="Resort lake view" className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:scale-110 transition-transform duration-700" />
-                <div className="absolute inset-0 bg-primary/20" />
-                
-                <Link href="/map" className="relative z-10">
-                  <Button variant="rustic" size="lg" className="gap-2">
-                    <Map className="w-5 h-5" /> View Full Map
-                  </Button>
+            <Card className="shadow-lg border-none flex flex-col">
+              <CardHeader className="flex flex-row items-center justify-between gap-2 pb-2">
+                <div className="flex items-center gap-2">
+                  <Navigation className="w-5 h-5 text-primary" />
+                  <CardTitle className="font-display">Get Directions</CardTitle>
+                </div>
+                <Link href="/map">
+                  <Button variant="ghost" size="sm" className="text-primary">Park Map <ArrowRight className="w-4 h-4 ml-1" /></Button>
                 </Link>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="relative w-full h-[280px] rounded-b-xl overflow-hidden">
+                  <iframe
+                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3494.8976824680407!2d-81.6658!3d28.9264!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x88e7c7d8a2d0e8e7%3A0x1234567890abcdef!2s1000%20N%20Central%20Ave%2C%20Umatilla%2C%20FL%2032784!5e0!3m2!1sen!2sus!4v1234567890"
+                    width="100%"
+                    height="100%"
+                    style={{ border: 0 }}
+                    allowFullScreen
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                    title="Olde Mill Stream RV Resort Location"
+                    className="absolute inset-0"
+                  />
+                </div>
+                <div className="p-4 bg-gradient-to-r from-[#2a4a6e] to-[#1E3A5F]">
+                  <Button 
+                    onClick={() => window.open('https://www.google.com/maps/dir/?api=1&destination=1000+N+Central+Ave,+Umatilla,+FL+32784&travelmode=driving', '_blank')}
+                    className="w-full bg-white text-[#1E3A5F] hover:bg-white/90 gap-2 font-semibold"
+                    data-testid="button-directions-home"
+                  >
+                    <Navigation className="w-4 h-4" />
+                    Navigate to Resort
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           </div>
