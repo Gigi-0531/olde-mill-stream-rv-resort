@@ -44,12 +44,12 @@ export default function Landing() {
              <img src={logoImg} alt="Olde Mill Stream" className="w-full h-full object-contain mix-blend-multiply" />
           </div>
           
-          {/* Decorative Gold Ribbon Banner */}
-          <div className="relative w-72 mx-auto -mt-2">
-            <img src={bannerImg} alt="" className="w-full h-auto" />
+          {/* Decorative Gold Ribbon Banner - Full Width */}
+          <div className="relative w-screen left-1/2 -translate-x-1/2 -mt-2">
+            <img src={bannerImg} alt="" className="w-full h-auto mix-blend-multiply" />
             <div className="absolute inset-0 flex flex-col items-center justify-center" style={{ fontFamily: "'Libre Baskerville', serif" }}>
-              <span className="text-amber-900 font-bold text-sm tracking-wide">Celebrating Forty Years</span>
-              <span className="text-amber-800 text-xs font-semibold">1986-2026</span>
+              <span className="text-amber-900 font-bold text-base sm:text-lg tracking-wide">Celebrating Forty Years</span>
+              <span className="text-amber-800 text-sm font-semibold">1986-2026</span>
             </div>
           </div>
 
