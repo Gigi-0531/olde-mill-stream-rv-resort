@@ -9,7 +9,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
 import { Redirect } from "wouter";
 import logoImg from "@/assets/logo.jpg";
-import { FloatingRVs } from "@/components/FloatingRVs";
 import { User, ShieldCheck, Loader2 } from "lucide-react";
 
 const residentSchema = z.object({
@@ -35,12 +34,17 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen bg-[#E6F3F7] flex flex-col items-center justify-center p-4 relative overflow-hidden">
-      {/* Floating RV decorations */}
-      <FloatingRVs />
       {/* Background decoration */}
       <div className="absolute top-0 left-0 w-full h-1/2 bg-[#B8D9E8] rounded-b-[50%] scale-150 -translate-y-1/2 -z-10" />
 
       <div className="w-full max-w-md space-y-8 animate-in fade-in zoom-in duration-500">
+        {/* Gold Anniversary Banner */}
+        <div className="relative">
+          <div className="bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 text-amber-900 font-bold text-center py-2 px-6 rounded-full shadow-lg mx-auto max-w-xs">
+            <span className="text-sm tracking-wide uppercase">Celebrating Forty Years</span>
+          </div>
+        </div>
+
         <div className="text-center space-y-4">
           <div className="relative w-48 h-48 mx-auto bg-[#E6F3F7] rounded-lg">
              <img src={logoImg} alt="Olde Mill Stream" className="w-full h-full object-contain mix-blend-multiply" />
