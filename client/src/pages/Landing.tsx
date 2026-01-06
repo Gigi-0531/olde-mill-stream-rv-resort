@@ -9,6 +9,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
 import { Redirect } from "wouter";
 import logoImg from "@/assets/logo.jpg";
+import waterTexture from "@assets/pexels-mattycphoto-1147124_1767660262363.jpg";
 import { User, ShieldCheck, Loader2 } from "lucide-react";
 
 const residentSchema = z.object({
@@ -34,8 +35,17 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen bg-[#E6F3F7] flex flex-col items-center justify-center p-4 relative overflow-hidden">
+      {/* Water texture background - very light for subtle texture */}
+      <div 
+        className="absolute inset-0 -z-20 opacity-[0.15]"
+        style={{
+          backgroundImage: `url(${waterTexture})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        }}
+      />
       {/* Background decoration */}
-      <div className="absolute top-0 left-0 w-full h-1/2 bg-[#B8D9E8] rounded-b-[50%] scale-150 -translate-y-1/2 -z-10" />
+      <div className="absolute top-0 left-0 w-full h-1/2 bg-[#B8D9E8]/60 rounded-b-[50%] scale-150 -translate-y-1/2 -z-10" />
 
       <div className="w-full max-w-md space-y-8 animate-in fade-in zoom-in duration-500">
         <div className="text-center space-y-4">
