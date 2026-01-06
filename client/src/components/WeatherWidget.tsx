@@ -16,7 +16,7 @@ export function WeatherWidget() {
   };
 
   return (
-    <Card className="bg-gradient-to-br from-[#1a4b5c] to-[#0f2e3a] text-white border-none shadow-xl overflow-hidden">
+    <Card className="bg-gradient-to-br from-[#1E3A5F] to-[#0f1f35] text-white border-none shadow-xl overflow-hidden">
       <CardContent className="p-6">
         <div className="flex justify-between items-start mb-6">
           <div>
