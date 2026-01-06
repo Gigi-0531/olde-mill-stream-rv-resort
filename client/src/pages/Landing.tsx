@@ -9,6 +9,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
 import { Redirect } from "wouter";
 import logoImg from "@/assets/logo.jpg";
+import bannerImg from "@assets/banner_1767661081416.jpg";
 import { User, ShieldCheck, Loader2 } from "lucide-react";
 
 const residentSchema = z.object({
@@ -37,19 +38,21 @@ export default function Landing() {
       {/* Background decoration */}
       <div className="absolute top-0 left-0 w-full h-1/2 bg-[#B8D9E8] rounded-b-[50%] scale-150 -translate-y-1/2 -z-10" />
 
-      <div className="w-full max-w-md space-y-8 animate-in fade-in zoom-in duration-500">
-        {/* Gold Anniversary Banner */}
-        <div className="relative">
-          <div className="bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 text-amber-900 font-bold text-center py-2 px-6 rounded-full shadow-lg mx-auto max-w-xs" style={{ fontFamily: "'Libre Baskerville', serif" }}>
-            <span className="text-sm tracking-wide">Celebrating Forty Years</span>
-            <span className="block text-xs mt-0.5">1986-2026</span>
-          </div>
-        </div>
-
-        <div className="text-center space-y-4">
+      <div className="w-full max-w-md space-y-4 animate-in fade-in zoom-in duration-500">
+        <div className="text-center space-y-2">
           <div className="relative w-48 h-48 mx-auto bg-[#E6F3F7] rounded-lg">
              <img src={logoImg} alt="Olde Mill Stream" className="w-full h-full object-contain mix-blend-multiply" />
           </div>
+          
+          {/* Decorative Gold Ribbon Banner */}
+          <div className="relative w-72 mx-auto -mt-2">
+            <img src={bannerImg} alt="" className="w-full h-auto" />
+            <div className="absolute inset-0 flex flex-col items-center justify-center" style={{ fontFamily: "'Libre Baskerville', serif" }}>
+              <span className="text-amber-900 font-bold text-sm tracking-wide">Celebrating Forty Years</span>
+              <span className="text-amber-800 text-xs font-semibold">1986-2026</span>
+            </div>
+          </div>
+
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold text-[#2C5F6D] uppercase" style={{ fontFamily: "'Libre Baskerville', serif" }}>Olde Mill Stream<br />RV Resort</h1>
             <p className="text-muted-foreground text-sm mt-1">1000 N. Central Ave Umatilla, FL 32784</p>
