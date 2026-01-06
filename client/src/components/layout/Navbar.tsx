@@ -5,7 +5,6 @@ import {
   LogOut, 
   Map as MapIcon, 
   Calendar, 
-  Users, 
   Home,
   Image,
   ChevronDown,
@@ -87,8 +86,7 @@ export function Navbar() {
                   {!isAdmin && <NavLink href="/map" icon={MapIcon}>Park Map</NavLink>}
                   {!isAdmin && <NavLink href="/activities" icon={Calendar}>Activities</NavLink>}
                   {!isAdmin && <NavLink href="/gallery" icon={Image}>Gallery</NavLink>}
-                  <NavLink href="/directory" icon={Users}>Directory</NavLink>
-                </>
+                                  </>
               ) : (
                 <NavLink href="/" icon={LogIn}>Login</NavLink>
               )}

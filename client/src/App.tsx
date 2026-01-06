@@ -8,7 +8,6 @@ import { InstallPrompt } from "@/components/InstallPrompt";
 import NotFound from "@/pages/not-found";
 import Landing from "@/pages/Landing";
 import Dashboard from "@/pages/Dashboard";
-import Directory from "@/pages/Directory";
 import Activities from "@/pages/Activities";
 import MapPage from "@/pages/Map";
 import Admin from "@/pages/Admin";
@@ -22,8 +21,7 @@ function Router() {
         <Switch>
           <Route path="/" component={Landing} />
           <Route path="/dashboard" component={Dashboard} />
-          <Route path="/directory" component={Directory} />
-          <Route path="/activities" component={Activities} />
+                    <Route path="/activities" component={Activities} />
           <Route path="/map" component={MapPage} />
           <Route path="/gallery" component={Gallery} />
           <Route path="/admin" component={Admin} />

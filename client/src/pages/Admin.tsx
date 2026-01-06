@@ -11,10 +11,9 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertActivitySchema } from "@shared/schema";
-import { Plus, Trash2, Calendar, Bell, Users, MapPin, Clock, Image, Loader2 } from "lucide-react";
+import { Plus, Trash2, Calendar, Bell, MapPin, Clock, Image, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { useState } from "react";
-import Directory from "./Directory";
 import { NotificationsWidget } from "@/components/NotificationsWidget";
 import { ObjectUploader } from "@/components/ObjectUploader";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -46,10 +45,7 @@ export default function Admin() {
             <TabsTrigger value="alerts" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               <Bell className="w-4 h-4 mr-2" /> Alerts
             </TabsTrigger>
-            <TabsTrigger value="directory" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              <Users className="w-4 h-4 mr-2" /> Directory
-            </TabsTrigger>
-            <TabsTrigger value="gallery" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                        <TabsTrigger value="gallery" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               <Image className="w-4 h-4 mr-2" /> Gallery
             </TabsTrigger>
           </TabsList>
@@ -65,10 +61,7 @@ export default function Admin() {
             </div>
           </TabsContent>
 
-          <TabsContent value="directory">
-            <Directory />
-          </TabsContent>
-
+          
           <TabsContent value="gallery">
             <GalleryManager />
           </TabsContent>
