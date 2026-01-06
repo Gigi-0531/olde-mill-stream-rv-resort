@@ -9,7 +9,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
 import { Redirect } from "wouter";
 import logoImg from "@/assets/logo.jpg";
-import bannerImg from "@assets/banner_1767661081416.jpg";
 import { User, ShieldCheck, Loader2 } from "lucide-react";
 
 const residentSchema = z.object({
@@ -44,12 +43,20 @@ export default function Landing() {
              <img src={logoImg} alt="Olde Mill Stream" className="w-full h-full object-contain mix-blend-multiply" />
           </div>
           
-          {/* Decorative Gold Ribbon Banner - Full Width */}
-          <div className="relative w-screen left-1/2 -translate-x-1/2 -mt-2">
-            <img src={bannerImg} alt="" className="w-full h-auto mix-blend-multiply" />
-            <div className="absolute inset-0 flex flex-col items-center justify-center" style={{ fontFamily: "'Libre Baskerville', serif" }}>
-              <span className="text-amber-900 font-bold text-base sm:text-lg tracking-wide">Celebrating 40 Years</span>
-              <span className="text-amber-800 text-sm font-semibold">1986-2026</span>
+          {/* Decorative Gold Ribbon Banner */}
+          <div className="relative mx-auto" style={{ fontFamily: "'Libre Baskerville', serif" }}>
+            <div className="relative">
+              {/* Ribbon tails */}
+              <div className="absolute -left-6 top-1/2 -translate-y-1/2 w-8 h-10 bg-gradient-to-r from-amber-600 to-amber-500 transform -skew-y-12 shadow-md" />
+              <div className="absolute -right-6 top-1/2 -translate-y-1/2 w-8 h-10 bg-gradient-to-l from-amber-600 to-amber-500 transform skew-y-12 shadow-md" />
+              
+              {/* Main ribbon */}
+              <div className="relative bg-gradient-to-b from-amber-400 via-yellow-300 to-amber-400 px-8 py-2 shadow-lg border-t-2 border-b-2 border-amber-500/30">
+                <div className="text-center">
+                  <span className="text-amber-900 font-bold text-sm sm:text-base tracking-wide block">Celebrating 40 Years</span>
+                  <span className="text-amber-800 text-xs font-semibold">1986-2026</span>
+                </div>
+              </div>
             </div>
           </div>
 
