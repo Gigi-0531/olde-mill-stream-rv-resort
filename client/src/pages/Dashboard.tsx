@@ -120,7 +120,7 @@ export default function Dashboard() {
 
       {/* Logo Link - Bottom Right */}
       <a 
-        href="https://oldemillstreamrvresort.com" 
+        href="https://www.oldemillstreamrvresort.com/" 
         target="_blank" 
         rel="noopener noreferrer"
         className="fixed bottom-4 right-4 z-40"
