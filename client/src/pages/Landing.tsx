@@ -40,8 +40,8 @@ export default function Landing() {
       <div className="w-full max-w-md space-y-8 animate-in fade-in zoom-in duration-500">
         {/* Gold Anniversary Banner */}
         <div className="relative">
-          <div className="bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 text-amber-900 font-bold text-center py-2 px-6 rounded-full shadow-lg mx-auto max-w-xs">
-            <span className="text-sm tracking-wide uppercase">Celebrating Forty Years</span>
+          <div className="bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 text-amber-900 font-bold text-center py-2 px-6 rounded-full shadow-lg mx-auto max-w-xs" style={{ fontFamily: "'Libre Baskerville', serif" }}>
+            <span className="text-sm tracking-wide">Celebrating Forty Years</span>
             <span className="block text-xs mt-0.5">1986-2026</span>
           </div>
         </div>
