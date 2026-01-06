@@ -54,6 +54,13 @@ export function Navbar() {
     );
   };
 
+  // Hide header and menu on login page
+  const isLoginPage = location === '/';
+
+  if (isLoginPage) {
+    return null;
+  }
+
   return (
     <>
       {/* Top Header */}
