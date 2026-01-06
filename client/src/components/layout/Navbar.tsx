@@ -55,17 +55,34 @@ export function Navbar() {
   };
 
   return (
-    <nav className="fixed top-4 right-4 z-50">
-      <div className="relative" ref={menuRef}>
-        <Button
-          variant="default"
-          onClick={() => setIsMenuOpen(!isMenuOpen)}
-          className="flex items-center gap-2 px-3 py-2 h-auto rounded-full shadow-lg bg-white hover:bg-gray-50 border border-border"
-          data-testid="button-rv-menu"
-        >
-          <img src={rvIcon} alt="Menu" className="w-10 h-10 object-contain" />
-          <ChevronDown className={`w-4 h-4 text-primary transition-transform duration-200 ${isMenuOpen ? 'rotate-180' : ''}`} />
-        </Button>
+    <>
+      {/* Top Header with Logo */}
+      <header className="fixed top-0 left-0 right-0 z-40 bg-[#1E3A5F] shadow-md">
+        <div className="flex items-center justify-between px-4 py-2">
+          <Link href={baseRoute} className="flex items-center gap-3">
+            <img 
+              src={logoImg} 
+              alt="Olde Mill Stream RV Resort" 
+              className="h-12 w-auto rounded"
+              data-testid="img-header-logo"
+            />
+            <span className="font-display text-white text-lg hidden sm:block">Olde Mill Stream RV Resort</span>
+          </Link>
+        </div>
+      </header>
+
+      {/* RV Menu Button */}
+      <nav className="fixed top-20 right-4 z-50">
+        <div className="relative" ref={menuRef}>
+          <Button
+            variant="default"
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            className="flex items-center gap-2 px-3 py-2 h-auto rounded-full shadow-lg bg-white hover:bg-gray-50 border border-border"
+            data-testid="button-rv-menu"
+          >
+            <img src={rvIcon} alt="Menu" className="w-10 h-10 object-contain" />
+            <ChevronDown className={`w-4 h-4 text-primary transition-transform duration-200 ${isMenuOpen ? 'rotate-180' : ''}`} />
+          </Button>
 
         {isMenuOpen && (
           <div 
@@ -110,7 +127,8 @@ export function Navbar() {
             )}
           </div>
         )}
-      </div>
-    </nav>
+        </div>
+      </nav>
+    </>
   );
 }

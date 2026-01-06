@@ -10,7 +10,7 @@ export default function Gallery() {
   });
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pt-16">
       <Navbar />
       <main className="max-w-7xl mx-auto px-4 py-8">
         <div className="mb-8">
