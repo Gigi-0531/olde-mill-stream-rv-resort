@@ -5,9 +5,10 @@ import { api } from "@shared/routes";
 import { z } from "zod";
 import session from "express-session";
 import createMemoryStore from "memorystore";
-import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
+import { registerObjectStorageRoutes, ObjectStorageService } from "./replit_integrations/object_storage";
 
 const MemoryStore = createMemoryStore(session);
+const objectStorageService = new ObjectStorageService();
 
 export async function registerRoutes(
   httpServer: Server,
@@ -133,13 +134,23 @@ export async function registerRoutes(
   // Gallery
   app.get(api.gallery.list.path, async (req, res) => {
     const photos = await storage.getGalleryPhotos();
-    res.json(photos);
+    // Normalize paths for any photos stored with raw GCS URLs
+    const normalizedPhotos = photos.map(photo => ({
+      ...photo,
+      objectPath: objectStorageService.normalizeObjectEntityPath(photo.objectPath),
+    }));
+    res.json(normalizedPhotos);
   });
 
   app.post(api.gallery.create.path, async (req, res) => {
     try {
       const input = api.gallery.create.input.parse(req.body);
-      const photo = await storage.createGalleryPhoto(input);
+      // Normalize the object path for serving via /objects route
+      const normalizedPath = objectStorageService.normalizeObjectEntityPath(input.objectPath);
+      const photo = await storage.createGalleryPhoto({
+        ...input,
+        objectPath: normalizedPath,
+      });
       res.status(201).json(photo);
     } catch (e) {
       res.status(400).json({ message: "Invalid input" });
