@@ -1,6 +1,7 @@
 import { useAuth } from "@/hooks/use-auth";
 import { WeatherWidget } from "@/components/WeatherWidget";
 import { NotificationsWidget } from "@/components/NotificationsWidget";
+import { PermissionsPrompt } from "@/components/PermissionsPrompt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Link } from "wouter";
@@ -21,6 +22,7 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-background pb-20">
+      <PermissionsPrompt />
       <div className="bg-primary pb-32 pt-10 px-4 md:px-8">
         <div className="max-w-7xl mx-auto">
           <h1 className="text-3xl md:text-4xl font-display text-white mb-2">
