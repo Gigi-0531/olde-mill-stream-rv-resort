@@ -1,7 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { MapPin, Navigation, ExternalLink } from "lucide-react";
-import resortImage from "@assets/facebook_1767649108158_7414057724947186807_1767655553163.jpg";
+import { Navigation, ExternalLink } from "lucide-react";
+import parkMapImage from "@assets/ChatGPT_Image_Jan_6,_2026,_06_32_54_PM_1767742392809.png";
 
 const RESORT_ADDRESS = "1000 N Central Ave, Umatilla, FL 32784";
 const GOOGLE_MAPS_URL = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(RESORT_ADDRESS)}&travelmode=driving`;
@@ -42,23 +42,13 @@ export default function MapPage() {
           </div>
         </Card>
 
-        {/* Resort Image Card */}
-        <Card className="aspect-video w-full border-4 border-[#1E3A5F] relative shadow-2xl overflow-hidden flex items-center justify-center">
+        {/* Park Map */}
+        <Card className="w-full border-4 border-[#1E3A5F] relative shadow-2xl overflow-hidden">
           <img 
-            src={resortImage} 
-            alt="Olde Mill Stream RV Resort" 
-            className="absolute inset-0 w-full h-full object-cover"
+            src={parkMapImage} 
+            alt="Olde Mill Stream RV Resort Park Map" 
+            className="w-full h-auto"
           />
-          <div className="absolute inset-0 bg-black/40" />
-          <div className="relative text-center space-y-4 z-10">
-            <div className="w-20 h-20 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center mx-auto animate-bounce">
-              <MapPin className="w-10 h-10 text-white" />
-            </div>
-            <h2 className="text-2xl font-display font-bold text-white">Interactive Map Coming Soon</h2>
-            <p className="text-white/90 max-w-md mx-auto">
-              We're currently digitizing the Olde Mill Stream resort map. Check back soon to explore the grounds interactively!
-            </p>
-          </div>
         </Card>
       </div>
     </div>
