@@ -42,8 +42,20 @@ export default function Dashboard() {
             <NotificationsWidget />
           </div>
 
-          {/* Column 2: Google Maps Directions */}
+          {/* Column 2: Park Map & Directions */}
           <div className="space-y-6">
+            <Link href="/map" className="block">
+              <Card className="p-4 shadow-lg border-none bg-accent/30 hover:bg-accent/50 transition-colors cursor-pointer">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Map className="w-5 h-5 text-primary" />
+                    <span className="font-semibold text-foreground">View Park Map</span>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-muted-foreground" />
+                </div>
+              </Card>
+            </Link>
+
             <Card className="shadow-lg border-none overflow-hidden">
               <div className="relative w-full h-[160px]">
                 <iframe
@@ -74,18 +86,6 @@ export default function Dashboard() {
                 </Button>
               </div>
             </Card>
-            
-            <Link href="/map" className="block">
-              <Card className="p-4 shadow-lg border-none bg-accent/30 hover:bg-accent/50 transition-colors cursor-pointer">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Map className="w-5 h-5 text-primary" />
-                    <span className="font-semibold text-foreground">View Park Map</span>
-                  </div>
-                  <ArrowRight className="w-4 h-4 text-muted-foreground" />
-                </div>
-              </Card>
-            </Link>
           </div>
 
           {/* Column 3: Upcoming Activities */}
