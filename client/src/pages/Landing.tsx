@@ -56,7 +56,7 @@ export default function Landing() {
           
           
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-[#2C5F6D] uppercase" style={{ fontFamily: "'Libre Baskerville', serif" }}>Olde Mill Stream<br />RV Resort</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-[#2a4a6e] uppercase" style={{ fontFamily: "'Libre Baskerville', serif" }}>Olde Mill Stream<br />RV Resort</h1>
             <p className="text-muted-foreground text-sm mt-1">1000 N. Central Ave Umatilla, FL 32784</p>
             <p className="text-muted-foreground text-sm">352.669.3141</p>
           </div>

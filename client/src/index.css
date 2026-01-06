@@ -11,8 +11,8 @@
   --background: 40 20% 97%; /* Cream/Off-white */
   --foreground: 25 10% 20%; /* Dark Brown-Grey */
 
-  /* Primary: Dark Teal (Water/Nature) */
-  --primary: 185 60% 25%;
+  /* Primary: Dark Navy Blue */
+  --primary: 215 50% 30%;
   --primary-foreground: 40 20% 97%;
 
   /* Secondary: Warm Brown (Wood/Earth) */
@@ -37,7 +37,7 @@
 
   --border: 25 10% 85%;
   --input: 25 10% 85%;
-  --ring: 185 60% 25%;
+  --ring: 215 50% 30%;
 
   --radius: 0.75rem;
 
