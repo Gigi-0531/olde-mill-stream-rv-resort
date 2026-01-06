@@ -34,6 +34,17 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen bg-[#E6F3F7] flex flex-col items-center justify-center p-4 relative overflow-hidden">
+      {/* Corner Ribbon - 40th Anniversary */}
+      <div className="absolute top-0 left-0 z-50 overflow-hidden w-36 h-36">
+        <div 
+          className="absolute top-7 -left-10 w-44 bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 text-center py-2 shadow-lg transform -rotate-45"
+          style={{ boxShadow: '0 3px 10px rgba(0,0,0,0.3)' }}
+        >
+          <span className="block text-amber-900 font-bold" style={{ fontFamily: "'Dancing Script', cursive", fontSize: '15px' }}>40th Anniversary</span>
+          <span className="block text-amber-800 text-[10px] font-semibold">1986-2026</span>
+        </div>
+      </div>
+      
       {/* Background decoration */}
       <div className="absolute top-0 left-0 w-full h-1/2 bg-[#B8D9E8] rounded-b-[50%] scale-150 -translate-y-1/2 -z-10" />
 
@@ -43,23 +54,7 @@ export default function Landing() {
              <img src={logoImg} alt="Olde Mill Stream" className="w-full h-full object-contain mix-blend-multiply" />
           </div>
           
-          {/* Decorative Gold Ribbon Banner */}
-          <div className="relative mx-auto">
-            <div className="relative inline-block">
-              {/* Ribbon tails */}
-              <div className="absolute -left-4 top-1/2 -translate-y-1/2 w-6 h-8 bg-gradient-to-br from-amber-500 to-amber-600 transform -skew-y-6 rounded-bl-lg shadow-md" />
-              <div className="absolute -right-4 top-1/2 -translate-y-1/2 w-6 h-8 bg-gradient-to-bl from-amber-500 to-amber-600 transform skew-y-6 rounded-br-lg shadow-md" />
-              
-              {/* Main ribbon - curved edges */}
-              <div className="relative bg-gradient-to-b from-amber-300 via-yellow-200 to-amber-300 px-10 py-2.5 shadow-lg rounded-full">
-                <div className="text-center">
-                  <span className="text-amber-800 font-semibold text-base sm:text-lg block" style={{ fontFamily: "'Dancing Script', cursive" }}>Celebrating 40 Years</span>
-                  <span className="text-amber-700 text-xs" style={{ fontFamily: "'Libre Baskerville', serif" }}>1986-2026</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
+          
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold text-[#2C5F6D] uppercase" style={{ fontFamily: "'Libre Baskerville', serif" }}>Olde Mill Stream<br />RV Resort</h1>
             <p className="text-muted-foreground text-sm mt-1">1000 N. Central Ave Umatilla, FL 32784</p>
