@@ -9,7 +9,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
 import { Redirect } from "wouter";
 import logoImg from "@/assets/logo.jpg";
-import waterTexture from "@assets/pexels-mattycphoto-1147124_1767660262363.jpg";
+import skyBackground from "@assets/vecteezy_beautiful-blue-sky-and-white-cumulus-clouds-abstract__1767660611947.jpg";
 import { User, ShieldCheck, Loader2 } from "lucide-react";
 
 const residentSchema = z.object({
@@ -35,17 +35,18 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen bg-[#E6F3F7] flex flex-col items-center justify-center p-4 relative">
-      {/* Water texture background - light for subtle texture */}
+      {/* Sky background - lightened to match logo scheme */}
       <div 
         className="fixed inset-0 pointer-events-none"
         style={{
-          backgroundImage: `url(${waterTexture})`,
+          backgroundImage: `url(${skyBackground})`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
-          opacity: 0.12,
-          mixBlendMode: 'multiply',
+          opacity: 0.35,
         }}
       />
+      {/* Light overlay to soften the sky */}
+      <div className="fixed inset-0 pointer-events-none bg-[#E6F3F7]/60" />
       {/* Background decoration */}
       <div className="absolute top-0 left-0 w-full h-1/2 bg-[#B8D9E8]/40 rounded-b-[50%] scale-150 -translate-y-1/2" />
 
