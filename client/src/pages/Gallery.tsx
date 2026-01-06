@@ -36,7 +36,7 @@ export default function Gallery() {
                   </div>
                   {photo.title && (
                     <div className="p-3">
-                      <p className="text-sm font-medium truncate">{photo.title}</p>
+                      <p className="text-sm font-medium line-clamp-2">{photo.title}</p>
                     </div>
                   )}
                 </CardContent>

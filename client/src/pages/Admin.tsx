@@ -363,7 +363,7 @@ function GalleryManager() {
               </div>
               {photo.title && (
                 <div className="p-2 bg-background/80 backdrop-blur-sm">
-                  <p className="text-sm truncate">{photo.title}</p>
+                  <p className="text-sm line-clamp-2">{photo.title}</p>
                 </div>
               )}
             </Card>
