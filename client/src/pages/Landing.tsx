@@ -45,9 +45,7 @@ export default function Landing() {
         </div>
       </div>
       
-      {/* Background decoration */}
-      <div className="absolute top-0 left-0 w-full h-1/2 bg-[#B8D9E8] rounded-b-[50%] scale-150 -translate-y-1/2 -z-10" />
-
+      
       <div className="w-full max-w-md space-y-4 animate-in fade-in zoom-in duration-500">
         <div className="text-center space-y-2">
           <div className="relative w-56 h-56 mx-auto bg-[#E6F3F7] rounded-lg">
