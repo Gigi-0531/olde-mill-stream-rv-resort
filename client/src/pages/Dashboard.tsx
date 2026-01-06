@@ -123,14 +123,14 @@ export default function Dashboard() {
         href="https://www.oldemillstreamrvresort.com/" 
         target="_blank" 
         rel="noopener noreferrer"
-        className="fixed bottom-4 right-4 z-40"
+        className="fixed bottom-6 right-6 z-50"
         data-testid="link-resort-website"
       >
-        <div className="bg-white rounded-lg p-1 shadow-lg hover:shadow-xl transition-shadow">
+        <div className="bg-white rounded-xl p-2 shadow-xl hover:shadow-2xl transition-all hover:scale-105">
           <img 
             src={logoImg} 
             alt="Olde Mill Stream RV Resort" 
-            className="h-12 w-auto"
+            className="h-24 w-auto"
             data-testid="img-logo-link"
           />
         </div>
