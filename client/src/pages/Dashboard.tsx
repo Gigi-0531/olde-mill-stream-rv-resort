@@ -43,7 +43,37 @@ export default function Dashboard() {
             <NotificationsWidget />
           </div>
 
-          {/* Column 2: Park Map & Directions */}
+          {/* Column 2: Upcoming Activities */}
+          <div className="space-y-6">
+            <Card className="shadow-lg border-none h-full">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="font-display">Happening Soon</CardTitle>
+                <Link href="/activities">
+                   <Button variant="ghost" size="sm" className="text-primary">View All <ArrowRight className="w-4 h-4 ml-1" /></Button>
+                </Link>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {upcomingActivities.length === 0 ? (
+                  <p className="text-muted-foreground text-center py-8">No upcoming activities scheduled.</p>
+                ) : (
+                  upcomingActivities.map((activity) => (
+                    <div key={activity.id} className="flex gap-4 items-start p-3 rounded-lg hover:bg-accent/50 transition-colors border border-transparent hover:border-border">
+                      <div className="bg-primary/10 text-primary rounded-md p-2 text-center min-w-[60px]">
+                        <span className="block text-xs font-bold uppercase">{format(new Date(activity.date), 'MMM')}</span>
+                        <span className="block text-xl font-bold font-display">{format(new Date(activity.date), 'd')}</span>
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-foreground">{activity.title}</h4>
+                        <p className="text-sm text-muted-foreground">{format(new Date(activity.date), 'h:mm a')} • {activity.location}</p>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Column 3: Park Map & Directions */}
           <div className="space-y-4">
             <Link href="/map" className="block">
               <Card className="shadow-lg border-none overflow-hidden cursor-pointer hover:shadow-xl transition-shadow">
@@ -82,36 +112,6 @@ export default function Dashboard() {
                   Directions
                 </Button>
               </div>
-            </Card>
-          </div>
-
-          {/* Column 3: Upcoming Activities */}
-          <div className="space-y-6">
-            <Card className="shadow-lg border-none h-full">
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="font-display">Happening Soon</CardTitle>
-                <Link href="/activities">
-                   <Button variant="ghost" size="sm" className="text-primary">View All <ArrowRight className="w-4 h-4 ml-1" /></Button>
-                </Link>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {upcomingActivities.length === 0 ? (
-                  <p className="text-muted-foreground text-center py-8">No upcoming activities scheduled.</p>
-                ) : (
-                  upcomingActivities.map((activity) => (
-                    <div key={activity.id} className="flex gap-4 items-start p-3 rounded-lg hover:bg-accent/50 transition-colors border border-transparent hover:border-border">
-                      <div className="bg-primary/10 text-primary rounded-md p-2 text-center min-w-[60px]">
-                        <span className="block text-xs font-bold uppercase">{format(new Date(activity.date), 'MMM')}</span>
-                        <span className="block text-xl font-bold font-display">{format(new Date(activity.date), 'd')}</span>
-                      </div>
-                      <div>
-                        <h4 className="font-semibold text-foreground">{activity.title}</h4>
-                        <p className="text-sm text-muted-foreground">{format(new Date(activity.date), 'h:mm a')} • {activity.location}</p>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </CardContent>
             </Card>
           </div>
         </div>
