@@ -20,7 +20,7 @@ export function WeatherWidget() {
       <CardContent className="p-6">
         <div className="flex justify-between items-start mb-6">
           <div>
-            <h3 className="font-display text-2xl font-bold">{weather.location}</h3>
+            <h3 className="font-display text-2xl font-bold text-white">{weather.location}</h3>
             <p className="text-blue-100 text-sm">{new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}</p>
           </div>
           {getWeatherIcon(weather.condition)}
