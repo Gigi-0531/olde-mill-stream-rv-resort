@@ -8,6 +8,7 @@ import { Link } from "wouter";
 import { Map, Calendar, ArrowRight, Navigation } from "lucide-react";
 import resortImage from "@assets/facebook_1767649108158_7414057724947186807_1767655553163.jpg";
 import parkMapImage from "@assets/ChatGPT_Image_Jan_6,_2026,_06_32_54_PM_1767742392809.png";
+import logoImg from "@/assets/logo.jpg";
 import { useActivities } from "@/hooks/use-resources";
 import { format } from "date-fns";
 
@@ -116,6 +117,24 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* Logo Link - Bottom Right */}
+      <a 
+        href="https://oldemillstreamrvresort.com" 
+        target="_blank" 
+        rel="noopener noreferrer"
+        className="fixed bottom-4 right-4 z-40"
+        data-testid="link-resort-website"
+      >
+        <div className="bg-white rounded-lg p-1 shadow-lg hover:shadow-xl transition-shadow">
+          <img 
+            src={logoImg} 
+            alt="Olde Mill Stream RV Resort" 
+            className="h-12 w-auto"
+            data-testid="img-logo-link"
+          />
+        </div>
+      </a>
     </div>
   );
 }
