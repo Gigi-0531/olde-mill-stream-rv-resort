@@ -35,13 +35,13 @@ export default function Landing() {
   return (
     <div className="min-h-screen bg-[#E6F3F7] flex flex-col items-center justify-center p-4 relative overflow-hidden">
       {/* Corner Ribbon - 40th Anniversary */}
-      <div className="absolute top-0 left-0 z-50 overflow-hidden w-36 h-36">
+      <div className="absolute top-0 left-0 z-50 overflow-hidden w-48 h-48">
         <div 
-          className="absolute top-7 -left-10 w-44 bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 text-center py-2 shadow-lg transform -rotate-45"
-          style={{ boxShadow: '0 3px 10px rgba(0,0,0,0.3)' }}
+          className="absolute top-10 -left-12 w-56 bg-gradient-to-r from-amber-600 via-yellow-400 to-amber-600 text-center py-3 shadow-xl transform -rotate-45"
+          style={{ boxShadow: '0 4px 15px rgba(0,0,0,0.4)' }}
         >
-          <span className="block text-amber-900 font-bold" style={{ fontFamily: "'Dancing Script', cursive", fontSize: '15px' }}>40th Anniversary</span>
-          <span className="block text-amber-800 text-[10px] font-semibold">1986-2026</span>
+          <span className="block text-amber-900 font-bold italic" style={{ fontFamily: "'Playfair Display', serif", fontSize: '18px' }}>40th Anniversary</span>
+          <span className="block text-amber-800 text-xs font-semibold tracking-wide">1986-2026</span>
         </div>
       </div>
       
