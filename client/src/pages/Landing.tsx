@@ -34,18 +34,20 @@ export default function Landing() {
   }
 
   return (
-    <div className="min-h-screen bg-[#E6F3F7] flex flex-col items-center justify-center p-4 relative overflow-hidden">
-      {/* Water texture background - very light for subtle texture */}
+    <div className="min-h-screen bg-[#E6F3F7] flex flex-col items-center justify-center p-4 relative">
+      {/* Water texture background - light for subtle texture */}
       <div 
-        className="absolute inset-0 -z-20 opacity-[0.15]"
+        className="fixed inset-0 pointer-events-none"
         style={{
           backgroundImage: `url(${waterTexture})`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
+          opacity: 0.12,
+          mixBlendMode: 'multiply',
         }}
       />
       {/* Background decoration */}
-      <div className="absolute top-0 left-0 w-full h-1/2 bg-[#B8D9E8]/60 rounded-b-[50%] scale-150 -translate-y-1/2 -z-10" />
+      <div className="absolute top-0 left-0 w-full h-1/2 bg-[#B8D9E8]/40 rounded-b-[50%] scale-150 -translate-y-1/2" />
 
       <div className="w-full max-w-md space-y-8 animate-in fade-in zoom-in duration-500">
         <div className="text-center space-y-4">
