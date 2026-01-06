@@ -56,24 +56,17 @@ export function Navbar() {
 
   return (
     <>
-      {/* Top Header with Logo */}
+      {/* Top Header */}
       <header className="fixed top-0 left-0 right-0 z-40 bg-[#1E3A5F] shadow-md">
-        <div className="flex items-center justify-between px-4 py-1">
+        <div className="flex items-center justify-between px-4 py-3">
           <Link href={baseRoute} className="flex items-center gap-3">
-            <div className="bg-white rounded-lg p-1">
-              <img 
-                src={logoImg} 
-                alt="Olde Mill Stream RV Resort" 
-                className="h-14 w-auto"
-                data-testid="img-header-logo"
-              />
-            </div>
+            <span className="font-display text-white text-lg font-semibold">Olde Mill Stream RV Resort</span>
           </Link>
         </div>
       </header>
 
       {/* RV Menu Button */}
-      <nav className="fixed top-20 right-4 z-50">
+      <nav className="fixed top-16 right-4 z-50">
         <div className="relative" ref={menuRef}>
           <Button
             variant="default"
