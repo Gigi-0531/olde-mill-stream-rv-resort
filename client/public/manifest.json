@@ -4,8 +4,9 @@
   "description": "Resident and Admin portal for Olde Mill Stream RV Resort",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#fdfbf7",
-  "theme_color": "#1a4d4d",
+  "orientation": "portrait",
+  "background_color": "#E6F3F7",
+  "theme_color": "#1E3A5F",
   "icons": [
     {
       "src": "/favicon.png",
