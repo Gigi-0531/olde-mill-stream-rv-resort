@@ -29,8 +29,7 @@ const queryClient = new QueryClient({
 
 function getAuth() {
   const token = localStorage.getItem("auth_token");
-  const rawRole = localStorage.getItem("user_role");
-  const role = rawRole === "admin" || rawRole === "user" ? rawRole : null;
+  const role = localStorage.getItem("user_role") as UserRole | null;
 
   return {
     isAuthenticated: Boolean(token),
@@ -39,7 +38,8 @@ function getAuth() {
 }
 
 export function logout() {
-  localStorage.clear();
+  localStorage.removeItem("auth_token");
+  localStorage.removeItem("user_role");
   queryClient.clear();
   window.location.href = "/";
 }
