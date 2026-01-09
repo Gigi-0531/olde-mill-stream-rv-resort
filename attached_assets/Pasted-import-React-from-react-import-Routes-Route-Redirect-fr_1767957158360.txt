@@ -1,0 +1,138 @@
+import React from "react";
+import { Routes, Route, Redirect } from "wouter";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
+import { Toaster } from "@/components/ui/toaster";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { Navbar } from "@/components/layout/Navbar";
+import { InstallPrompt } from "@/components/InstallPrompt";
+
+import Landing from "@/pages/Landing";
+import Dashboard from "@/pages/Dashboard";
+import Activities from "@/pages/Activities";
+import MapPage from "@/pages/Map";
+import Gallery from "@/pages/Gallery";
+import Admin from "@/pages/Admin";
+import NotFound from "@/pages/not-found";
+
+/* ============================
+   AUTH + SECURITY (INLINE)
+============================ */
+
+type UserRole = "user" | "admin";
+
+function getAuth() {
+  const token = localStorage.getItem("auth_token");
+  const role = localStorage.getItem("user_role") as UserRole | null;
+
+  return {
+    isAuthenticated: Boolean(token),
+    role,
+  };
+}
+
+export function logout() {
+  localStorage.clear();
+  queryClient.clear();
+  window.location.href = "/";
+}
+
+/* ============================
+   PROTECTED ROUTE
+============================ */
+
+function ProtectedRoute({
+  component: Component,
+  adminOnly = false,
+}: {
+  component: React.ComponentType;
+  adminOnly?: boolean;
+}) {
+  const { isAuthenticated, role } = getAuth();
+
+  if (!isAuthenticated) {
+    return <Redirect to="/" />;
+  }
+
+  if (adminOnly && role !== "admin") {
+    return <NotFound />;
+  }
+
+  return <Component />;
+}
+
+/* ============================
+   REACT QUERY (SECURED)
+============================ */
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      staleTime: 0,
+      cacheTime: 1000 * 60 * 5, // 5 minutes
+      refetchOnWindowFocus: false,
+    },
+  },
+});
+
+/* ============================
+   ROUTER
+============================ */
+
+function Router() {
+  return (
+    <div className="flex flex-col min-h-screen">
+      <Navbar />
+
+      <main className="flex-1">
+        <Routes>
+          <Route path="/" element={<Landing />} />
+
+          <Route
+            path="/dashboard"
+            element={<ProtectedRoute component={Dashboard} />}
+          />
+
+          <Route
+            path="/activities"
+            element={<ProtectedRoute component={Activities} />}
+          />
+
+          <Route
+            path="/map"
+            element={<ProtectedRoute component={MapPage} />}
+          />
+
+          <Route
+            path="/gallery"
+            element={<ProtectedRoute component={Gallery} />}
+          />
+
+          <Route
+            path="/admin"
+            element={<ProtectedRoute component={Admin} adminOnly />}
+          />
+
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </main>
+    </div>
+  );
+}
+
+/* ============================
+   APP ROOT
+============================ */
+
+export default function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Router />
+        <InstallPrompt />
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+}
