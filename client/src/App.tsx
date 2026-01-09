@@ -29,7 +29,8 @@ const queryClient = new QueryClient({
 
 function getAuth() {
   const token = localStorage.getItem("auth_token");
-  const role = localStorage.getItem("user_role") as UserRole | null;
+  const rawRole = localStorage.getItem("user_role");
+  const role = rawRole === "admin" || rawRole === "user" ? rawRole : null;
 
   return {
     isAuthenticated: Boolean(token),
