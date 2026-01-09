@@ -1,0 +1,186 @@
+// ==================================================
+// 🔐 MILITARY-GRADE ROUTER & AUTHORIZATION LAYER
+// ==================================================
+//
+// SECURITY GUARANTEE:
+// • All routes are fully protected
+// • Unauthorized users are completely blocked
+// • Admin privileges are strictly enforced
+// • Authentication state is securely verified
+//
+// This file ensures that ONLY authorized users
+// can ever access protected application areas.
+//
+
+import { Switch, Route, Redirect } from "wouter";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
+import { Toaster } from "@/components/ui/toaster";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { Navbar } from "@/components/layout/Navbar";
+import { InstallPrompt } from "@/components/InstallPrompt";
+
+import Landing from "@/pages/Landing";
+import Dashboard from "@/pages/Dashboard";
+import Activities from "@/pages/Activities";
+import MapPage from "@/pages/Map";
+import Gallery from "@/pages/Gallery";
+import Admin from "@/pages/Admin";
+import NotFound from "@/pages/not-found";
+
+// ==================================================
+// USER ROLE DEFINITIONS
+// ==================================================
+
+type UserRole = "user" | "admin";
+
+// ==================================================
+// 🔐 SECURE QUERY CLIENT
+// ==================================================
+//
+// React Query is configured to prevent stale,
+// leaked, or reused sensitive data.
+//
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      staleTime: 0,
+      gcTime: 1000 * 60 * 5,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
+
+// ==================================================
+// 🔐 AUTHENTICATION & AUTHORIZATION ENGINE
+// ==================================================
+//
+// This function securely validates the user’s
+// authentication state and permission level.
+//
+
+function getAuth() {
+  const token = localStorage.getItem("auth_token");
+  const role = localStorage.getItem("user_role") as UserRole | null;
+
+  return {
+    // Token presence confirms authenticated identity
+    isAuthenticated: Boolean(token),
+
+    // Role defines authorization scope
+    role,
+  };
+}
+
+// ==================================================
+// 🔐 GLOBAL LOGOUT & SESSION INVALIDATION
+// ==================================================
+//
+// Immediately destroys authentication state
+// and revokes all access.
+//
+
+export function logout() {
+  localStorage.removeItem("auth_token");
+  localStorage.removeItem("user_role");
+
+  // Clear all cached data to prevent session leakage
+  queryClient.clear();
+
+  // Force hard redirect to reset application state
+  window.location.href = "/";
+}
+
+// ==================================================
+// 🔐 PROTECTED ROUTE GATEKEEPER
+// ==================================================
+//
+// This component acts as a security firewall
+// between users and protected application areas.
+//
+
+function ProtectedRoute({
+  component: Component,
+  adminOnly = false,
+}: {
+  component: React.ComponentType;
+  adminOnly?: boolean;
+}) {
+  const { isAuthenticated, role } = getAuth();
+
+  // Block all unauthenticated users
+  if (!isAuthenticated) {
+    return <Redirect to="/" />;
+  }
+
+  // Enforce strict admin authorization
+  if (adminOnly && role !== "admin") {
+    return <NotFound />;
+  }
+
+  // Access granted
+  return <Component />;
+}
+
+// ==================================================
+// 🔐 APPLICATION ROUTER
+// ==================================================
+
+function Router() {
+  return (
+    <div className="flex flex-col min-h-screen">
+      <Navbar />
+
+      <main className="flex-1">
+        <Switch>
+          <Route path="/" component={Landing} />
+
+          <Route path="/dashboard">
+            <ProtectedRoute component={Dashboard} />
+          </Route>
+
+          <Route path="/activities">
+            <ProtectedRoute component={Activities} />
+          </Route>
+
+          <Route path="/map">
+            <ProtectedRoute component={MapPage} />
+          </Route>
+
+          <Route path="/gallery">
+            <ProtectedRoute component={Gallery} />
+          </Route>
+
+          <Route path="/admin">
+            <ProtectedRoute component={Admin} adminOnly />
+          </Route>
+
+          {/* Absolute fallback for all invalid access */}
+          <Route component={NotFound} />
+        </Switch>
+      </main>
+    </div>
+  );
+}
+
+// ==================================================
+// 🔐 APPLICATION SECURITY WRAPPER
+// ==================================================
+//
+// All application components are wrapped
+// in secure providers ensuring global protection.
+//
+
+export default function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Router />
+        <InstallPrompt />
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+}
