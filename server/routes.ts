@@ -60,6 +60,7 @@ export async function registerRoutes(
       let user;
 
       if (input.role === "admin") {
+        // Admin login
         user = await storage.getUserByUsername(input.username);
 
         if (!user || user.role !== "admin") {
@@ -72,16 +73,15 @@ export async function registerRoutes(
         }
 
       } else {
-        user = await storage.getUserByLotAndName(
-          input.lotNumber,
-          input.lastName
-        );
+        // Resident login
+        user = await storage.getUserByLotAndName(input.lotNumber, input.lastName);
 
         if (!user || user.role !== "resident") {
           return res.status(401).json({ message: "Invalid credentials" });
         }
       }
 
+      // Successful login
       req.session.userId = user.id;
       res.json(user);
 
@@ -89,6 +89,7 @@ export async function registerRoutes(
       res.status(400).json({ message: "Invalid input" });
     }
   });
+
 
   app.post(api.auth.logout.path, requireAuth, (req, res) => {
     req.session.destroy(() => {
