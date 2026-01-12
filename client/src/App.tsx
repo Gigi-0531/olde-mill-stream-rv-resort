@@ -1,5 +1,5 @@
 import { Switch, Route, Redirect } from "wouter";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query";
 
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -14,7 +14,7 @@ import Gallery from "@/pages/Gallery";
 import Admin from "@/pages/Admin";
 import NotFound from "@/pages/not-found";
 
-type UserRole = "user" | "admin";
+type UserRole = "resident" | "admin";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -27,14 +27,21 @@ const queryClient = new QueryClient({
   },
 });
 
-function getAuth() {
-  const token = localStorage.getItem("auth_token");
-  const role = localStorage.getItem("user_role") as UserRole | null;
+function useAuth() {
+  return useQuery({
+    queryKey: ["me"],
+    queryFn: async () => {
+      const res = await fetch("/api/auth/me", {
+        credentials: "include",
+      });
 
-  return {
-    isAuthenticated: Boolean(token),
-    role,
-  };
+      if (!res.ok) {
+        return null;
+      }
+
+      return res.json();
+    },
+  });
 }
 
 export function logout() {
@@ -51,13 +58,17 @@ function ProtectedRoute({
   component: React.ComponentType;
   adminOnly?: boolean;
 }) {
-  const { isAuthenticated, role } = getAuth();
+  const { data: user, isLoading } = useAuth();
 
-  if (!isAuthenticated) {
+  if (isLoading) {
+    return null;
+  }
+
+  if (!user) {
     return <Redirect to="/" />;
   }
 
-  if (adminOnly && role !== "admin") {
+  if (adminOnly && user.role !== "admin") {
     return <NotFound />;
   }
 
