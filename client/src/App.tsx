@@ -45,8 +45,6 @@ function useAuth() {
 }
 
 export function logout() {
-  localStorage.removeItem("auth_token");
-  localStorage.removeItem("user_role");
   queryClient.clear();
   window.location.href = "/";
 }
@@ -60,9 +58,7 @@ function ProtectedRoute({
 }) {
   const { data: user, isLoading } = useAuth();
 
-  if (isLoading) {
-    return null;
-  }
+  if (isLoading) return null;
 
   if (!user) {
     return <Redirect to="/" />;

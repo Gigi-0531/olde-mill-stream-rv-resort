@@ -5,7 +5,7 @@ import {
   integer,
   boolean,
   timestamp,
-  pgEnum,res.status(status).json({ message });
+  pgEnum
 
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
