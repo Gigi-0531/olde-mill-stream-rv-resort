@@ -55,29 +55,31 @@ export async function registerRoutes(
 
   app.post(api.auth.login.path, loginLimiter, async (req, res) => {
     try {
-      const { username, password, lotNumber, lastName } =
-        api.auth.login.input.parse(req.body);
+      const input = api.auth.login.input.parse(req.body);
 
       let user;
 
-      if (username && password) {
-        user = await storage.getUserByUsername(username);
+      if (input.role === "admin") {
+        user = await storage.getUserByUsername(input.username);
+
         if (!user || user.role !== "admin") {
           return res.status(401).json({ message: "Invalid credentials" });
         }
 
-        const valid = await bcrypt.compare(password, user.password);
+        const valid = await bcrypt.compare(input.password, user.password!);
         if (!valid) {
           return res.status(401).json({ message: "Invalid credentials" });
         }
-      }
-      else if (lotNumber && lastName) {
-        user = await storage.getUserByLotAndName(lotNumber, lastName);
-        if (!user) {
+
+      } else {
+        user = await storage.getUserByLotAndName(
+          input.lotNumber,
+          input.lastName
+        );
+
+        if (!user || user.role !== "resident") {
           return res.status(401).json({ message: "Invalid credentials" });
         }
-      } else {
-        return res.status(400).json({ message: "Invalid input" });
       }
 
       req.session.userId = user.id;
