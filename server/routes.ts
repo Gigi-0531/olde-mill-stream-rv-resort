@@ -1,229 +1,98 @@
-import type { Express } from "express";
-import type { Server } from "http";
-import session from "express-session";
-import createMemoryStore from "memorystore";
-import bcrypt from "bcrypt";
-import rateLimit from "express-rate-limit";
+import express, { type Request, Response, NextFunction } from "express";
+import { registerRoutes } from "./routes";
+import { serveStatic } from "./static";
+import { createServer } from "http";
 
-import { storage } from "./storage";
-import { api } from "@shared/routes";
-import { registerObjectStorageRoutes, ObjectStorageService } from "./replit_integrations/object_storage";
+const app = express();
+const httpServer = createServer(app);
 
-const MemoryStore = createMemoryStore(session);
-const objectStorageService = new ObjectStorageService();
-
-function requireAuth(req: any, res: any, next: any) {
-  if (!req.session?.userId) {
-    return res.status(401).json({ message: "Unauthorized" });
+declare module "http" {
+  interface IncomingMessage {
+    rawBody: unknown;
   }
-  next();
 }
 
-async function requireAdmin(req: any, res: any, next: any) {
-  const user = await storage.getUser(req.session.userId);
-  if (!user || user.role !== "admin") {
-    return res.status(403).json({ message: "Forbidden" });
-  }
-  next();
+app.use(
+  express.json({
+    verify: (req, _res, buf) => {
+      req.rawBody = buf;
+    },
+  }),
+);
+
+app.use(express.urlencoded({ extended: false }));
+
+export function log(message: string, source = "express") {
+  const formattedTime = new Date().toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: true,
+  });
+
+  console.log(`${formattedTime} [${source}] ${message}`);
 }
 
-const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 10,
+app.use((req, res, next) => {
+  const start = Date.now();
+  const path = req.path;
+  let capturedJsonResponse: Record<string, any> | undefined = undefined;
+
+  const originalResJson = res.json;
+  res.json = function (bodyJson, ...args) {
+    capturedJsonResponse = bodyJson;
+    return originalResJson.apply(res, [bodyJson, ...args]);
+  };
+
+  res.on("finish", () => {
+    const duration = Date.now() - start;
+    if (path.startsWith("/api")) {
+      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
+      if (capturedJsonResponse) {
+        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
+      }
+
+      log(logLine);
+    }
+  });
+
+  next();
 });
 
-export async function registerRoutes(
-  httpServer: Server,
-  app: Express
-): Promise<Server> {
+(async () => {
+  await registerRoutes(httpServer, app);
 
-  app.use(session({
-    name: "session",
-    secret: process.env.SESSION_SECRET!,
-    resave: false,
-    saveUninitialized: false,
-    store: new MemoryStore({
-      checkPeriod: 86400000,
-    }),
-    cookie: {
-      maxAge: 86400000,
-      httpOnly: true,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
+  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+    const status = err.status || err.statusCode || 500;
+    const message = err.message || "Internal Server Error";
+
+    res.status(status).json({ message });
+  });
+
+
+  // importantly only setup vite in development and after
+  // setting up all the other routes so the catch-all route
+  // doesn't interfere with the other routes
+  if (process.env.NODE_ENV === "production") {
+    serveStatic(app);
+  } else {
+    const { setupVite } = await import("./vite");
+    await setupVite(httpServer, app);
+  }
+
+  // ALWAYS serve the app on the port specified in the environment variable PORT
+  // Other ports are firewalled. Default to 5000 if not specified.
+  // this serves both the API and the client.
+  // It is the only port that is not firewalled.
+  const port = parseInt(process.env.PORT || "5000", 10);
+  httpServer.listen(
+    {
+      port,
+      host: "0.0.0.0",
+      reusePort: true,
     },
-  }));
-
-  app.post(api.auth.login.path, loginLimiter, async (req, res) => {
-    try {
-      const input = api.auth.login.input.parse(req.body);
-
-      let user;
-
-      if (input.role === "admin") {
-        // Admin login
-        user = await storage.getUserByUsername(input.username);
-
-        if (!user || user.role !== "admin") {
-          return res.status(401).json({ message: "Invalid credentials" });
-        }
-
-        const valid = await bcrypt.compare(input.password, user.password!);
-        if (!valid) {
-          return res.status(401).json({ message: "Invalid credentials" });
-        }
-
-      } else {
-        // Resident login
-        user = await storage.getUserByLotAndName(input.lotNumber, input.lastName);
-
-        if (!user || user.role !== "resident") {
-          return res.status(401).json({ message: "Invalid credentials" });
-        }
-      }
-
-      // Successful login
-      req.session.userId = user.id;
-      res.json(user);
-
-    } catch {
-      res.status(400).json({ message: "Invalid input" });
-    }
-  });
-
-
-  app.post(api.auth.logout.path, requireAuth, (req, res) => {
-    req.session.destroy(() => {
-      res.json({ message: "Logged out" });
-    });
-  });
-
-  app.get(api.auth.me.path, requireAuth, async (req, res) => {
-    const user = await storage.getUser(req.session.userId);
-    if (!user) {
-      return res.status(401).json({ message: "Unauthorized" });
-    }
-    res.json(user);
-  });
-
-  app.get(api.activities.list.path, async (_req, res) => {
-    res.json(await storage.getActivities());
-  });
-
-  app.post(
-    api.activities.create.path,
-    requireAuth,
-    requireAdmin,
-    async (req, res) => {
-      try {
-        const input = api.activities.create.input.parse(req.body);
-        const activity = await storage.createActivity(input);
-        res.status(201).json(activity);
-      } catch {
-        res.status(400).json({ message: "Invalid input" });
-      }
-    }
+    () => {
+      log(`serving on port ${port}`);
+    },
   );
-
-  app.delete(
-    api.activities.delete.path,
-    requireAuth,
-    requireAdmin,
-    async (req, res) => {
-      await storage.deleteActivity(Number(req.params.id));
-      res.status(204).send();
-    }
-  );
-
-  app.get(api.notifications.list.path, async (_req, res) => {
-    res.json(await storage.getActiveNotifications());
-  });
-
-  app.post(
-    api.notifications.create.path,
-    requireAuth,
-    requireAdmin,
-    async (req, res) => {
-      try {
-        const input = api.notifications.create.input.parse(req.body);
-        const notif = await storage.createNotification(input);
-        res.status(201).json(notif);
-      } catch {
-        res.status(400).json({ message: "Invalid input" });
-      }
-    }
-  );
-
-  app.delete(
-    api.notifications.delete.path,
-    requireAuth,
-    requireAdmin,
-    async (req, res) => {
-      await storage.deleteNotification(Number(req.params.id));
-      res.status(204).send();
-    }
-  );
-
-  app.get(api.users.list.path, requireAuth, async (req, res) => {
-    const query = req.query.search as string | undefined;
-    res.json(await storage.searchUsers(query));
-  });
-
-  app.get(api.weather.get.path, (_req, res) => {
-    res.json({
-      location: "Umatilla, FL",
-      temp: 78,
-      condition: "Sunny",
-      forecast: [
-        { day: "Today", temp: 78, condition: "Sunny" },
-        { day: "Tomorrow", temp: 76, condition: "Partly Cloudy" },
-        { day: "Wed", temp: 80, condition: "Clear" },
-      ],
-    });
-  });
-
-  app.get(api.gallery.list.path, async (_req, res) => {
-    const photos = await storage.getGalleryPhotos();
-    res.json(
-      photos.map(photo => ({
-        ...photo,
-        objectPath: objectStorageService.normalizeObjectEntityPath(photo.objectPath),
-      }))
-    );
-  });
-
-  app.post(
-    api.gallery.create.path,
-    requireAuth,
-    requireAdmin,
-    async (req, res) => {
-      try {
-        const input = api.gallery.create.input.parse(req.body);
-        const normalizedPath =
-          objectStorageService.normalizeObjectEntityPath(input.objectPath);
-
-        const photo = await storage.createGalleryPhoto({
-          ...input,
-          objectPath: normalizedPath,
-        });
-
-        res.status(201).json(photo);
-      } catch {
-        res.status(400).json({ message: "Invalid input" });
-      }
-    }
-  );
-
-  app.delete(
-    api.gallery.delete.path,
-    requireAuth,
-    requireAdmin,
-    async (req, res) => {
-      await storage.deleteGalleryPhoto(Number(req.params.id));
-      res.status(204).send();
-    }
-  );
-
-  registerObjectStorageRoutes(app);
-
-  return httpServer;
-}
+})();
