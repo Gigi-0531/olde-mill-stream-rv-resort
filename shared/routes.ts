@@ -99,6 +99,20 @@ export const api = {
       },
     },
   },
+  users: {
+    list: {
+      method: 'GET' as const,
+      path: '/api/users',
+      responses: {
+        200: z.array(z.object({
+          id: z.number(),
+          firstName: z.string().nullable(),
+          lastName: z.string().nullable(),
+          lotNumber: z.string().nullable(),
+        })),
+      },
+    },
+  },
   residents: {
     list: {
       method: 'GET' as const,

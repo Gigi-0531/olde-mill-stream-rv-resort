@@ -45,7 +45,7 @@ export default function Messages() {
   });
 
   const { data: residents } = useQuery<User[]>({
-    queryKey: ["/api/residents"],
+    queryKey: ["/api/users"],
   });
 
   const { data: conversation } = useQuery<Message[]>({

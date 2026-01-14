@@ -172,6 +172,17 @@ export async function registerRoutes(
     }
   );
 
+  // Public users list (for messaging - limited fields)
+  app.get(api.users.list.path, requireAuth, async (_req, res) => {
+    const residents = await storage.getResidents();
+    res.json(residents.map(r => ({
+      id: r.id,
+      firstName: r.firstName,
+      lastName: r.lastName,
+      lotNumber: r.lotNumber,
+    })));
+  });
+
   // Residents management (admin only)
   app.get(api.residents.list.path, requireAuth, requireAdmin, async (_req, res) => {
     const residents = await storage.getResidents();
