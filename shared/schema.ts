@@ -100,6 +100,23 @@ export const messages = pgTable("messages", {
 });
 
 /* ======================================================
+   PUSH SUBSCRIPTIONS
+====================================================== */
+
+export const pushSubscriptions = pgTable("push_subscriptions", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  endpoint: text("endpoint").notNull(),
+  p256dh: text("p256dh").notNull(),
+  auth: text("auth").notNull(),
+  weatherEnabled: boolean("weather_enabled").notNull().default(true),
+  alertsEnabled: boolean("alerts_enabled").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: false })
+    .defaultNow()
+    .notNull(),
+});
+
+/* ======================================================
    INSERT SCHEMAS (ZOD)
 ====================================================== */
 
@@ -136,6 +153,11 @@ export const insertMessageSchema = createInsertSchema(messages).omit({
   isRead: true,
 });
 
+export const insertPushSubscriptionSchema = createInsertSchema(pushSubscriptions).omit({
+  id: true,
+  createdAt: true,
+});
+
 /* ======================================================
    TYPES
 ====================================================== */
@@ -154,6 +176,9 @@ export type InsertGalleryPhoto = z.infer<typeof insertGalleryPhotoSchema>;
 
 export type Message = typeof messages.$inferSelect;
 export type InsertMessage = z.infer<typeof insertMessageSchema>;
+
+export type PushSubscription = typeof pushSubscriptions.$inferSelect;
+export type InsertPushSubscription = z.infer<typeof insertPushSubscriptionSchema>;
 
 /* ======================================================
    AUTH / LOGIN INPUT (SAFE UNION)
