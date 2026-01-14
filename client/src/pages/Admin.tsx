@@ -598,7 +598,7 @@ function ResidentForm({
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="text-sm font-medium">First Name</label>
+          <label className="text-sm font-medium">First Name <span className="text-muted-foreground font-normal">(optional)</span></label>
           <Input
             value={firstName}
             onChange={(e) => setFirstName(e.target.value)}
@@ -607,7 +607,7 @@ function ResidentForm({
           />
         </div>
         <div>
-          <label className="text-sm font-medium">Phone Number</label>
+          <label className="text-sm font-medium">Phone Number <span className="text-muted-foreground font-normal">(optional)</span></label>
           <Input
             value={phoneNumber}
             onChange={(e) => setPhoneNumber(e.target.value)}
