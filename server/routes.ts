@@ -32,9 +32,37 @@ async function requireAdmin(req: any, res: any, next: any) {
   next();
 }
 
+// Rate limiters for different endpoint types
 const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 10,
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // 10 attempts per window
+  message: { message: "Too many login attempts, please try again later" },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const apiLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 100, // 100 requests per minute
+  message: { message: "Too many requests, please slow down" },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const uploadLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 10, // 10 uploads per minute
+  message: { message: "Too many upload requests, please wait" },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const messageLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 5, // 5 messages per minute
+  message: { message: "Too many messages, please wait before sending more" },
+  standardHeaders: true,
+  legacyHeaders: false,
 });
 
 export async function registerRoutes(
@@ -251,6 +279,7 @@ export async function registerRoutes(
     api.gallery.create.path,
     requireAuth,
     requireAdmin,
+    uploadLimiter,
     async (req, res) => {
       try {
         const input = api.gallery.create.input.parse(req.body);
@@ -304,7 +333,7 @@ export async function registerRoutes(
     res.json(msgs);
   });
 
-  app.post(api.messages.create.path, requireAuth, async (req, res) => {
+  app.post(api.messages.create.path, requireAuth, messageLimiter, async (req, res) => {
     try {
       const input = api.messages.create.input.parse(req.body);
       const isAdmin = req.session.userRole === 'admin';
@@ -345,7 +374,7 @@ export async function registerRoutes(
     res.json(subscription || null);
   });
 
-  app.post("/api/push/subscribe", requireAuth, async (req, res) => {
+  app.post("/api/push/subscribe", requireAuth, apiLimiter, async (req, res) => {
     try {
       const { endpoint, keys, weatherEnabled = true, alertsEnabled = true } = req.body;
       if (!endpoint || !keys?.p256dh || !keys?.auth) {
@@ -387,8 +416,8 @@ export async function registerRoutes(
     res.status(204).send();
   });
 
-  // Admin: Send push notification to all subscribers
-  app.post("/api/push/send-alert", requireAuth, requireAdmin, async (req, res) => {
+  // Admin: Send push notification to all subscribers (with strict rate limit)
+  app.post("/api/push/send-alert", requireAuth, requireAdmin, messageLimiter, async (req, res) => {
     try {
       const { title, body } = req.body;
       if (!title || !body) {
