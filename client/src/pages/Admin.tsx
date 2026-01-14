@@ -11,7 +11,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertActivitySchema } from "@shared/schema";
-import { Plus, Trash2, Calendar, Bell, MapPin, Clock, Image, Loader2, Users, Pencil, Search } from "lucide-react";
+import { Plus, Trash2, Calendar, Bell, MapPin, Clock, Image, Loader2, Users, Pencil, Search, MessageSquare, Check, X } from "lucide-react";
 import { format } from "date-fns";
 import { useState } from "react";
 import { NotificationsWidget } from "@/components/NotificationsWidget";
@@ -51,6 +51,9 @@ export default function Admin() {
             <TabsTrigger value="directory" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               <Users className="w-4 h-4 mr-2" /> Directory
             </TabsTrigger>
+            <TabsTrigger value="messages" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <MessageSquare className="w-4 h-4 mr-2" /> Messages
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="activities">
@@ -71,6 +74,10 @@ export default function Admin() {
 
           <TabsContent value="directory">
             <DirectoryManager />
+          </TabsContent>
+
+          <TabsContent value="messages">
+            <MessageModeration />
           </TabsContent>
         </Tabs>
       </div>
@@ -620,5 +627,113 @@ function ResidentForm({
         {isLoading ? "Saving..." : defaultValues ? "Update Resident" : "Add Resident"}
       </Button>
     </form>
+  );
+}
+
+interface PendingMessage {
+  id: number;
+  senderId: number;
+  content: string;
+  createdAt: string;
+  approved: boolean;
+}
+
+function MessageModeration() {
+  const { data: pendingMessages, isLoading } = useQuery<PendingMessage[]>({
+    queryKey: ['/api/messages/pending'],
+  });
+
+  const { data: users } = useQuery<{ id: number; firstName: string | null; lastName: string | null; lotNumber: string | null }[]>({
+    queryKey: ['/api/users'],
+  });
+
+  const approveMessage = useMutation({
+    mutationFn: (id: number) => apiRequest(`/api/messages/${id}/approve`, { method: 'PATCH' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/messages/pending'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/messages/community'] });
+    },
+  });
+
+  const deleteMessage = useMutation({
+    mutationFn: (id: number) => apiRequest(`/api/messages/${id}`, { method: 'DELETE' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/messages/pending'] });
+    },
+  });
+
+  const getSenderName = (senderId: number) => {
+    const user = users?.find(u => u.id === senderId);
+    if (!user) return 'Unknown';
+    const name = [user.firstName, user.lastName].filter(Boolean).join(' ') || user.lotNumber || 'Unknown';
+    return name;
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-xl font-bold">Pending Community Messages</h2>
+        <p className="text-muted-foreground">Review and approve messages before they appear on the community board</p>
+      </div>
+
+      {!pendingMessages?.length ? (
+        <Card>
+          <CardContent className="py-8 text-center text-muted-foreground">
+            <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
+            <p>No messages pending approval</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-4">
+          {pendingMessages.map((message) => (
+            <Card key={message.id} data-testid={`card-pending-message-${message.id}`}>
+              <CardContent className="py-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="font-medium">{getSenderName(message.senderId)}</span>
+                      <span className="text-sm text-muted-foreground">
+                        {format(new Date(message.createdAt), 'MMM d, yyyy h:mm a')}
+                      </span>
+                    </div>
+                    <p className="text-foreground">{message.content}</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      size="icon"
+                      variant="outline"
+                      className="text-green-600 hover:bg-green-50"
+                      onClick={() => approveMessage.mutate(message.id)}
+                      disabled={approveMessage.isPending}
+                      data-testid={`button-approve-message-${message.id}`}
+                    >
+                      <Check className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="outline"
+                      className="text-red-600 hover:bg-red-50"
+                      onClick={() => deleteMessage.mutate(message.id)}
+                      disabled={deleteMessage.isPending}
+                      data-testid={`button-reject-message-${message.id}`}
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }

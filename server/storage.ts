@@ -37,11 +37,14 @@ export interface IStorage {
   deleteGalleryPhoto(id: number): Promise<void>;
 
   // Messages
-  getCommunityMessages(): Promise<Message[]>;
+  getCommunityMessages(includeUnapproved?: boolean): Promise<Message[]>;
+  getPendingMessages(): Promise<Message[]>;
   getDirectMessages(userId: number): Promise<Message[]>;
   getConversation(userId1: number, userId2: number): Promise<Message[]>;
   createMessage(message: InsertMessage): Promise<Message>;
   markMessageRead(id: number): Promise<void>;
+  approveMessage(id: number): Promise<void>;
+  deleteMessage(id: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -147,8 +150,19 @@ export class DatabaseStorage implements IStorage {
     );
   }
 
-  async getCommunityMessages(): Promise<Message[]> {
-    return db.select().from(messages).where(isNull(messages.recipientId)).orderBy(desc(messages.createdAt));
+  async getCommunityMessages(includeUnapproved: boolean = false): Promise<Message[]> {
+    if (includeUnapproved) {
+      return db.select().from(messages).where(isNull(messages.recipientId)).orderBy(desc(messages.createdAt));
+    }
+    return db.select().from(messages).where(
+      and(isNull(messages.recipientId), eq(messages.approved, true))
+    ).orderBy(desc(messages.createdAt));
+  }
+
+  async getPendingMessages(): Promise<Message[]> {
+    return db.select().from(messages).where(
+      and(isNull(messages.recipientId), eq(messages.approved, false))
+    ).orderBy(desc(messages.createdAt));
   }
 
   async getDirectMessages(userId: number): Promise<Message[]> {
@@ -176,6 +190,14 @@ export class DatabaseStorage implements IStorage {
 
   async markMessageRead(id: number): Promise<void> {
     await db.update(messages).set({ isRead: true }).where(eq(messages.id, id));
+  }
+
+  async approveMessage(id: number): Promise<void> {
+    await db.update(messages).set({ approved: true }).where(eq(messages.id, id));
+  }
+
+  async deleteMessage(id: number): Promise<void> {
+    await db.delete(messages).where(eq(messages.id, id));
   }
 }
 

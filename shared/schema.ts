@@ -93,6 +93,7 @@ export const messages = pgTable("messages", {
   recipientId: integer("recipient_id"), // null = community-wide message
   content: text("content").notNull(),
   isRead: boolean("is_read").notNull().default(false),
+  approved: boolean("approved").notNull().default(false), // community messages need admin approval
   createdAt: timestamp("created_at", { withTimezone: false })
     .defaultNow()
     .notNull(),

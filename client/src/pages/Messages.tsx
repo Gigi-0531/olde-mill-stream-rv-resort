@@ -8,8 +8,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Send, Users, MessageCircle, Loader2 } from "lucide-react";
+import { Send, Users, MessageCircle, Loader2, Info } from "lucide-react";
 import { format } from "date-fns";
+import { useToast } from "@/hooks/use-toast";
 
 interface Message {
   id: number;
@@ -30,6 +31,7 @@ interface User {
 
 export default function Messages() {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [newMessage, setNewMessage] = useState("");
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -76,7 +78,16 @@ export default function Messages() {
   const handleSendCommunity = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newMessage.trim()) return;
-    sendMessage.mutate({ content: newMessage });
+    sendMessage.mutate({ content: newMessage }, {
+      onSuccess: () => {
+        if (user?.role !== 'admin') {
+          toast({
+            title: "Message submitted",
+            description: "Your message will appear after admin approval.",
+          });
+        }
+      }
+    });
   };
 
   const handleSendDirect = (e: React.FormEvent) => {

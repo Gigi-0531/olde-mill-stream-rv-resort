@@ -279,8 +279,14 @@ export async function registerRoutes(
   );
 
   // Messages
-  app.get(api.messages.community.path, requireAuth, async (_req, res) => {
-    const msgs = await storage.getCommunityMessages();
+  app.get(api.messages.community.path, requireAuth, async (req, res) => {
+    const isAdmin = req.session.userRole === 'admin';
+    const msgs = await storage.getCommunityMessages(isAdmin);
+    res.json(msgs);
+  });
+
+  app.get("/api/messages/pending", requireAuth, requireAdmin, async (_req, res) => {
+    const msgs = await storage.getPendingMessages();
     res.json(msgs);
   });
 
@@ -300,10 +306,12 @@ export async function registerRoutes(
   app.post(api.messages.create.path, requireAuth, async (req, res) => {
     try {
       const input = api.messages.create.input.parse(req.body);
+      const isAdmin = req.session.userRole === 'admin';
       const message = await storage.createMessage({
         senderId: req.session.userId,
         recipientId: input.recipientId || null,
         content: input.content,
+        approved: isAdmin || input.recipientId !== null, // Direct messages auto-approved, admin posts auto-approved
       });
       res.status(201).json(message);
     } catch {
@@ -314,6 +322,16 @@ export async function registerRoutes(
   app.patch(api.messages.markRead.path, requireAuth, async (req, res) => {
     await storage.markMessageRead(Number(req.params.id));
     res.json({ success: true });
+  });
+
+  app.patch("/api/messages/:id/approve", requireAuth, requireAdmin, async (req, res) => {
+    await storage.approveMessage(Number(req.params.id));
+    res.json({ success: true });
+  });
+
+  app.delete("/api/messages/:id", requireAuth, requireAdmin, async (req, res) => {
+    await storage.deleteMessage(Number(req.params.id));
+    res.status(204).send();
   });
 
   registerObjectStorageRoutes(app);
