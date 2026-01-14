@@ -33,6 +33,7 @@ app.use(helmet({
       workerSrc: ["'self'", "blob:"],
       baseUri: ["'self'"],
       formAction: ["'self'"],
+      frameAncestors: ["'self'", "https://*.replit.dev", "https://*.replit.com"],
       upgradeInsecureRequests: isProduction ? [] : null,
     },
   },
@@ -47,7 +48,7 @@ app.use(helmet({
   noSniff: true,
   xssFilter: true,
   hidePoweredBy: true,
-  frameguard: { action: "sameorigin" },
+  frameguard: false,
 }));
 
 // Prevent HTTP Parameter Pollution
