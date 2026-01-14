@@ -22,7 +22,6 @@ app.use(helmet({
       scriptSrc: isProduction 
         ? ["'self'"] 
         : ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
-      scriptSrcAttr: isProduction ? ["'none'"] : ["'unsafe-inline'"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
       imgSrc: ["'self'", "data:", "blob:", "https:", "http:"],
@@ -33,13 +32,10 @@ app.use(helmet({
       workerSrc: ["'self'", "blob:"],
       baseUri: ["'self'"],
       formAction: ["'self'"],
-      frameAncestors: ["'self'", "https://*.replit.dev", "https://*.replit.com"],
-      upgradeInsecureRequests: isProduction ? [] : null,
     },
   },
   crossOriginEmbedderPolicy: false,
-  crossOriginOpenerPolicy: false,
-  crossOriginResourcePolicy: false,
+  crossOriginResourcePolicy: { policy: "cross-origin" },
   referrerPolicy: { policy: "strict-origin-when-cross-origin" },
   hsts: {
     maxAge: 31536000,
@@ -49,7 +45,7 @@ app.use(helmet({
   noSniff: true,
   xssFilter: true,
   hidePoweredBy: true,
-  frameguard: false,
+  frameguard: { action: "sameorigin" },
 }));
 
 // Prevent HTTP Parameter Pollution
