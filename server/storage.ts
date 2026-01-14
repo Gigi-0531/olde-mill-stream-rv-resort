@@ -58,7 +58,7 @@ export class DatabaseStorage implements IStorage {
   async getUserByLotAndName(lotNumber: string, lastName: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(
       and(
-        ilike(users.lotNumber, lotNumber),
+        ilike(users.lotNumber, `%${lotNumber}%`),
         ilike(users.lastName, lastName)
       )
     );
