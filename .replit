@@ -40,3 +40,9 @@ waitForPort = 5000
 
 [agent]
 integrations = ["javascript_object_storage:2.0.0"]
+
+[userenv]
+
+[userenv.shared]
+VAPID_PUBLIC_KEY = "BFXcXwQUkqjqFE_4Sda55_oKuR-SbvhYo4BRylUH4jqFpPt4B1V6lYwAjGDG_UMJXfSCLLVn5ubehSl8WJmakQ4"
+VAPID_PRIVATE_KEY = "0HRp2lB20amlLhH-FWqEKNyZW9qEPFwfHLXWZMt773c"
