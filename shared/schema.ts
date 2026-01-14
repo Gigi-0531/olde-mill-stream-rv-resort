@@ -2,24 +2,22 @@ import {
   pgTable,
   text,
   serial,
-  integer,
   boolean,
   timestamp,
-  pgEnum
-
+  pgEnum,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-/* ============================
-   ENUMS (SECURITY)
-============================ */
+/* ======================================================
+   ENUMS
+====================================================== */
 
 export const userRoleEnum = pgEnum("user_role", ["admin", "resident"]);
 
-/* ============================
+/* ======================================================
    USERS
-============================ */
+====================================================== */
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -28,61 +26,69 @@ export const users = pgTable("users", {
     .notNull()
     .default("resident"),
 
-  // Admin-only
+  // Admin-only fields
   username: text("username").unique(),
   password: text("password"), // bcrypt hash ONLY
 
-  // Resident-only
+  // Resident-only fields
   firstName: text("first_name"),
   lastName: text("last_name"),
   lotNumber: text("lot_number"),
   phoneNumber: text("phone_number"),
 
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  createdAt: timestamp("created_at", { withTimezone: false })
+    .defaultNow()
+    .notNull(),
 });
 
-/* ============================
+/* ======================================================
    ACTIVITIES
-============================ */
+====================================================== */
 
 export const activities = pgTable("activities", {
   id: serial("id").primaryKey(),
   title: text("title").notNull(),
   description: text("description"),
-  date: timestamp("date").notNull(),
+  date: timestamp("date", { withTimezone: false }).notNull(),
   location: text("location"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  createdAt: timestamp("created_at", { withTimezone: false })
+    .defaultNow()
+    .notNull(),
 });
 
-/* ============================
+/* ======================================================
    NOTIFICATIONS
-============================ */
+====================================================== */
 
 export const notifications = pgTable("notifications", {
   id: serial("id").primaryKey(),
   content: text("content").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  active: boolean("active").default(true).notNull(),
+  active: boolean("active").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: false })
+    .defaultNow()
+    .notNull(),
 });
 
-/* ============================
+/* ======================================================
    GALLERY
-============================ */
+====================================================== */
 
 export const galleryPhotos = pgTable("gallery_photos", {
   id: serial("id").primaryKey(),
   title: text("title"),
   objectPath: text("object_path").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  createdAt: timestamp("created_at", { withTimezone: false })
+    .defaultNow()
+    .notNull(),
 });
 
-/* ============================
-   ZOD INSERT SCHEMAS (STRICT)
-============================ */
+/* ======================================================
+   INSERT SCHEMAS (ZOD)
+====================================================== */
 
 export const insertUserSchema = createInsertSchema(users, {
   username: z.string().email().optional(),
-  password: z.string().min(60).optional(), // bcrypt hashes are ~60 chars
+  password: z.string().min(60).optional(), // bcrypt hash length
   firstName: z.string().min(1).optional(),
   lastName: z.string().min(1).optional(),
   lotNumber: z.string().min(1).optional(),
@@ -107,9 +113,9 @@ export const insertGalleryPhotoSchema = createInsertSchema(galleryPhotos).omit({
   createdAt: true,
 });
 
-/* ============================
+/* ======================================================
    TYPES
-============================ */
+====================================================== */
 
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -123,9 +129,9 @@ export type InsertNotification = z.infer<typeof insertNotificationSchema>;
 export type GalleryPhoto = typeof galleryPhotos.$inferSelect;
 export type InsertGalleryPhoto = z.infer<typeof insertGalleryPhotoSchema>;
 
-/* ============================
-   LOGIN INPUT (SAFE)
-============================ */
+/* ======================================================
+   AUTH / LOGIN INPUT (SAFE UNION)
+====================================================== */
 
 export const loginSchema = z.union([
   z.object({

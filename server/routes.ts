@@ -8,6 +8,10 @@ import rateLimit from "express-rate-limit";
 import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { registerObjectStorageRoutes, ObjectStorageService } from "./replit_integrations/object_storage";
+function safeUser(user: any) {
+  const { password, ...safe } = user;
+  return safe;
+}
 
 const MemoryStore = createMemoryStore(session);
 const objectStorageService = new ObjectStorageService();
@@ -36,7 +40,10 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
-
+  
+  if (!process.env.SESSION_SECRET) {
+    throw new Error("SESSION_SECRET is required");
+  }
   app.use(session({
     name: "session",
     secret: process.env.SESSION_SECRET!,
@@ -83,7 +90,8 @@ export async function registerRoutes(
       }
 
       req.session.userId = user.id;
-      res.json(user);
+      res.json(safeUser(user));
+
 
     } catch {
       res.status(400).json({ message: "Invalid input" });
@@ -101,7 +109,7 @@ export async function registerRoutes(
     if (!user) {
       return res.status(401).json({ message: "Unauthorized" });
     }
-    res.json(user);
+    res.json(safeUser(user));
   });
 
   app.get(api.activities.list.path, async (_req, res) => {

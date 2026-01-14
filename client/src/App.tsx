@@ -31,26 +31,31 @@ function useAuth() {
   return useQuery({
     queryKey: ["me"],
     queryFn: async () => {
-      const res = await fetch("/api/auth/me", {
-        credentials: "include",
-      });
+      try {
+        const res = await fetch("/api/auth/me", {
+          credentials: "include",
+        });
 
-      if (!res.ok) {
+        if (!res.ok) return null;
+
+        const data = await res.json();
+        return data;
+      } catch {
         return null;
       }
-
-      return res.json();
     },
   });
 }
 
 export async function logout() {
-  await fetch("/api/auth/logout", {
-    method: "POST",
-    credentials: "include",
-  });
-
-  window.location.href = "/";
+  try {
+    await fetch("/api/auth/logout", {
+      method: "POST",
+      credentials: "include",
+    });
+  } finally {
+    window.location.assign("/");
+  }
 }
 
 function ProtectedRoute({
@@ -60,11 +65,11 @@ function ProtectedRoute({
   component: React.ComponentType;
   adminOnly?: boolean;
 }) {
-  const { data: user, isLoading } = useAuth();
+  const { data: user, isLoading, error } = useAuth();
 
   if (isLoading) return null;
 
-  if (!user) {
+  if (error || !user) {
     return <Redirect to="/" />;
   }
 
