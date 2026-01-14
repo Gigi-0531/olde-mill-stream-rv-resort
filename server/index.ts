@@ -22,6 +22,7 @@ app.use(helmet({
       scriptSrc: isProduction 
         ? ["'self'"] 
         : ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+      scriptSrcAttr: isProduction ? ["'none'"] : ["'unsafe-inline'"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
       imgSrc: ["'self'", "data:", "blob:", "https:", "http:"],
@@ -32,6 +33,7 @@ app.use(helmet({
       workerSrc: ["'self'", "blob:"],
       baseUri: ["'self'"],
       formAction: ["'self'"],
+      upgradeInsecureRequests: isProduction ? [] : null,
     },
   },
   crossOriginEmbedderPolicy: false,
