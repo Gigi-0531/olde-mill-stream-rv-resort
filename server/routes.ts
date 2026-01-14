@@ -267,6 +267,44 @@ export async function registerRoutes(
     }
   );
 
+  // Messages
+  app.get(api.messages.community.path, requireAuth, async (_req, res) => {
+    const msgs = await storage.getCommunityMessages();
+    res.json(msgs);
+  });
+
+  app.get(api.messages.direct.path, requireAuth, async (req, res) => {
+    const msgs = await storage.getDirectMessages(req.session.userId);
+    res.json(msgs);
+  });
+
+  app.get(api.messages.conversation.path, requireAuth, async (req, res) => {
+    const msgs = await storage.getConversation(
+      req.session.userId,
+      Number(req.params.userId)
+    );
+    res.json(msgs);
+  });
+
+  app.post(api.messages.create.path, requireAuth, async (req, res) => {
+    try {
+      const input = api.messages.create.input.parse(req.body);
+      const message = await storage.createMessage({
+        senderId: req.session.userId,
+        recipientId: input.recipientId || null,
+        content: input.content,
+      });
+      res.status(201).json(message);
+    } catch {
+      res.status(400).json({ message: "Invalid input" });
+    }
+  });
+
+  app.patch(api.messages.markRead.path, requireAuth, async (req, res) => {
+    await storage.markMessageRead(Number(req.params.id));
+    res.json({ success: true });
+  });
+
   registerObjectStorageRoutes(app);
 
   return httpServer;

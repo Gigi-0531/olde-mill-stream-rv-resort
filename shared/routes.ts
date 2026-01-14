@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { insertUserSchema, insertActivitySchema, insertNotificationSchema, insertGalleryPhotoSchema, users, activities, notifications, galleryPhotos } from './schema';
+import { insertUserSchema, insertActivitySchema, insertNotificationSchema, insertGalleryPhotoSchema, insertMessageSchema, users, activities, notifications, galleryPhotos, messages } from './schema';
 
 export const errorSchemas = {
   validation: z.object({
@@ -185,6 +185,48 @@ export const api = {
       responses: {
         204: z.void(),
         404: errorSchemas.notFound,
+      },
+    },
+  },
+  messages: {
+    community: {
+      method: 'GET' as const,
+      path: '/api/messages/community',
+      responses: {
+        200: z.array(z.custom<typeof messages.$inferSelect>()),
+      },
+    },
+    direct: {
+      method: 'GET' as const,
+      path: '/api/messages/direct',
+      responses: {
+        200: z.array(z.custom<typeof messages.$inferSelect>()),
+      },
+    },
+    conversation: {
+      method: 'GET' as const,
+      path: '/api/messages/conversation/:userId',
+      responses: {
+        200: z.array(z.custom<typeof messages.$inferSelect>()),
+      },
+    },
+    create: {
+      method: 'POST' as const,
+      path: '/api/messages',
+      input: z.object({
+        content: z.string().min(1),
+        recipientId: z.number().optional(),
+      }),
+      responses: {
+        201: z.custom<typeof messages.$inferSelect>(),
+        400: errorSchemas.validation,
+      },
+    },
+    markRead: {
+      method: 'PATCH' as const,
+      path: '/api/messages/:id/read',
+      responses: {
+        200: z.object({ success: z.boolean() }),
       },
     },
   },

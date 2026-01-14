@@ -1,12 +1,13 @@
 import { db } from "./db";
 import {
-  users, activities, notifications, galleryPhotos,
+  users, activities, notifications, galleryPhotos, messages,
   type User, type InsertUser,
   type Activity, type InsertActivity,
   type Notification, type InsertNotification,
-  type GalleryPhoto, type InsertGalleryPhoto
+  type GalleryPhoto, type InsertGalleryPhoto,
+  type Message, type InsertMessage
 } from "@shared/schema";
-import { eq, ilike, or, and, desc } from "drizzle-orm";
+import { eq, ilike, or, and, desc, isNull } from "drizzle-orm";
 
 export interface IStorage {
   // Users
@@ -34,6 +35,13 @@ export interface IStorage {
   getGalleryPhotos(): Promise<GalleryPhoto[]>;
   createGalleryPhoto(photo: InsertGalleryPhoto): Promise<GalleryPhoto>;
   deleteGalleryPhoto(id: number): Promise<void>;
+
+  // Messages
+  getCommunityMessages(): Promise<Message[]>;
+  getDirectMessages(userId: number): Promise<Message[]>;
+  getConversation(userId1: number, userId2: number): Promise<Message[]>;
+  createMessage(message: InsertMessage): Promise<Message>;
+  markMessageRead(id: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -137,6 +145,37 @@ export class DatabaseStorage implements IStorage {
     await db.delete(users).where(
       and(eq(users.id, id), eq(users.role, 'resident'))
     );
+  }
+
+  async getCommunityMessages(): Promise<Message[]> {
+    return db.select().from(messages).where(isNull(messages.recipientId)).orderBy(desc(messages.createdAt));
+  }
+
+  async getDirectMessages(userId: number): Promise<Message[]> {
+    return db.select().from(messages).where(
+      or(
+        eq(messages.senderId, userId),
+        eq(messages.recipientId, userId)
+      )
+    ).orderBy(desc(messages.createdAt));
+  }
+
+  async getConversation(userId1: number, userId2: number): Promise<Message[]> {
+    return db.select().from(messages).where(
+      or(
+        and(eq(messages.senderId, userId1), eq(messages.recipientId, userId2)),
+        and(eq(messages.senderId, userId2), eq(messages.recipientId, userId1))
+      )
+    ).orderBy(messages.createdAt);
+  }
+
+  async createMessage(message: InsertMessage): Promise<Message> {
+    const [newMessage] = await db.insert(messages).values(message).returning();
+    return newMessage;
+  }
+
+  async markMessageRead(id: number): Promise<void> {
+    await db.update(messages).set({ isRead: true }).where(eq(messages.id, id));
   }
 }
 
