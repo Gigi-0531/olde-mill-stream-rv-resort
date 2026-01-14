@@ -11,7 +11,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertActivitySchema } from "@shared/schema";
-import { Plus, Trash2, Calendar, Bell, MapPin, Clock, Image, Loader2 } from "lucide-react";
+import { Plus, Trash2, Calendar, Bell, MapPin, Clock, Image, Loader2, Users, Pencil, Search } from "lucide-react";
 import { format } from "date-fns";
 import { useState } from "react";
 import { NotificationsWidget } from "@/components/NotificationsWidget";
@@ -48,6 +48,9 @@ export default function Admin() {
                         <TabsTrigger value="gallery" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               <Image className="w-4 h-4 mr-2" /> Gallery
             </TabsTrigger>
+            <TabsTrigger value="directory" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <Users className="w-4 h-4 mr-2" /> Directory
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="activities">
@@ -64,6 +67,10 @@ export default function Admin() {
           
           <TabsContent value="gallery">
             <GalleryManager />
+          </TabsContent>
+
+          <TabsContent value="directory">
+            <DirectoryManager />
           </TabsContent>
         </Tabs>
       </div>
@@ -372,5 +379,246 @@ function GalleryManager() {
         </Card>
       )}
     </div>
+  );
+}
+
+function DirectoryManager() {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [editingResident, setEditingResident] = useState<any | null>(null);
+
+  const { data: residents, isLoading } = useQuery<any[]>({
+    queryKey: ["/api/residents"],
+  });
+
+  const createResident = useMutation({
+    mutationFn: async (data: { lotNumber: string; lastName: string; firstName?: string; phoneNumber?: string }) => {
+      const res = await apiRequest("POST", "/api/residents", data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/residents"] });
+      setIsAddOpen(false);
+    },
+  });
+
+  const updateResident = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: any }) => {
+      const res = await apiRequest("PATCH", `/api/residents/${id}`, data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/residents"] });
+      setEditingResident(null);
+    },
+  });
+
+  const deleteResident = useMutation({
+    mutationFn: async (id: number) => {
+      await apiRequest("DELETE", `/api/residents/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/residents"] });
+    },
+  });
+
+  const filteredResidents = residents?.filter((r) => {
+    if (!searchTerm) return true;
+    const term = searchTerm.toLowerCase();
+    return (
+      r.lotNumber?.toLowerCase().includes(term) ||
+      r.lastName?.toLowerCase().includes(term) ||
+      r.firstName?.toLowerCase().includes(term)
+    );
+  });
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center flex-wrap gap-4">
+        <h2 className="text-xl font-bold">Resident Directory</h2>
+        <div className="flex gap-2">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Search residents..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-9 w-64"
+              data-testid="input-search-residents"
+            />
+          </div>
+          <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+            <DialogTrigger asChild>
+              <Button className="gap-2" data-testid="button-add-resident">
+                <Plus className="w-4 h-4" /> Add Resident
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Add New Resident</DialogTitle>
+              </DialogHeader>
+              <ResidentForm
+                onSubmit={(data) => createResident.mutate(data)}
+                isLoading={createResident.isPending}
+              />
+            </DialogContent>
+          </Dialog>
+        </div>
+      </div>
+
+      {isLoading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      ) : filteredResidents && filteredResidents.length > 0 ? (
+        <Card>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-muted/50">
+                <tr>
+                  <th className="px-4 py-3 text-left text-sm font-medium">Lot #</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium">Last Name</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium">First Name</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium">Phone</th>
+                  <th className="px-4 py-3 text-right text-sm font-medium">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {filteredResidents.map((resident) => (
+                  <tr key={resident.id} className="hover:bg-muted/30" data-testid={`row-resident-${resident.id}`}>
+                    <td className="px-4 py-3 text-sm font-medium">{resident.lotNumber}</td>
+                    <td className="px-4 py-3 text-sm">{resident.lastName}</td>
+                    <td className="px-4 py-3 text-sm">{resident.firstName || "-"}</td>
+                    <td className="px-4 py-3 text-sm">{resident.phoneNumber || "-"}</td>
+                    <td className="px-4 py-3 text-right">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setEditingResident(resident)}
+                        data-testid={`button-edit-resident-${resident.id}`}
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-destructive hover:bg-destructive/10"
+                        onClick={() => {
+                          if (confirm(`Delete ${resident.lastName}?`)) deleteResident.mutate(resident.id);
+                        }}
+                        data-testid={`button-delete-resident-${resident.id}`}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="px-4 py-3 border-t text-sm text-muted-foreground">
+            Showing {filteredResidents.length} of {residents?.length} residents
+          </div>
+        </Card>
+      ) : (
+        <Card className="p-12">
+          <div className="text-center text-muted-foreground">
+            <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
+            <p>No residents found.</p>
+            <p className="text-sm mt-1">Add residents to the directory to get started.</p>
+          </div>
+        </Card>
+      )}
+
+      <Dialog open={!!editingResident} onOpenChange={(open) => !open && setEditingResident(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Resident</DialogTitle>
+          </DialogHeader>
+          {editingResident && (
+            <ResidentForm
+              defaultValues={editingResident}
+              onSubmit={(data) => updateResident.mutate({ id: editingResident.id, data })}
+              isLoading={updateResident.isPending}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+function ResidentForm({
+  defaultValues,
+  onSubmit,
+  isLoading,
+}: {
+  defaultValues?: any;
+  onSubmit: (data: any) => void;
+  isLoading: boolean;
+}) {
+  const [lotNumber, setLotNumber] = useState(defaultValues?.lotNumber || "");
+  const [lastName, setLastName] = useState(defaultValues?.lastName || "");
+  const [firstName, setFirstName] = useState(defaultValues?.firstName || "");
+  const [phoneNumber, setPhoneNumber] = useState(defaultValues?.phoneNumber || "");
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSubmit({
+      lotNumber,
+      lastName,
+      firstName: firstName || undefined,
+      phoneNumber: phoneNumber || undefined,
+    });
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="text-sm font-medium">Lot Number *</label>
+          <Input
+            value={lotNumber}
+            onChange={(e) => setLotNumber(e.target.value)}
+            placeholder="e.g. A-12"
+            required
+            data-testid="input-lot-number"
+          />
+        </div>
+        <div>
+          <label className="text-sm font-medium">Last Name *</label>
+          <Input
+            value={lastName}
+            onChange={(e) => setLastName(e.target.value)}
+            placeholder="Smith"
+            required
+            data-testid="input-last-name"
+          />
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="text-sm font-medium">First Name</label>
+          <Input
+            value={firstName}
+            onChange={(e) => setFirstName(e.target.value)}
+            placeholder="John"
+            data-testid="input-first-name"
+          />
+        </div>
+        <div>
+          <label className="text-sm font-medium">Phone Number</label>
+          <Input
+            value={phoneNumber}
+            onChange={(e) => setPhoneNumber(e.target.value)}
+            placeholder="352-555-1234"
+            data-testid="input-phone-number"
+          />
+        </div>
+      </div>
+      <Button type="submit" className="w-full" disabled={isLoading}>
+        {isLoading ? "Saving..." : defaultValues ? "Update Resident" : "Add Resident"}
+      </Button>
+    </form>
   );
 }

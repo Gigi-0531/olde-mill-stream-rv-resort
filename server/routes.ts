@@ -172,9 +172,44 @@ export async function registerRoutes(
     }
   );
 
-  app.get(api.users.list.path, requireAuth, async (req, res) => {
-    const query = req.query.search as string | undefined;
-    res.json(await storage.searchUsers(query));
+  // Residents management (admin only)
+  app.get(api.residents.list.path, requireAuth, requireAdmin, async (_req, res) => {
+    const residents = await storage.getResidents();
+    res.json(residents.map(safeUser));
+  });
+
+  app.post(api.residents.create.path, requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const input = api.residents.create.input.parse(req.body);
+      const resident = await storage.createUser({
+        role: 'resident',
+        lotNumber: input.lotNumber,
+        lastName: input.lastName,
+        firstName: input.firstName,
+        phoneNumber: input.phoneNumber,
+      });
+      res.status(201).json(safeUser(resident));
+    } catch {
+      res.status(400).json({ message: "Invalid input" });
+    }
+  });
+
+  app.patch(api.residents.update.path, requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const input = api.residents.update.input.parse(req.body);
+      const resident = await storage.updateResident(Number(req.params.id), input);
+      if (!resident) {
+        return res.status(404).json({ message: "Resident not found" });
+      }
+      res.json(safeUser(resident));
+    } catch {
+      res.status(400).json({ message: "Invalid input" });
+    }
+  });
+
+  app.delete(api.residents.delete.path, requireAuth, requireAdmin, async (req, res) => {
+    await storage.deleteResident(Number(req.params.id));
+    res.status(204).send();
   });
 
   app.get(api.weather.get.path, (_req, res) => {

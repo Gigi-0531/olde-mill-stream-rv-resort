@@ -15,6 +15,9 @@ export interface IStorage {
   getUserByLotAndName(lotNumber: string, lastName: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   searchUsers(query?: string): Promise<User[]>;
+  getResidents(): Promise<User[]>;
+  updateResident(id: number, data: Partial<InsertUser>): Promise<User | undefined>;
+  deleteResident(id: number): Promise<void>;
 
   // Activities
   getActivities(): Promise<Activity[]>;
@@ -117,6 +120,23 @@ export class DatabaseStorage implements IStorage {
 
   async deleteGalleryPhoto(id: number): Promise<void> {
     await db.delete(galleryPhotos).where(eq(galleryPhotos.id, id));
+  }
+
+  async getResidents(): Promise<User[]> {
+    return db.select().from(users).where(eq(users.role, 'resident')).orderBy(users.lotNumber);
+  }
+
+  async updateResident(id: number, data: Partial<InsertUser>): Promise<User | undefined> {
+    const [updated] = await db.update(users).set(data).where(
+      and(eq(users.id, id), eq(users.role, 'resident'))
+    ).returning();
+    return updated;
+  }
+
+  async deleteResident(id: number): Promise<void> {
+    await db.delete(users).where(
+      and(eq(users.id, id), eq(users.role, 'resident'))
+    );
   }
 }
 

@@ -99,15 +99,48 @@ export const api = {
       },
     },
   },
-  users: {
+  residents: {
     list: {
       method: 'GET' as const,
-      path: '/api/users', // For directory search
-      input: z.object({
-        search: z.string().optional(),
-      }).optional(),
+      path: '/api/residents',
       responses: {
         200: z.array(z.custom<typeof users.$inferSelect>()),
+      },
+    },
+    create: {
+      method: 'POST' as const,
+      path: '/api/residents',
+      input: z.object({
+        lotNumber: z.string().min(1),
+        lastName: z.string().min(1),
+        firstName: z.string().optional(),
+        phoneNumber: z.string().optional(),
+      }),
+      responses: {
+        201: z.custom<typeof users.$inferSelect>(),
+        400: errorSchemas.validation,
+      },
+    },
+    update: {
+      method: 'PATCH' as const,
+      path: '/api/residents/:id',
+      input: z.object({
+        lotNumber: z.string().min(1).optional(),
+        lastName: z.string().min(1).optional(),
+        firstName: z.string().optional(),
+        phoneNumber: z.string().optional(),
+      }),
+      responses: {
+        200: z.custom<typeof users.$inferSelect>(),
+        404: errorSchemas.notFound,
+      },
+    },
+    delete: {
+      method: 'DELETE' as const,
+      path: '/api/residents/:id',
+      responses: {
+        204: z.void(),
+        404: errorSchemas.notFound,
       },
     },
   },
