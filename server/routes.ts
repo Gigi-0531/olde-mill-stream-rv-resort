@@ -62,6 +62,7 @@ export async function registerRoutes(
 
   app.post(api.auth.login.path, loginLimiter, async (req, res) => {
     try {
+      console.log("Login attempt:", JSON.stringify(req.body));
       const input = api.auth.login.input.parse(req.body);
 
       let user;
@@ -93,7 +94,8 @@ export async function registerRoutes(
       res.json(safeUser(user));
 
 
-    } catch {
+    } catch (err) {
+      console.error("Login error:", err);
       res.status(400).json({ message: "Invalid input" });
     }
   });
