@@ -4,7 +4,6 @@ import session from "express-session";
 import createMemoryStore from "memorystore";
 import bcrypt from "bcrypt";
 import rateLimit from "express-rate-limit";
-import helmet from "helmet";
 
 import { storage } from "./storage";
 import { api } from "@shared/routes";
@@ -34,12 +33,8 @@ async function requireAdmin(req: any, res: any, next: any) {
 }
 
 const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // 5 attempts per window
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { message: "Too many login attempts. Please try again later." },
-  skipSuccessfulRequests: true, // Don't count successful logins
+  windowMs: 15 * 60 * 1000,
+  max: 10,
 });
 
 export async function registerRoutes(
@@ -47,12 +42,6 @@ export async function registerRoutes(
   app: Express
 ): Promise<Server> {
   
-  // Security headers
-  app.use(helmet({
-    contentSecurityPolicy: false, // Disable CSP for development compatibility
-    crossOriginEmbedderPolicy: false,
-  }));
-
   if (!process.env.SESSION_SECRET) {
     throw new Error("SESSION_SECRET is required");
   }
