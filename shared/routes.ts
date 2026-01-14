@@ -157,6 +157,14 @@ export const api = {
   },
 };
 
+export type LoginRequest = {
+  role: 'admin' | 'resident';
+  username?: string;
+  password?: string;
+  lotNumber?: string;
+  lastName?: string;
+};
+
 export function buildUrl(path: string, params?: Record<string, string | number>): string {
   let url = path;
   if (params) {
