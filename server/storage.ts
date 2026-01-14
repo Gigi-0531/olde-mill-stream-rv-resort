@@ -1,11 +1,12 @@
 import { db } from "./db";
 import {
-  users, activities, notifications, galleryPhotos, messages,
+  users, activities, notifications, galleryPhotos, messages, pushSubscriptions,
   type User, type InsertUser,
   type Activity, type InsertActivity,
   type Notification, type InsertNotification,
   type GalleryPhoto, type InsertGalleryPhoto,
-  type Message, type InsertMessage
+  type Message, type InsertMessage,
+  type PushSubscription, type InsertPushSubscription
 } from "@shared/schema";
 import { eq, ilike, or, and, desc, isNull } from "drizzle-orm";
 
@@ -45,6 +46,13 @@ export interface IStorage {
   markMessageRead(id: number): Promise<void>;
   approveMessage(id: number): Promise<void>;
   deleteMessage(id: number): Promise<void>;
+
+  // Push Subscriptions
+  getPushSubscription(userId: number): Promise<PushSubscription | undefined>;
+  getAllPushSubscriptions(type?: 'weather' | 'alerts'): Promise<PushSubscription[]>;
+  savePushSubscription(subscription: InsertPushSubscription): Promise<PushSubscription>;
+  updatePushPreferences(userId: number, weatherEnabled: boolean, alertsEnabled: boolean): Promise<void>;
+  deletePushSubscription(userId: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -198,6 +206,38 @@ export class DatabaseStorage implements IStorage {
 
   async deleteMessage(id: number): Promise<void> {
     await db.delete(messages).where(eq(messages.id, id));
+  }
+
+  async getPushSubscription(userId: number): Promise<PushSubscription | undefined> {
+    const [subscription] = await db.select().from(pushSubscriptions).where(eq(pushSubscriptions.userId, userId));
+    return subscription;
+  }
+
+  async getAllPushSubscriptions(type?: 'weather' | 'alerts'): Promise<PushSubscription[]> {
+    if (type === 'weather') {
+      return db.select().from(pushSubscriptions).where(eq(pushSubscriptions.weatherEnabled, true));
+    }
+    if (type === 'alerts') {
+      return db.select().from(pushSubscriptions).where(eq(pushSubscriptions.alertsEnabled, true));
+    }
+    return db.select().from(pushSubscriptions);
+  }
+
+  async savePushSubscription(subscription: InsertPushSubscription): Promise<PushSubscription> {
+    // Delete existing subscription for this user first
+    await db.delete(pushSubscriptions).where(eq(pushSubscriptions.userId, subscription.userId));
+    const [newSub] = await db.insert(pushSubscriptions).values(subscription).returning();
+    return newSub;
+  }
+
+  async updatePushPreferences(userId: number, weatherEnabled: boolean, alertsEnabled: boolean): Promise<void> {
+    await db.update(pushSubscriptions)
+      .set({ weatherEnabled, alertsEnabled })
+      .where(eq(pushSubscriptions.userId, userId));
+  }
+
+  async deletePushSubscription(userId: number): Promise<void> {
+    await db.delete(pushSubscriptions).where(eq(pushSubscriptions.userId, userId));
   }
 }
 

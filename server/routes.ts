@@ -8,6 +8,7 @@ import rateLimit from "express-rate-limit";
 import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { registerObjectStorageRoutes, ObjectStorageService } from "./replit_integrations/object_storage";
+import { getVapidPublicKey, sendResortAlert } from "./pushService";
 function safeUser(user: any) {
   const { password, ...safe } = user;
   return safe;
@@ -332,6 +333,72 @@ export async function registerRoutes(
   app.delete("/api/messages/:id", requireAuth, requireAdmin, async (req, res) => {
     await storage.deleteMessage(Number(req.params.id));
     res.status(204).send();
+  });
+
+  // Push Notifications
+  app.get("/api/push/vapid-key", (_req, res) => {
+    res.json({ publicKey: getVapidPublicKey() });
+  });
+
+  app.get("/api/push/subscription", requireAuth, async (req, res) => {
+    const subscription = await storage.getPushSubscription(req.session.userId);
+    res.json(subscription || null);
+  });
+
+  app.post("/api/push/subscribe", requireAuth, async (req, res) => {
+    try {
+      const { endpoint, keys, weatherEnabled = true, alertsEnabled = true } = req.body;
+      if (!endpoint || !keys?.p256dh || !keys?.auth) {
+        return res.status(400).json({ message: "Invalid subscription data" });
+      }
+
+      const subscription = await storage.savePushSubscription({
+        userId: req.session.userId,
+        endpoint,
+        p256dh: keys.p256dh,
+        auth: keys.auth,
+        weatherEnabled,
+        alertsEnabled,
+      });
+
+      res.status(201).json(subscription);
+    } catch (error) {
+      console.error("Push subscribe error:", error);
+      res.status(500).json({ message: "Failed to save subscription" });
+    }
+  });
+
+  app.patch("/api/push/preferences", requireAuth, async (req, res) => {
+    try {
+      const { weatherEnabled, alertsEnabled } = req.body;
+      await storage.updatePushPreferences(
+        req.session.userId,
+        weatherEnabled ?? true,
+        alertsEnabled ?? true
+      );
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update preferences" });
+    }
+  });
+
+  app.delete("/api/push/unsubscribe", requireAuth, async (req, res) => {
+    await storage.deletePushSubscription(req.session.userId);
+    res.status(204).send();
+  });
+
+  // Admin: Send push notification to all subscribers
+  app.post("/api/push/send-alert", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const { title, body } = req.body;
+      if (!title || !body) {
+        return res.status(400).json({ message: "Title and body required" });
+      }
+      const count = await sendResortAlert(title, body);
+      res.json({ sent: count });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to send notifications" });
+    }
   });
 
   registerObjectStorageRoutes(app);
