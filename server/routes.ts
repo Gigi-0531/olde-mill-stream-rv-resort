@@ -32,37 +32,9 @@ async function requireAdmin(req: any, res: any, next: any) {
   next();
 }
 
-// Rate limiters for different endpoint types
 const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10, // 10 attempts per window
-  message: { message: "Too many login attempts, please try again later" },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-
-const apiLimiter = rateLimit({
-  windowMs: 60 * 1000, // 1 minute
-  max: 100, // 100 requests per minute
-  message: { message: "Too many requests, please slow down" },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-
-const uploadLimiter = rateLimit({
-  windowMs: 60 * 1000, // 1 minute
-  max: 10, // 10 uploads per minute
-  message: { message: "Too many upload requests, please wait" },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-
-const messageLimiter = rateLimit({
-  windowMs: 60 * 1000, // 1 minute
-  max: 5, // 5 messages per minute
-  message: { message: "Too many messages, please wait before sending more" },
-  standardHeaders: true,
-  legacyHeaders: false,
+  windowMs: 15 * 60 * 1000,
+  max: 10,
 });
 
 export async function registerRoutes(
@@ -151,7 +123,6 @@ export async function registerRoutes(
     api.activities.create.path,
     requireAuth,
     requireAdmin,
-    apiLimiter,
     async (req, res) => {
       try {
         const input = api.activities.create.input.parse(req.body);
@@ -167,7 +138,6 @@ export async function registerRoutes(
     api.activities.delete.path,
     requireAuth,
     requireAdmin,
-    apiLimiter,
     async (req, res) => {
       await storage.deleteActivity(Number(req.params.id));
       res.status(204).send();
@@ -182,7 +152,6 @@ export async function registerRoutes(
     api.notifications.create.path,
     requireAuth,
     requireAdmin,
-    apiLimiter,
     async (req, res) => {
       try {
         const input = api.notifications.create.input.parse(req.body);
@@ -198,7 +167,6 @@ export async function registerRoutes(
     api.notifications.delete.path,
     requireAuth,
     requireAdmin,
-    apiLimiter,
     async (req, res) => {
       await storage.deleteNotification(Number(req.params.id));
       res.status(204).send();
@@ -222,7 +190,7 @@ export async function registerRoutes(
     res.json(residents.map(safeUser));
   });
 
-  app.post(api.residents.create.path, requireAuth, requireAdmin, apiLimiter, async (req, res) => {
+  app.post(api.residents.create.path, requireAuth, requireAdmin, async (req, res) => {
     try {
       const input = api.residents.create.input.parse(req.body);
       const resident = await storage.createUser({
@@ -238,7 +206,7 @@ export async function registerRoutes(
     }
   });
 
-  app.patch(api.residents.update.path, requireAuth, requireAdmin, apiLimiter, async (req, res) => {
+  app.patch(api.residents.update.path, requireAuth, requireAdmin, async (req, res) => {
     try {
       const input = api.residents.update.input.parse(req.body);
       const resident = await storage.updateResident(Number(req.params.id), input);
@@ -251,7 +219,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete(api.residents.delete.path, requireAuth, requireAdmin, apiLimiter, async (req, res) => {
+  app.delete(api.residents.delete.path, requireAuth, requireAdmin, async (req, res) => {
     await storage.deleteResident(Number(req.params.id));
     res.status(204).send();
   });
@@ -283,7 +251,6 @@ export async function registerRoutes(
     api.gallery.create.path,
     requireAuth,
     requireAdmin,
-    uploadLimiter,
     async (req, res) => {
       try {
         const input = api.gallery.create.input.parse(req.body);
@@ -306,7 +273,6 @@ export async function registerRoutes(
     api.gallery.delete.path,
     requireAuth,
     requireAdmin,
-    apiLimiter,
     async (req, res) => {
       await storage.deleteGalleryPhoto(Number(req.params.id));
       res.status(204).send();
@@ -338,7 +304,7 @@ export async function registerRoutes(
     res.json(msgs);
   });
 
-  app.post(api.messages.create.path, requireAuth, messageLimiter, async (req, res) => {
+  app.post(api.messages.create.path, requireAuth, async (req, res) => {
     try {
       const input = api.messages.create.input.parse(req.body);
       const isAdmin = req.session.userRole === 'admin';
@@ -359,12 +325,12 @@ export async function registerRoutes(
     res.json({ success: true });
   });
 
-  app.patch("/api/messages/:id/approve", requireAuth, requireAdmin, apiLimiter, async (req, res) => {
+  app.patch("/api/messages/:id/approve", requireAuth, requireAdmin, async (req, res) => {
     await storage.approveMessage(Number(req.params.id));
     res.json({ success: true });
   });
 
-  app.delete("/api/messages/:id", requireAuth, requireAdmin, apiLimiter, async (req, res) => {
+  app.delete("/api/messages/:id", requireAuth, requireAdmin, async (req, res) => {
     await storage.deleteMessage(Number(req.params.id));
     res.status(204).send();
   });
@@ -379,7 +345,7 @@ export async function registerRoutes(
     res.json(subscription || null);
   });
 
-  app.post("/api/push/subscribe", requireAuth, apiLimiter, async (req, res) => {
+  app.post("/api/push/subscribe", requireAuth, async (req, res) => {
     try {
       const { endpoint, keys, weatherEnabled = true, alertsEnabled = true } = req.body;
       if (!endpoint || !keys?.p256dh || !keys?.auth) {
@@ -402,7 +368,7 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/push/preferences", requireAuth, apiLimiter, async (req, res) => {
+  app.patch("/api/push/preferences", requireAuth, async (req, res) => {
     try {
       const { weatherEnabled, alertsEnabled } = req.body;
       await storage.updatePushPreferences(
@@ -421,8 +387,8 @@ export async function registerRoutes(
     res.status(204).send();
   });
 
-  // Admin: Send push notification to all subscribers (with strict rate limit)
-  app.post("/api/push/send-alert", requireAuth, requireAdmin, messageLimiter, async (req, res) => {
+  // Admin: Send push notification to all subscribers
+  app.post("/api/push/send-alert", requireAuth, requireAdmin, async (req, res) => {
     try {
       const { title, body } = req.body;
       if (!title || !body) {

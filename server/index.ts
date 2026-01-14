@@ -2,54 +2,11 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
-import helmet from "helmet";
-import hpp from "hpp";
 
 const app = express();
 const httpServer = createServer(app);
 
 app.set('trust proxy', 1);
-
-// Security Headers with Helmet
-// Note: In development, Vite requires 'unsafe-inline' and 'unsafe-eval' for HMR
-// In production, the built bundle doesn't require these and CSP is stricter
-const isProduction = process.env.NODE_ENV === 'production';
-
-app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      scriptSrc: isProduction 
-        ? ["'self'"] 
-        : ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
-      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-      fontSrc: ["'self'", "https://fonts.gstatic.com"],
-      imgSrc: ["'self'", "data:", "blob:", "https:", "http:"],
-      connectSrc: ["'self'", "https://api.openweathermap.org", "https://maps.googleapis.com", "wss:", "ws:"],
-      frameSrc: ["'self'", "https://www.google.com", "https://maps.google.com"],
-      objectSrc: ["'none'"],
-      mediaSrc: ["'self'"],
-      workerSrc: ["'self'", "blob:"],
-      baseUri: ["'self'"],
-      formAction: ["'self'"],
-    },
-  },
-  crossOriginEmbedderPolicy: false,
-  crossOriginResourcePolicy: { policy: "cross-origin" },
-  referrerPolicy: { policy: "strict-origin-when-cross-origin" },
-  hsts: {
-    maxAge: 31536000,
-    includeSubDomains: true,
-    preload: true,
-  },
-  noSniff: true,
-  xssFilter: true,
-  hidePoweredBy: true,
-  frameguard: { action: "sameorigin" },
-}));
-
-// Prevent HTTP Parameter Pollution
-app.use(hpp());
 
 declare module "http" {
   interface IncomingMessage {
@@ -59,48 +16,13 @@ declare module "http" {
 
 app.use(
   express.json({
-    limit: '10mb',
     verify: (req, _res, buf) => {
       req.rawBody = buf;
     },
   }),
 );
 
-app.use(express.urlencoded({ extended: false, limit: '10mb' }));
-
-// Custom XSS sanitization middleware (must come after body parsing)
-app.use((req: Request, _res: Response, next: NextFunction) => {
-  const sanitizeString = (str: string): string => {
-    return str
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#x27;')
-      .replace(/\//g, '&#x2F;');
-  };
-
-  const sanitizeObject = (obj: any): any => {
-    if (typeof obj === 'string') {
-      return sanitizeString(obj);
-    }
-    if (Array.isArray(obj)) {
-      return obj.map(sanitizeObject);
-    }
-    if (obj && typeof obj === 'object') {
-      const sanitized: any = {};
-      for (const key of Object.keys(obj)) {
-        sanitized[key] = sanitizeObject(obj[key]);
-      }
-      return sanitized;
-    }
-    return obj;
-  };
-
-  if (req.body && typeof req.body === 'object') {
-    req.body = sanitizeObject(req.body);
-  }
-  next();
-});
+app.use(express.urlencoded({ extended: false }));
 
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
