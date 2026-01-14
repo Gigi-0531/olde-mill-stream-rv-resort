@@ -7,6 +7,7 @@ import {
   Calendar, 
   Home,
   Image,
+  MessageCircle,
   ChevronDown,
   LogIn
 } from "lucide-react";
@@ -104,6 +105,7 @@ export function Navbar() {
                   {!isAdmin && <NavLink href="/map" icon={MapIcon}>Park Map</NavLink>}
                   {!isAdmin && <NavLink href="/activities" icon={Calendar}>Activities</NavLink>}
                   {!isAdmin && <NavLink href="/gallery" icon={Image}>Gallery</NavLink>}
+                  {!isAdmin && <NavLink href="/messages" icon={MessageCircle}>Messages</NavLink>}
                                   </>
               ) : (
                 <NavLink href="/" icon={LogIn}>Login</NavLink>

@@ -11,6 +11,7 @@ import Dashboard from "@/pages/Dashboard";
 import Activities from "@/pages/Activities";
 import MapPage from "@/pages/Map";
 import Gallery from "@/pages/Gallery";
+import Messages from "@/pages/Messages";
 import Admin from "@/pages/Admin";
 import NotFound from "@/pages/not-found";
 
@@ -103,6 +104,10 @@ function Router() {
 
           <Route path="/gallery">
             <ProtectedRoute component={Gallery} />
+          </Route>
+
+          <Route path="/messages">
+            <ProtectedRoute component={Messages} />
           </Route>
 
           <Route path="/admin">
