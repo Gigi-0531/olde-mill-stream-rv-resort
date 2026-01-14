@@ -2,6 +2,7 @@ import {
   pgTable,
   text,
   serial,
+  integer,
   boolean,
   timestamp,
   pgEnum,
@@ -83,6 +84,21 @@ export const galleryPhotos = pgTable("gallery_photos", {
 });
 
 /* ======================================================
+   MESSAGES
+====================================================== */
+
+export const messages = pgTable("messages", {
+  id: serial("id").primaryKey(),
+  senderId: integer("sender_id").notNull(),
+  recipientId: integer("recipient_id"), // null = community-wide message
+  content: text("content").notNull(),
+  isRead: boolean("is_read").notNull().default(false),
+  createdAt: timestamp("created_at", { withTimezone: false })
+    .defaultNow()
+    .notNull(),
+});
+
+/* ======================================================
    INSERT SCHEMAS (ZOD)
 ====================================================== */
 
@@ -113,6 +129,12 @@ export const insertGalleryPhotoSchema = createInsertSchema(galleryPhotos).omit({
   createdAt: true,
 });
 
+export const insertMessageSchema = createInsertSchema(messages).omit({
+  id: true,
+  createdAt: true,
+  isRead: true,
+});
+
 /* ======================================================
    TYPES
 ====================================================== */
@@ -128,6 +150,9 @@ export type InsertNotification = z.infer<typeof insertNotificationSchema>;
 
 export type GalleryPhoto = typeof galleryPhotos.$inferSelect;
 export type InsertGalleryPhoto = z.infer<typeof insertGalleryPhotoSchema>;
+
+export type Message = typeof messages.$inferSelect;
+export type InsertMessage = z.infer<typeof insertMessageSchema>;
 
 /* ======================================================
    AUTH / LOGIN INPUT (SAFE UNION)
