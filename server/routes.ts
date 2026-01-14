@@ -151,6 +151,7 @@ export async function registerRoutes(
     api.activities.create.path,
     requireAuth,
     requireAdmin,
+    apiLimiter,
     async (req, res) => {
       try {
         const input = api.activities.create.input.parse(req.body);
@@ -166,6 +167,7 @@ export async function registerRoutes(
     api.activities.delete.path,
     requireAuth,
     requireAdmin,
+    apiLimiter,
     async (req, res) => {
       await storage.deleteActivity(Number(req.params.id));
       res.status(204).send();
@@ -180,6 +182,7 @@ export async function registerRoutes(
     api.notifications.create.path,
     requireAuth,
     requireAdmin,
+    apiLimiter,
     async (req, res) => {
       try {
         const input = api.notifications.create.input.parse(req.body);
@@ -195,6 +198,7 @@ export async function registerRoutes(
     api.notifications.delete.path,
     requireAuth,
     requireAdmin,
+    apiLimiter,
     async (req, res) => {
       await storage.deleteNotification(Number(req.params.id));
       res.status(204).send();
@@ -218,7 +222,7 @@ export async function registerRoutes(
     res.json(residents.map(safeUser));
   });
 
-  app.post(api.residents.create.path, requireAuth, requireAdmin, async (req, res) => {
+  app.post(api.residents.create.path, requireAuth, requireAdmin, apiLimiter, async (req, res) => {
     try {
       const input = api.residents.create.input.parse(req.body);
       const resident = await storage.createUser({
@@ -234,7 +238,7 @@ export async function registerRoutes(
     }
   });
 
-  app.patch(api.residents.update.path, requireAuth, requireAdmin, async (req, res) => {
+  app.patch(api.residents.update.path, requireAuth, requireAdmin, apiLimiter, async (req, res) => {
     try {
       const input = api.residents.update.input.parse(req.body);
       const resident = await storage.updateResident(Number(req.params.id), input);
@@ -247,7 +251,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete(api.residents.delete.path, requireAuth, requireAdmin, async (req, res) => {
+  app.delete(api.residents.delete.path, requireAuth, requireAdmin, apiLimiter, async (req, res) => {
     await storage.deleteResident(Number(req.params.id));
     res.status(204).send();
   });
@@ -302,6 +306,7 @@ export async function registerRoutes(
     api.gallery.delete.path,
     requireAuth,
     requireAdmin,
+    apiLimiter,
     async (req, res) => {
       await storage.deleteGalleryPhoto(Number(req.params.id));
       res.status(204).send();
@@ -354,12 +359,12 @@ export async function registerRoutes(
     res.json({ success: true });
   });
 
-  app.patch("/api/messages/:id/approve", requireAuth, requireAdmin, async (req, res) => {
+  app.patch("/api/messages/:id/approve", requireAuth, requireAdmin, apiLimiter, async (req, res) => {
     await storage.approveMessage(Number(req.params.id));
     res.json({ success: true });
   });
 
-  app.delete("/api/messages/:id", requireAuth, requireAdmin, async (req, res) => {
+  app.delete("/api/messages/:id", requireAuth, requireAdmin, apiLimiter, async (req, res) => {
     await storage.deleteMessage(Number(req.params.id));
     res.status(204).send();
   });
@@ -397,7 +402,7 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/push/preferences", requireAuth, async (req, res) => {
+  app.patch("/api/push/preferences", requireAuth, apiLimiter, async (req, res) => {
     try {
       const { weatherEnabled, alertsEnabled } = req.body;
       await storage.updatePushPreferences(
