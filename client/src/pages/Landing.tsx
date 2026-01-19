@@ -178,7 +178,7 @@ function AdminLogin({ onBack, onSubmit, isLoading }: { onBack: () => void, onSub
               <FormItem>
                 <FormLabel>Email</FormLabel>
                 <FormControl>
-                  <Input placeholder="omsmanagement86@gmail.com" {...field} />
+                  <Input placeholder="" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
