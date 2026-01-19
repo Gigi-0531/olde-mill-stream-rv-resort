@@ -587,7 +587,7 @@ function ResidentForm({
           <Input
             value={lotNumber}
             onChange={(e) => setLotNumber(e.target.value)}
-            placeholder="e.g. A-12"
+            placeholder=""
             required
             data-testid="input-lot-number"
           />
@@ -597,7 +597,7 @@ function ResidentForm({
           <Input
             value={lastName}
             onChange={(e) => setLastName(e.target.value)}
-            placeholder="Smith"
+            placeholder=""
             required
             data-testid="input-last-name"
           />
@@ -609,7 +609,7 @@ function ResidentForm({
           <Input
             value={firstName}
             onChange={(e) => setFirstName(e.target.value)}
-            placeholder="John"
+            placeholder=""
             data-testid="input-first-name"
           />
         </div>
@@ -618,7 +618,7 @@ function ResidentForm({
           <Input
             value={phoneNumber}
             onChange={(e) => setPhoneNumber(e.target.value)}
-            placeholder="352-555-1234"
+            placeholder=""
             data-testid="input-phone-number"
           />
         </div>

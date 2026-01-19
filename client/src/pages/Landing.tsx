@@ -125,7 +125,7 @@ function ResidentLogin({ onBack, onSubmit, isLoading }: { onBack: () => void, on
               <FormItem>
                 <FormLabel>Lot Number</FormLabel>
                 <FormControl>
-                  <Input placeholder="e.g. A-12" {...field} />
+                  <Input placeholder="" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -138,7 +138,7 @@ function ResidentLogin({ onBack, onSubmit, isLoading }: { onBack: () => void, on
               <FormItem>
                 <FormLabel>Last Name</FormLabel>
                 <FormControl>
-                  <Input placeholder="Smith" {...field} />
+                  <Input placeholder="" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
