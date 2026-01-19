@@ -102,8 +102,12 @@ function ActivitiesManager() {
   });
 
   const onSubmit = (data: any) => {
-    // Basic date handling for demo - assumes browser native datetime-local input
-    createActivity.mutate(data, {
+    // Convert Date object to ISO string for API
+    const payload = {
+      ...data,
+      date: data.date instanceof Date ? data.date.toISOString() : data.date,
+    };
+    createActivity.mutate(payload, {
       onSuccess: () => {
         setIsOpen(false);
         form.reset();
