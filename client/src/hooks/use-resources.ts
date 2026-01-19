@@ -21,6 +21,7 @@ export function useCreateActivity() {
         method: api.activities.create.method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
+        credentials: "include",
       });
       if (!res.ok) throw new Error("Failed to create activity");
       return api.activities.create.responses[201].parse(await res.json());
@@ -36,7 +37,7 @@ export function useDeleteActivity() {
   return useMutation({
     mutationFn: async (id: number) => {
       const url = buildUrl(api.activities.delete.path, { id });
-      const res = await fetch(url, { method: api.activities.delete.method });
+      const res = await fetch(url, { method: api.activities.delete.method, credentials: "include" });
       if (!res.ok) throw new Error("Failed to delete activity");
     },
     onSuccess: () => {
@@ -65,6 +66,7 @@ export function useCreateNotification() {
         method: api.notifications.create.method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
+        credentials: "include",
       });
       if (!res.ok) throw new Error("Failed to create notification");
       return api.notifications.create.responses[201].parse(await res.json());
@@ -80,7 +82,7 @@ export function useDeleteNotification() {
   return useMutation({
     mutationFn: async (id: number) => {
       const url = buildUrl(api.notifications.delete.path, { id });
-      const res = await fetch(url, { method: api.notifications.delete.method });
+      const res = await fetch(url, { method: api.notifications.delete.method, credentials: "include" });
       if (!res.ok) throw new Error("Failed to delete notification");
     },
     onSuccess: () => {
