@@ -20,6 +20,7 @@ export interface IStorage {
   getResidents(): Promise<User[]>;
   updateResident(id: number, data: Partial<InsertUser>): Promise<User | undefined>;
   deleteResident(id: number): Promise<void>;
+  updateProfilePicture(userId: number, objectPath: string): Promise<void>;
 
   // Activities
   getActivities(): Promise<Activity[]>;
@@ -156,6 +157,10 @@ export class DatabaseStorage implements IStorage {
     await db.delete(users).where(
       and(eq(users.id, id), eq(users.role, 'resident'))
     );
+  }
+
+  async updateProfilePicture(userId: number, objectPath: string): Promise<void> {
+    await db.update(users).set({ profilePicture: objectPath }).where(eq(users.id, userId));
   }
 
   async getCommunityMessages(includeUnapproved: boolean = false): Promise<Message[]> {

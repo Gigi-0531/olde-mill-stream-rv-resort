@@ -5,10 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Send, Users, MessageCircle, Loader2, Info } from "lucide-react";
+import { Send, Users, MessageCircle, Loader2, Search, ChevronLeft, Camera } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 
@@ -26,6 +26,7 @@ interface User {
   firstName?: string;
   lastName?: string;
   lotNumber?: string;
+  profilePicture?: string | null;
   role: string;
 }
 
@@ -34,6 +35,7 @@ export default function Messages() {
   const { toast } = useToast();
   const [newMessage, setNewMessage] = useState("");
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const { data: communityMessages, isLoading: communityLoading } = useQuery<Message[]>({
@@ -59,6 +61,10 @@ export default function Messages() {
   const sendMessage = useMutation({
     mutationFn: async (data: { content: string; recipientId?: number }) => {
       const res = await apiRequest("POST", "/api/messages", data);
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.reason || error.message || "Failed to send message");
+      }
       return res.json();
     },
     onSuccess: () => {
@@ -68,6 +74,13 @@ export default function Messages() {
         queryClient.invalidateQueries({ queryKey: ["/api/messages/conversation", selectedUserId] });
       }
       setNewMessage("");
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Message blocked",
+        description: error.message,
+        variant: "destructive",
+      });
     },
   });
 
@@ -116,15 +129,45 @@ export default function Messages() {
     return sender?.lastName?.slice(0, 2).toUpperCase() || "??";
   };
 
+  const getProfilePicture = (userId: number) => {
+    if (userId === user?.id) return null;
+    const resident = residents?.find(r => r.id === userId);
+    return resident?.profilePicture || null;
+  };
+
+  const getLastMessage = (partnerId: number) => {
+    if (!directMessages) return null;
+    const msgs = directMessages.filter(
+      m => m.senderId === partnerId || m.recipientId === partnerId
+    );
+    return msgs[0];
+  };
+
   const getConversationPartners = () => {
     if (!directMessages || !user) return [];
-    const partnerIds = new Set<number>();
+    const partnerMap = new Map<number, { lastMessage: Message }>();
     directMessages.forEach(m => {
-      if (m.senderId !== user.id) partnerIds.add(m.senderId);
-      if (m.recipientId && m.recipientId !== user.id) partnerIds.add(m.recipientId);
+      const partnerId = m.senderId !== user.id ? m.senderId : m.recipientId;
+      if (partnerId && partnerId !== user.id) {
+        if (!partnerMap.has(partnerId) || new Date(m.createdAt) > new Date(partnerMap.get(partnerId)!.lastMessage.createdAt)) {
+          partnerMap.set(partnerId, { lastMessage: m });
+        }
+      }
     });
-    return Array.from(partnerIds);
+    return Array.from(partnerMap.entries()).sort((a, b) => 
+      new Date(b[1].lastMessage.createdAt).getTime() - new Date(a[1].lastMessage.createdAt).getTime()
+    );
   };
+
+  const filteredResidents = residents?.filter(r => {
+    if (r.id === user?.id) return false;
+    if (!searchQuery) return true;
+    const name = r.firstName ? `${r.firstName} ${r.lastName}` : r.lastName || "";
+    return name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+           r.lotNumber?.toLowerCase().includes(searchQuery.toLowerCase());
+  });
+
+  const selectedUser = residents?.find(r => r.id === selectedUserId);
 
   return (
     <div className="min-h-screen bg-background pb-20 pt-16">
@@ -139,7 +182,7 @@ export default function Messages() {
       </div>
 
       <div className="max-w-4xl mx-auto px-4 md:px-8 py-6">
-        <Tabs defaultValue="community" className="w-full">
+        <Tabs defaultValue="direct" className="w-full">
           <TabsList className="w-full mb-4">
             <TabsTrigger value="community" className="flex-1 gap-2" data-testid="tab-community">
               <Users className="w-4 h-4" /> Community Board
@@ -165,6 +208,9 @@ export default function Messages() {
                         data-testid={`message-${msg.id}`}
                       >
                         <Avatar className="w-8 h-8 flex-shrink-0">
+                          {getProfilePicture(msg.senderId) && (
+                            <AvatarImage src={getProfilePicture(msg.senderId)!} />
+                          )}
                           <AvatarFallback className={msg.senderId === user?.id ? "bg-primary text-primary-foreground" : "bg-muted"}>
                             {getInitials(msg.senderId)}
                           </AvatarFallback>
@@ -217,111 +263,159 @@ export default function Messages() {
           </TabsContent>
 
           <TabsContent value="direct">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Card className="p-4 md:col-span-1">
-                <h3 className="font-semibold mb-3">Neighbors</h3>
-                <ScrollArea className="h-[50vh]">
-                  <div className="space-y-2">
-                    {residents?.filter(r => r.id !== user?.id).map((resident) => (
-                      <button
-                        key={resident.id}
-                        onClick={() => setSelectedUserId(resident.id)}
-                        className={`w-full flex items-center gap-2 p-2 rounded-lg text-left transition-colors hover-elevate ${
-                          selectedUserId === resident.id ? "bg-primary/10" : ""
-                        }`}
-                        data-testid={`select-user-${resident.id}`}
+            {selectedUserId ? (
+              <Card className="flex flex-col h-[70vh]">
+                <div className="flex items-center gap-3 p-3 border-b bg-card">
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={() => setSelectedUserId(null)}
+                    data-testid="button-back"
+                  >
+                    <ChevronLeft className="w-5 h-5" />
+                  </Button>
+                  <Avatar className="w-10 h-10">
+                    {selectedUser?.profilePicture && (
+                      <AvatarImage src={selectedUser.profilePicture} />
+                    )}
+                    <AvatarFallback>
+                      {selectedUser?.firstName && selectedUser?.lastName
+                        ? `${selectedUser.firstName[0]}${selectedUser.lastName[0]}`
+                        : selectedUser?.lastName?.slice(0, 2).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1">
+                    <p className="font-semibold">
+                      {selectedUser?.firstName
+                        ? `${selectedUser.firstName} ${selectedUser.lastName}`
+                        : selectedUser?.lastName}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Lot {selectedUser?.lotNumber}
+                    </p>
+                  </div>
+                </div>
+
+                <ScrollArea className="flex-1 p-4">
+                  <div className="space-y-4">
+                    {conversation?.map((msg) => (
+                      <div
+                        key={msg.id}
+                        className={`flex gap-3 ${msg.senderId === user?.id ? "flex-row-reverse" : ""}`}
                       >
-                        <Avatar className="w-8 h-8">
-                          <AvatarFallback className="text-xs">
-                            {resident.firstName && resident.lastName
-                              ? `${resident.firstName[0]}${resident.lastName[0]}`
-                              : resident.lastName?.slice(0, 2).toUpperCase()}
+                        <Avatar className="w-8 h-8 flex-shrink-0">
+                          {getProfilePicture(msg.senderId) && (
+                            <AvatarImage src={getProfilePicture(msg.senderId)!} />
+                          )}
+                          <AvatarFallback className={msg.senderId === user?.id ? "bg-primary text-primary-foreground" : "bg-muted"}>
+                            {getInitials(msg.senderId)}
                           </AvatarFallback>
                         </Avatar>
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium truncate">
-                            {resident.firstName ? `${resident.firstName} ${resident.lastName}` : resident.lastName}
+                        <div className={`max-w-[70%] ${msg.senderId === user?.id ? "text-right" : ""}`}>
+                          <p className="text-xs text-muted-foreground mb-1">
+                            {format(new Date(msg.createdAt), "MMM d, h:mm a")}
                           </p>
-                          <p className="text-xs text-muted-foreground">Lot {resident.lotNumber}</p>
+                          <div
+                            className={`inline-block p-3 rounded-lg ${
+                              msg.senderId === user?.id
+                                ? "bg-primary text-primary-foreground"
+                                : "bg-muted"
+                            }`}
+                          >
+                            {msg.content}
+                          </div>
                         </div>
-                      </button>
+                      </div>
                     ))}
+                    <div ref={messagesEndRef} />
+                  </div>
+                </ScrollArea>
+
+                <form onSubmit={handleSendDirect} className="p-4 border-t flex gap-2">
+                  <Input
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    placeholder="Message..."
+                    className="flex-1"
+                    data-testid="input-direct-message"
+                  />
+                  <Button 
+                    type="submit" 
+                    size="icon" 
+                    disabled={sendMessage.isPending || !newMessage.trim()}
+                    data-testid="button-send-direct"
+                  >
+                    <Send className="w-4 h-4" />
+                  </Button>
+                </form>
+              </Card>
+            ) : (
+              <Card className="h-[70vh] flex flex-col">
+                <div className="p-4 border-b">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search neighbors..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-10"
+                      data-testid="input-search-neighbors"
+                    />
+                  </div>
+                </div>
+
+                <ScrollArea className="flex-1">
+                  <div className="divide-y">
+                    {filteredResidents?.map((resident) => {
+                      const lastMsg = getLastMessage(resident.id);
+                      return (
+                        <button
+                          key={resident.id}
+                          onClick={() => setSelectedUserId(resident.id)}
+                          className="w-full flex items-center gap-3 p-4 text-left transition-colors hover:bg-muted/50"
+                          data-testid={`select-user-${resident.id}`}
+                        >
+                          <Avatar className="w-14 h-14 flex-shrink-0 border-2 border-border">
+                            {resident.profilePicture && (
+                              <AvatarImage src={resident.profilePicture} className="object-cover" />
+                            )}
+                            <AvatarFallback className="text-lg bg-gradient-to-br from-blue-400 to-blue-600 text-white">
+                              {resident.firstName && resident.lastName
+                                ? `${resident.firstName[0]}${resident.lastName[0]}`
+                                : resident.lastName?.slice(0, 2).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-2">
+                              <p className="font-semibold truncate">
+                                {resident.firstName ? `${resident.firstName} ${resident.lastName}` : resident.lastName}
+                              </p>
+                              {lastMsg && (
+                                <span className="text-xs text-muted-foreground flex-shrink-0">
+                                  {format(new Date(lastMsg.createdAt), "MMM d")}
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-sm text-muted-foreground truncate">
+                              {lastMsg 
+                                ? lastMsg.content.slice(0, 40) + (lastMsg.content.length > 40 ? "..." : "")
+                                : `Lot ${resident.lotNumber}`
+                              }
+                            </p>
+                          </div>
+                        </button>
+                      );
+                    })}
+                    {filteredResidents?.length === 0 && (
+                      <div className="text-center py-12 text-muted-foreground">
+                        <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                        <p>No neighbors found</p>
+                      </div>
+                    )}
                   </div>
                 </ScrollArea>
               </Card>
-
-              <Card className="flex flex-col h-[60vh] md:col-span-2">
-                {selectedUserId ? (
-                  <>
-                    <div className="p-3 border-b">
-                      <p className="font-semibold">
-                        {residents?.find(r => r.id === selectedUserId)?.firstName
-                          ? `${residents.find(r => r.id === selectedUserId)?.firstName} ${residents.find(r => r.id === selectedUserId)?.lastName}`
-                          : residents?.find(r => r.id === selectedUserId)?.lastName}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        Lot {residents?.find(r => r.id === selectedUserId)?.lotNumber}
-                      </p>
-                    </div>
-                    <ScrollArea className="flex-1 p-4">
-                      <div className="space-y-4">
-                        {conversation?.map((msg) => (
-                          <div
-                            key={msg.id}
-                            className={`flex gap-3 ${msg.senderId === user?.id ? "flex-row-reverse" : ""}`}
-                          >
-                            <Avatar className="w-8 h-8 flex-shrink-0">
-                              <AvatarFallback className={msg.senderId === user?.id ? "bg-primary text-primary-foreground" : "bg-muted"}>
-                                {getInitials(msg.senderId)}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div className={`max-w-[70%] ${msg.senderId === user?.id ? "text-right" : ""}`}>
-                              <p className="text-xs text-muted-foreground mb-1">
-                                {format(new Date(msg.createdAt), "MMM d, h:mm a")}
-                              </p>
-                              <div
-                                className={`inline-block p-3 rounded-lg ${
-                                  msg.senderId === user?.id
-                                    ? "bg-primary text-primary-foreground"
-                                    : "bg-muted"
-                                }`}
-                              >
-                                {msg.content}
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                        <div ref={messagesEndRef} />
-                      </div>
-                    </ScrollArea>
-                    <form onSubmit={handleSendDirect} className="p-4 border-t flex gap-2">
-                      <Input
-                        value={newMessage}
-                        onChange={(e) => setNewMessage(e.target.value)}
-                        placeholder="Type a message..."
-                        className="flex-1"
-                        data-testid="input-direct-message"
-                      />
-                      <Button 
-                        type="submit" 
-                        size="icon" 
-                        disabled={sendMessage.isPending || !newMessage.trim()}
-                        data-testid="button-send-direct"
-                      >
-                        <Send className="w-4 h-4" />
-                      </Button>
-                    </form>
-                  </>
-                ) : (
-                  <div className="flex-1 flex items-center justify-center text-muted-foreground">
-                    <div className="text-center">
-                      <MessageCircle className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                      <p>Select a neighbor to start chatting</p>
-                    </div>
-                  </div>
-                )}
-              </Card>
-            </div>
+            )}
           </TabsContent>
         </Tabs>
       </div>

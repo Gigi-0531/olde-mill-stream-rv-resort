@@ -9,6 +9,7 @@ import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { registerObjectStorageRoutes, ObjectStorageService } from "./replit_integrations/object_storage";
 import { getVapidPublicKey, sendResortAlert } from "./pushService";
+import { moderateText, moderateImage } from "./contentModeration";
 function safeUser(user: any) {
   const { password, ...safe } = user;
   return safe;
@@ -112,7 +113,11 @@ export async function registerRoutes(
     if (!user) {
       return res.status(401).json({ message: "Unauthorized" });
     }
-    res.json(safeUser(user));
+    const safe = safeUser(user);
+    if (safe.profilePicture) {
+      safe.profilePicture = objectStorageService.normalizeObjectEntityPath(safe.profilePicture);
+    }
+    res.json(safe);
   });
 
   app.get(api.activities.list.path, async (_req, res) => {
@@ -181,6 +186,8 @@ export async function registerRoutes(
       firstName: r.firstName,
       lastName: r.lastName,
       lotNumber: r.lotNumber,
+      profilePicture: r.profilePicture ? objectStorageService.normalizeObjectEntityPath(r.profilePicture) : null,
+      role: r.role,
     })));
   });
 
@@ -308,11 +315,21 @@ export async function registerRoutes(
     try {
       const input = api.messages.create.input.parse(req.body);
       const isAdmin = req.session.userRole === 'admin';
+      
+      // Content moderation for messages
+      const moderation = await moderateText(input.content);
+      if (!moderation.isAllowed) {
+        return res.status(400).json({ 
+          message: "Message blocked", 
+          reason: moderation.reason || "Content violates community guidelines" 
+        });
+      }
+      
       const message = await storage.createMessage({
         senderId: req.session.userId,
         recipientId: input.recipientId || null,
         content: input.content,
-        approved: isAdmin || input.recipientId !== null, // Direct messages auto-approved, admin posts auto-approved
+        approved: isAdmin || input.recipientId !== null,
       });
       res.status(201).json(message);
     } catch {
@@ -398,6 +415,51 @@ export async function registerRoutes(
       res.json({ sent: count });
     } catch (error) {
       res.status(500).json({ message: "Failed to send notifications" });
+    }
+  });
+
+  // Profile picture update
+  app.patch("/api/profile/picture", requireAuth, async (req, res) => {
+    try {
+      const { objectPath, imageData, mimeType } = req.body;
+      if (!objectPath) {
+        return res.status(400).json({ message: "Object path required" });
+      }
+      
+      // Server-side image moderation if image data provided
+      if (imageData) {
+        const moderation = await moderateImage(imageData, mimeType || "image/jpeg");
+        if (!moderation.isAllowed) {
+          return res.status(400).json({ 
+            message: "Image not allowed", 
+            reason: moderation.reason || "Image violates community guidelines" 
+          });
+        }
+      }
+      
+      // Store raw path, normalize only when returning
+      await storage.updateProfilePicture(req.session.userId, objectPath);
+      
+      res.json({ success: true, profilePicture: objectStorageService.normalizeObjectEntityPath(objectPath) });
+    } catch (error) {
+      console.error("Profile picture update error:", error);
+      res.status(500).json({ message: "Failed to update profile picture" });
+    }
+  });
+
+  // Moderate image before upload
+  app.post("/api/moderate/image", requireAuth, async (req, res) => {
+    try {
+      const { image } = req.body;
+      if (!image) {
+        return res.status(400).json({ message: "Image data required" });
+      }
+      
+      const moderation = await moderateImage(image);
+      res.json(moderation);
+    } catch (error) {
+      console.error("Image moderation error:", error);
+      res.status(500).json({ message: "Failed to moderate image" });
     }
   });
 

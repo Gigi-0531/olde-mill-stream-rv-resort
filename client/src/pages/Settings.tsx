@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { Redirect } from "wouter";
@@ -6,9 +6,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Bell, Cloud, AlertTriangle, Loader2, Settings as SettingsIcon } from "lucide-react";
+import { Bell, Cloud, AlertTriangle, Loader2, Settings as SettingsIcon, Camera, User } from "lucide-react";
 
 interface PushSubscriptionData {
   id: number;
@@ -17,11 +18,18 @@ interface PushSubscriptionData {
   alertsEnabled: boolean;
 }
 
+interface UploadUrlResponse {
+  uploadUrl: string;
+  objectPath: string;
+}
+
 export default function Settings() {
   const { user, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [isSubscribing, setIsSubscribing] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: vapidKey } = useQuery<{ publicKey: string }>({
     queryKey: ["/api/push/vapid-key"],
@@ -29,6 +37,11 @@ export default function Settings() {
 
   const { data: subscription, isLoading: subLoading } = useQuery<PushSubscriptionData | null>({
     queryKey: ["/api/push/subscription"],
+    enabled: !!user,
+  });
+
+  const { data: currentUser } = useQuery<any>({
+    queryKey: ["/api/auth/me"],
     enabled: !!user,
   });
 
@@ -137,6 +150,75 @@ export default function Settings() {
     }
   };
 
+  const handleProfilePictureClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast({ title: "Please select an image file", variant: "destructive" });
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: "Image must be less than 5MB", variant: "destructive" });
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const base64 = await fileToBase64(file);
+      const moderationRes = await apiRequest("POST", "/api/moderate/image", { image: base64 });
+      const moderation = await moderationRes.json();
+      
+      if (!moderation.isAllowed) {
+        toast({ 
+          title: "Image not allowed", 
+          description: moderation.reason || "This image violates community guidelines",
+          variant: "destructive" 
+        });
+        setIsUploading(false);
+        return;
+      }
+
+      const urlRes = await apiRequest("POST", "/api/uploads/request-url", {
+        fileName: file.name,
+        contentType: file.type,
+        directory: ".private/profile-pictures",
+      });
+      const { uploadUrl, objectPath }: UploadUrlResponse = await urlRes.json();
+
+      await fetch(uploadUrl, {
+        method: "PUT",
+        body: file,
+        headers: { "Content-Type": file.type },
+      });
+
+      // Update profile with server-side moderation
+      const updateRes = await apiRequest("PATCH", "/api/profile/picture", { 
+        objectPath, 
+        imageData: base64,
+        mimeType: file.type 
+      });
+      
+      if (!updateRes.ok) {
+        const error = await updateRes.json();
+        throw new Error(error.reason || error.message || "Failed to update profile");
+      }
+
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      toast({ title: "Profile picture updated!" });
+    } catch (error) {
+      console.error("Failed to upload:", error);
+      toast({ title: "Failed to upload picture", variant: "destructive" });
+    }
+    setIsUploading(false);
+  };
+
   if (authLoading || subLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -149,19 +231,89 @@ export default function Settings() {
     return <Redirect to="/" />;
   }
 
+  const getInitials = () => {
+    if (user?.firstName && user?.lastName) {
+      return `${user.firstName[0]}${user.lastName[0]}`.toUpperCase();
+    }
+    return user?.lastName?.slice(0, 2).toUpperCase() || "ME";
+  };
+
   return (
     <div className="min-h-screen bg-background pb-20 pt-16">
       <div className="bg-[#4a7ab0] py-8 px-4 md:px-8">
         <div className="max-w-2xl mx-auto">
           <h1 className="text-2xl md:text-3xl font-display text-white flex items-center gap-2">
             <SettingsIcon className="w-7 h-7" />
-            Notification Settings
+            Settings
           </h1>
-          <p className="text-white/80 mt-1">Manage your push notification preferences</p>
+          <p className="text-white/80 mt-1">Manage your profile and notification preferences</p>
         </div>
       </div>
 
       <div className="max-w-2xl mx-auto px-4 md:px-8 py-6 space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <User className="w-5 h-5" />
+              Profile Picture
+            </CardTitle>
+            <CardDescription>
+              Update your profile picture that others see in messages
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-6">
+              <div className="relative">
+                <Avatar className="w-24 h-24 border-4 border-border">
+                  {currentUser?.profilePicture && (
+                    <AvatarImage src={currentUser.profilePicture} className="object-cover" />
+                  )}
+                  <AvatarFallback className="text-2xl bg-gradient-to-br from-blue-400 to-blue-600 text-white">
+                    {getInitials()}
+                  </AvatarFallback>
+                </Avatar>
+                <button
+                  onClick={handleProfilePictureClick}
+                  disabled={isUploading}
+                  className="absolute bottom-0 right-0 w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center shadow-lg hover:bg-primary/90 transition-colors"
+                  data-testid="button-change-picture"
+                >
+                  {isUploading ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Camera className="w-4 h-4" />
+                  )}
+                </button>
+              </div>
+              <div>
+                <p className="font-medium">
+                  {user?.firstName ? `${user.firstName} ${user.lastName}` : user?.lastName}
+                </p>
+                <p className="text-sm text-muted-foreground">Lot {user?.lotNumber}</p>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="mt-2"
+                  onClick={handleProfilePictureClick}
+                  disabled={isUploading}
+                >
+                  Change Picture
+                </Button>
+              </div>
+            </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleFileSelect}
+            />
+            <p className="text-xs text-muted-foreground mt-4">
+              Images are automatically checked to ensure they meet community guidelines.
+            </p>
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -267,4 +419,16 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
     outputArray[i] = rawData.charCodeAt(i);
   }
   return outputArray;
+}
+
+async function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      resolve(result.split(",")[1]);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
 }

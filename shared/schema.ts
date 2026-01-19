@@ -36,6 +36,7 @@ export const users = pgTable("users", {
   lastName: text("last_name"),
   lotNumber: text("lot_number"),
   phoneNumber: text("phone_number"),
+  profilePicture: text("profile_picture"), // Object storage path
 
   createdAt: timestamp("created_at", { withTimezone: false })
     .defaultNow()
