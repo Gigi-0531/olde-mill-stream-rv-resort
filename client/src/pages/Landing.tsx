@@ -9,7 +9,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
 import { Redirect } from "wouter";
 import logoImg from "@/assets/logo.jpg";
-import { User, Loader2 } from "lucide-react";
+import { User, ShieldCheck, Loader2 } from "lucide-react";
 
 const residentSchema = z.object({
   role: z.literal("resident"),
@@ -63,23 +63,22 @@ export default function Landing() {
         <Card className="border-none shadow-2xl bg-white/95 backdrop-blur-sm">
           <CardContent className="p-8">
             {mode === 'select' && (
-              <div className="space-y-4 relative pb-6">
+              <div className="space-y-4">
                 <p className="text-center text-lg font-semibold text-foreground">Welcome Home!</p>
                 <p className="text-center text-muted-foreground mb-6">Please select your login type to continue.</p>
                 <Button 
                   onClick={() => setMode('resident')} 
                   className="w-full h-14 text-lg gap-3 bg-[#1E3A5F] hover:bg-[#152a45]"
-                  data-testid="button-resident-portal"
                 >
                   <User className="w-5 h-5" /> Resident Portal
                 </Button>
-                <button
-                  onClick={() => setMode('admin')}
-                  className="absolute bottom-0 right-0 text-xs text-muted-foreground hover:text-foreground transition-colors"
-                  data-testid="link-admin-access"
+                <Button 
+                  onClick={() => setMode('admin')} 
+                  variant="outline" 
+                  className="w-full h-14 text-lg gap-3 border-[#1E3A5F] text-[#1E3A5F] hover:bg-[#1E3A5F]/5"
                 >
-                  Admin
-                </button>
+                  <ShieldCheck className="w-5 h-5" /> Admin Access
+                </Button>
               </div>
             )}
 
