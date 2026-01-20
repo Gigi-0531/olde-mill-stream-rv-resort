@@ -4,12 +4,20 @@ import session from "express-session";
 import createMemoryStore from "memorystore";
 import bcrypt from "bcrypt";
 import rateLimit from "express-rate-limit";
+import { OAuth2Client } from "google-auth-library";
 
 import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { registerObjectStorageRoutes, ObjectStorageService } from "./replit_integrations/object_storage";
 import { getVapidPublicKey, sendResortAlert } from "./pushService";
 import { moderateText, moderateImage } from "./contentModeration";
+
+const ALLOWED_ADMIN_GOOGLE_EMAILS = [
+  "omsmanagement86@gmail.com",
+  "kabeall@aol.com",
+];
+
+const googleClient = new OAuth2Client();
 function safeUser(user: any) {
   const { password, ...safe } = user;
   return safe;
@@ -81,6 +89,13 @@ export async function registerRoutes(
           return res.status(401).json({ message: "Invalid credentials" });
         }
 
+        // Admin requires Google verification as second step
+        req.session.pendingAdminId = user.id;
+        return res.json({ 
+          requiresGoogleVerification: true,
+          message: "Please verify with Google to complete login"
+        });
+
       } else {
         user = await storage.getUserByLotAndName(
           input.lotNumber,
@@ -99,6 +114,58 @@ export async function registerRoutes(
     } catch (err) {
       console.error("Login error:", err);
       res.status(400).json({ message: "Invalid input" });
+    }
+  });
+
+  // Google verification endpoint for admin two-step auth
+  app.post("/api/auth/verify-google", async (req, res) => {
+    try {
+      const { credential } = req.body;
+      
+      if (!req.session.pendingAdminId) {
+        return res.status(401).json({ message: "No pending admin login" });
+      }
+
+      if (!credential) {
+        return res.status(400).json({ message: "Google credential required" });
+      }
+
+      // Verify the Google ID token
+      const ticket = await googleClient.verifyIdToken({
+        idToken: credential,
+        audience: process.env.GOOGLE_CLIENT_ID,
+      });
+
+      const payload = ticket.getPayload();
+      if (!payload || !payload.email) {
+        return res.status(401).json({ message: "Invalid Google token" });
+      }
+
+      const googleEmail = payload.email.toLowerCase();
+
+      // Check if this Google account is in the allowed list
+      if (!ALLOWED_ADMIN_GOOGLE_EMAILS.map(e => e.toLowerCase()).includes(googleEmail)) {
+        req.session.pendingAdminId = undefined;
+        return res.status(403).json({ 
+          message: "This Google account is not authorized for admin access" 
+        });
+      }
+
+      // Complete the login
+      const user = await storage.getUser(req.session.pendingAdminId);
+      if (!user || user.role !== "admin") {
+        req.session.pendingAdminId = undefined;
+        return res.status(401).json({ message: "Invalid session" });
+      }
+
+      req.session.userId = user.id;
+      req.session.pendingAdminId = undefined;
+      
+      res.json(safeUser(user));
+    } catch (err) {
+      console.error("Google verification error:", err);
+      req.session.pendingAdminId = undefined;
+      res.status(401).json({ message: "Google verification failed" });
     }
   });
 
