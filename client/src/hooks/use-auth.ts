@@ -1,12 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, type LoginRequest } from "@shared/routes";
 import { useLocation } from "wouter";
-import { useState } from "react";
 
 export function useAuth() {
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
-  const [requiresGoogleVerification, setRequiresGoogleVerification] = useState(false);
 
   const userQuery = useQuery({
     queryKey: [api.auth.me.path],
@@ -33,41 +31,13 @@ export function useAuth() {
       }
       return await res.json();
     },
-    onSuccess: (response) => {
-      if (response.requiresGoogleVerification) {
-        setRequiresGoogleVerification(true);
-      } else {
-        queryClient.setQueryData([api.auth.me.path], response);
-        if (response.role === 'admin') {
-          setLocation('/admin');
-        } else {
-          setLocation('/dashboard');
-        }
-      }
-    },
-  });
-
-  const googleVerifyMutation = useMutation({
-    mutationFn: async (credential: string) => {
-      const res = await fetch("/api/auth/verify-google", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ credential }),
-        credentials: 'include',
-      });
-
-      if (!res.ok) {
-        throw new Error((await res.json()).message || "Google verification failed");
-      }
-      return await res.json();
-    },
     onSuccess: (user) => {
-      setRequiresGoogleVerification(false);
       queryClient.setQueryData([api.auth.me.path], user);
-      setLocation('/admin');
-    },
-    onError: () => {
-      setRequiresGoogleVerification(false);
+      if (user.role === 'admin') {
+        setLocation('/admin');
+      } else {
+        setLocation('/dashboard');
+      }
     },
   });
 
@@ -85,10 +55,6 @@ export function useAuth() {
     },
   });
 
-  const cancelGoogleVerification = () => {
-    setRequiresGoogleVerification(false);
-  };
-
   return {
     user: userQuery.data,
     isLoading: userQuery.isLoading,
@@ -96,10 +62,5 @@ export function useAuth() {
     isLoggingIn: loginMutation.isPending,
     logout: logoutMutation.mutate,
     loginError: loginMutation.error,
-    requiresGoogleVerification,
-    verifyWithGoogle: googleVerifyMutation.mutate,
-    isVerifyingGoogle: googleVerifyMutation.isPending,
-    googleVerifyError: googleVerifyMutation.error,
-    cancelGoogleVerification,
   };
 }

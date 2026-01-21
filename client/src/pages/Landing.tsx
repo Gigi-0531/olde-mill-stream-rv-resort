@@ -6,11 +6,10 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useState, useEffect, useCallback } from "react";
+import { useState } from "react";
 import { Redirect } from "wouter";
 import logoImg from "@/assets/logo.jpg";
-import { User, ShieldCheck, Loader2, AlertCircle } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { User, ShieldCheck, Loader2 } from "lucide-react";
 
 const residentSchema = z.object({
   role: z.literal("resident"),
@@ -25,51 +24,12 @@ const adminSchema = z.object({
 });
 
 export default function Landing() {
-  const { 
-    user, 
-    login, 
-    isLoggingIn, 
-    requiresGoogleVerification, 
-    verifyWithGoogle, 
-    isVerifyingGoogle,
-    googleVerifyError,
-    cancelGoogleVerification
-  } = useAuth();
+  const { user, login, isLoggingIn } = useAuth();
   const [mode, setMode] = useState<'select' | 'resident' | 'admin'>('select');
-  const { toast } = useToast();
 
   // If already logged in, redirect
   if (user) {
     return <Redirect to={user.role === 'admin' ? '/admin' : '/dashboard'} />;
-  }
-
-  // If Google verification is required, show that step
-  if (requiresGoogleVerification) {
-    return (
-      <div className="min-h-screen bg-[#E6F3F7] flex flex-col items-center justify-center p-4 relative overflow-hidden">
-        <div className="w-full max-w-md space-y-4 animate-in fade-in zoom-in duration-500">
-          <div className="text-center space-y-2">
-            <div className="relative w-56 h-56 mx-auto bg-[#E6F3F7] rounded-lg">
-               <img src={logoImg} alt="Olde Mill Stream" className="w-full h-full object-contain mix-blend-multiply" />
-            </div>
-          </div>
-
-          <Card className="border-none shadow-2xl bg-white/95 backdrop-blur-sm">
-            <CardContent className="p-8">
-              <GoogleVerificationStep
-                onVerify={verifyWithGoogle}
-                onCancel={() => {
-                  cancelGoogleVerification();
-                  setMode('admin');
-                }}
-                isVerifying={isVerifyingGoogle}
-                error={googleVerifyError}
-              />
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    );
   }
 
   return (
@@ -248,117 +208,6 @@ function AdminLogin({ onBack, onSubmit, isLoading }: { onBack: () => void, onSub
           </div>
         </form>
       </Form>
-    </div>
-  );
-}
-
-declare global {
-  interface Window {
-    google?: {
-      accounts: {
-        id: {
-          initialize: (config: any) => void;
-          renderButton: (element: HTMLElement, config: any) => void;
-          prompt: () => void;
-        };
-      };
-    };
-  }
-}
-
-function GoogleVerificationStep({ 
-  onVerify, 
-  onCancel, 
-  isVerifying,
-  error 
-}: { 
-  onVerify: (credential: string) => void;
-  onCancel: () => void;
-  isVerifying: boolean;
-  error: Error | null;
-}) {
-  const [googleLoaded, setGoogleLoaded] = useState(false);
-  const googleButtonRef = useCallback((node: HTMLDivElement | null) => {
-    if (node && window.google && !googleLoaded) {
-      const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-      if (!clientId) {
-        console.error("Missing VITE_GOOGLE_CLIENT_ID environment variable");
-        return;
-      }
-      
-      window.google.accounts.id.initialize({
-        client_id: clientId,
-        callback: (response: { credential: string }) => {
-          onVerify(response.credential);
-        },
-      });
-      
-      window.google.accounts.id.renderButton(node, {
-        theme: "outline",
-        size: "large",
-        width: "100%",
-        text: "continue_with",
-      });
-      
-      setGoogleLoaded(true);
-    }
-  }, [onVerify, googleLoaded]);
-
-  useEffect(() => {
-    if (!document.getElementById("google-signin-script")) {
-      const script = document.createElement("script");
-      script.id = "google-signin-script";
-      script.src = "https://accounts.google.com/gsi/client";
-      script.async = true;
-      script.defer = true;
-      script.onload = () => setGoogleLoaded(false);
-      document.head.appendChild(script);
-    } else if (window.google) {
-      setGoogleLoaded(false);
-    }
-  }, []);
-
-  return (
-    <div className="space-y-6">
-      <div className="text-center">
-        <div className="w-16 h-16 mx-auto mb-4 bg-green-100 rounded-full flex items-center justify-center">
-          <ShieldCheck className="w-8 h-8 text-green-600" />
-        </div>
-        <h2 className="text-xl font-bold font-display text-primary">Step 2: Google Verification</h2>
-        <p className="text-sm text-muted-foreground mt-2">
-          Your credentials were verified. Please sign in with an authorized Google account to complete admin login.
-        </p>
-      </div>
-
-      {error && (
-        <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm">
-          <AlertCircle className="w-4 h-4 flex-shrink-0" />
-          <span>{error.message}</span>
-        </div>
-      )}
-
-      {isVerifying ? (
-        <div className="flex items-center justify-center py-4">
-          <Loader2 className="w-6 h-6 animate-spin text-primary" />
-          <span className="ml-2 text-muted-foreground">Verifying...</span>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          <div ref={googleButtonRef} className="flex justify-center" data-testid="google-signin-button" />
-          
-          <div className="pt-2">
-            <Button 
-              type="button" 
-              variant="ghost" 
-              onClick={onCancel} 
-              className="w-full"
-              data-testid="button-cancel-google-verify"
-            >
-              Cancel
-            </Button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
