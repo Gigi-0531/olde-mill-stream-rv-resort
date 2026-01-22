@@ -354,6 +354,41 @@ export async function registerRoutes(
     res.status(204).send();
   });
 
+  // Help endpoint - sends message directly to admin
+  app.post("/api/help", requireAuth, async (req, res) => {
+    try {
+      const { content } = req.body;
+      if (!content || typeof content !== 'string' || content.trim().length === 0) {
+        return res.status(400).json({ message: "Message content is required" });
+      }
+
+      // Content moderation
+      const moderation = await moderateText(content);
+      if (!moderation.isAllowed) {
+        return res.status(400).json({ 
+          message: "Message blocked", 
+          reason: moderation.reason || "Content violates community guidelines" 
+        });
+      }
+
+      // Find first admin user (for help messages)
+      const admin = await storage.getFirstAdmin();
+      if (!admin) {
+        return res.status(500).json({ message: "Unable to send message. Please try again later." });
+      }
+
+      const message = await storage.createMessage({
+        senderId: req.session.userId,
+        recipientId: admin.id,
+        content: content.trim(),
+        approved: true,
+      });
+      res.status(201).json(message);
+    } catch {
+      res.status(400).json({ message: "Failed to send message" });
+    }
+  });
+
   // Push Notifications
   app.get("/api/push/vapid-key", (_req, res) => {
     res.json({ publicKey: getVapidPublicKey() });

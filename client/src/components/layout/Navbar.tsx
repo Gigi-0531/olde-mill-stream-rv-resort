@@ -10,7 +10,8 @@ import {
   MessageCircle,
   ChevronDown,
   LogIn,
-  Settings
+  Settings,
+  HelpCircle
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import logoImg from "@/assets/logo.jpg";
@@ -107,6 +108,7 @@ export function Navbar() {
                   {!isAdmin && <NavLink href="/activities" icon={Calendar}>Activities</NavLink>}
                   {!isAdmin && <NavLink href="/gallery" icon={Image}>Gallery</NavLink>}
                   {!isAdmin && <NavLink href="/messages" icon={MessageCircle}>Messages</NavLink>}
+                  {!isAdmin && <NavLink href="/help" icon={HelpCircle}>Get Help</NavLink>}
                   {!isAdmin && <NavLink href="/settings" icon={Settings}>Settings</NavLink>}
                 </>
               ) : (

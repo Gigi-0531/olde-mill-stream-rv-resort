@@ -13,6 +13,7 @@ import MapPage from "@/pages/Map";
 import Gallery from "@/pages/Gallery";
 import Messages from "@/pages/Messages";
 import Settings from "@/pages/Settings";
+import Help from "@/pages/Help";
 import Admin from "@/pages/Admin";
 import NotFound from "@/pages/not-found";
 
@@ -113,6 +114,10 @@ function Router() {
 
           <Route path="/settings">
             <ProtectedRoute component={Settings} />
+          </Route>
+
+          <Route path="/help">
+            <ProtectedRoute component={Help} />
           </Route>
 
           <Route path="/admin">
