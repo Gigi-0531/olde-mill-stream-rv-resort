@@ -652,7 +652,7 @@ function MessageModeration() {
   });
 
   const approveMessage = useMutation({
-    mutationFn: (id: number) => apiRequest(`/api/messages/${id}/approve`, { method: 'PATCH' }),
+    mutationFn: (id: number) => apiRequest('PATCH', `/api/messages/${id}/approve`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/messages/pending'] });
       queryClient.invalidateQueries({ queryKey: ['/api/messages/community'] });
@@ -660,7 +660,7 @@ function MessageModeration() {
   });
 
   const deleteMessage = useMutation({
-    mutationFn: (id: number) => apiRequest(`/api/messages/${id}`, { method: 'DELETE' }),
+    mutationFn: (id: number) => apiRequest('DELETE', `/api/messages/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/messages/pending'] });
     },

@@ -130,10 +130,12 @@ export async function registerRoutes(
     requireAdmin,
     async (req, res) => {
       try {
+        console.log("Activity create attempt:", JSON.stringify(req.body));
         const input = api.activities.create.input.parse(req.body);
         const activity = await storage.createActivity(input);
         res.status(201).json(activity);
-      } catch {
+      } catch (err) {
+        console.error("Activity create error:", err);
         res.status(400).json({ message: "Invalid input" });
       }
     }

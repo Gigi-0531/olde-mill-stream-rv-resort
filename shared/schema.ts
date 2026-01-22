@@ -133,7 +133,9 @@ export const insertUserSchema = createInsertSchema(users, {
   createdAt: true,
 });
 
-export const insertActivitySchema = createInsertSchema(activities).omit({
+export const insertActivitySchema = createInsertSchema(activities, {
+  date: z.coerce.date(),
+}).omit({
   id: true,
   createdAt: true,
 });
