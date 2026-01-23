@@ -1,12 +1,13 @@
 import { db } from "./db";
 import {
-  users, activities, notifications, galleryPhotos, messages, pushSubscriptions,
+  users, activities, notifications, galleryPhotos, messages, pushSubscriptions, residentProfiles,
   type User, type InsertUser,
   type Activity, type InsertActivity,
   type Notification, type InsertNotification,
   type GalleryPhoto, type InsertGalleryPhoto,
   type Message, type InsertMessage,
-  type PushSubscription, type InsertPushSubscription
+  type PushSubscription, type InsertPushSubscription,
+  type ResidentProfile, type InsertResidentProfile
 } from "@shared/schema";
 import { eq, ilike, or, and, desc, isNull } from "drizzle-orm";
 
@@ -56,6 +57,12 @@ export interface IStorage {
   savePushSubscription(subscription: InsertPushSubscription): Promise<PushSubscription>;
   updatePushPreferences(userId: number, weatherEnabled: boolean, alertsEnabled: boolean): Promise<void>;
   deletePushSubscription(userId: number): Promise<void>;
+
+  // Resident Profiles
+  getResidentProfiles(userId: number): Promise<ResidentProfile[]>;
+  getResidentProfile(profileId: number): Promise<ResidentProfile | undefined>;
+  createResidentProfile(profile: InsertResidentProfile): Promise<ResidentProfile>;
+  deleteResidentProfile(profileId: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -254,6 +261,25 @@ export class DatabaseStorage implements IStorage {
 
   async deletePushSubscription(userId: number): Promise<void> {
     await db.delete(pushSubscriptions).where(eq(pushSubscriptions.userId, userId));
+  }
+
+  // Resident Profiles
+  async getResidentProfiles(userId: number): Promise<ResidentProfile[]> {
+    return db.select().from(residentProfiles).where(eq(residentProfiles.userId, userId));
+  }
+
+  async getResidentProfile(profileId: number): Promise<ResidentProfile | undefined> {
+    const [profile] = await db.select().from(residentProfiles).where(eq(residentProfiles.id, profileId));
+    return profile;
+  }
+
+  async createResidentProfile(profile: InsertResidentProfile): Promise<ResidentProfile> {
+    const [newProfile] = await db.insert(residentProfiles).values(profile).returning();
+    return newProfile;
+  }
+
+  async deleteResidentProfile(profileId: number): Promise<void> {
+    await db.delete(residentProfiles).where(eq(residentProfiles.id, profileId));
   }
 }
 

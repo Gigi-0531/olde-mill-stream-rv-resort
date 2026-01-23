@@ -101,6 +101,20 @@ export const messages = pgTable("messages", {
 });
 
 /* ======================================================
+   RESIDENT PROFILES (multiple family members per lot)
+====================================================== */
+
+export const residentProfiles = pgTable("resident_profiles", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(), // links to users table (the lot)
+  firstName: text("first_name").notNull(),
+  profilePicture: text("profile_picture"), // optional profile pic
+  createdAt: timestamp("created_at", { withTimezone: false })
+    .defaultNow()
+    .notNull(),
+});
+
+/* ======================================================
    PUSH SUBSCRIPTIONS
 ====================================================== */
 
@@ -161,6 +175,11 @@ export const insertPushSubscriptionSchema = createInsertSchema(pushSubscriptions
   createdAt: true,
 });
 
+export const insertResidentProfileSchema = createInsertSchema(residentProfiles).omit({
+  id: true,
+  createdAt: true,
+});
+
 /* ======================================================
    TYPES
 ====================================================== */
@@ -182,6 +201,9 @@ export type InsertMessage = z.infer<typeof insertMessageSchema>;
 
 export type PushSubscription = typeof pushSubscriptions.$inferSelect;
 export type InsertPushSubscription = z.infer<typeof insertPushSubscriptionSchema>;
+
+export type ResidentProfile = typeof residentProfiles.$inferSelect;
+export type InsertResidentProfile = z.infer<typeof insertResidentProfileSchema>;
 
 /* ======================================================
    AUTH / LOGIN INPUT (SAFE UNION)
