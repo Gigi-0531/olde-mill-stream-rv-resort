@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Plus, User, Loader2, ArrowRight, Camera } from "lucide-react";
+import { Plus, User, Loader2, ArrowRight, Camera, LogOut } from "lucide-react";
 import { Redirect, useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import logoImg from "@/assets/logo.jpg";
@@ -26,7 +26,7 @@ interface UploadUrlResponse {
 }
 
 export default function ProfileSelect() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [showAddForm, setShowAddForm] = useState(false);
@@ -340,6 +340,16 @@ export default function ProfileSelect() {
             )}
           </CardContent>
         </Card>
+
+        <Button
+          variant="ghost"
+          onClick={() => logout()}
+          className="w-full text-muted-foreground hover:text-destructive"
+          data-testid="button-logout"
+        >
+          <LogOut className="w-4 h-4 mr-2" />
+          Sign Out
+        </Button>
       </div>
     </div>
   );
