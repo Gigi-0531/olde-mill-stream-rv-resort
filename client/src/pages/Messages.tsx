@@ -383,48 +383,33 @@ export default function Messages() {
                         <p>Failed to load contacts. Please refresh the page.</p>
                       </div>
                     )}
-                    {!residentsLoading && !residentsError && filteredResidents?.map((resident) => {
-                      const lastMsg = getLastMessage(resident.id);
-                      return (
-                        <button
-                          key={resident.id}
-                          onClick={() => setSelectedUserId(resident.id)}
-                          className="w-full flex items-center gap-3 p-4 text-left transition-colors hover:bg-muted/50"
-                          data-testid={`select-user-${resident.id}`}
-                        >
-                          <Avatar className="w-14 h-14 flex-shrink-0 border-2 border-border">
-                            {resident.profilePicture && (
-                              <AvatarImage src={resident.profilePicture} className="object-cover" />
-                            )}
-                            <AvatarFallback className="text-lg bg-gradient-to-br from-blue-400 to-blue-600 text-white">
-                              {resident.firstName && resident.lastName
-                                ? `${resident.firstName[0]}${resident.lastName[0]}`
-                                : resident.lastName?.slice(0, 2).toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between gap-2">
-                              <p className="font-semibold truncate">
-                                {resident.firstName ? `${resident.firstName} ${resident.lastName}` : resident.lastName}
-                              </p>
-                              {lastMsg && (
-                                <span className="text-xs text-muted-foreground flex-shrink-0">
-                                  {format(new Date(lastMsg.createdAt), "MMM d")}
-                                </span>
-                              )}
-                            </div>
-                            <p className="text-sm text-muted-foreground truncate">
-                              {lastMsg 
-                                ? lastMsg.content.slice(0, 40) + (lastMsg.content.length > 40 ? "..." : "")
-                                : resident.role === 'admin' 
-                                  ? 'Park Management' 
-                                  : `Lot ${resident.lotNumber}`
-                              }
-                            </p>
-                          </div>
-                        </button>
-                      );
-                    })}
+                    {!residentsLoading && !residentsError && filteredResidents?.map((resident) => (
+                      <button
+                        key={resident.id}
+                        onClick={() => setSelectedUserId(resident.id)}
+                        className="w-full flex items-center gap-3 py-2.5 px-4 text-left transition-colors hover:bg-muted/50 bg-background"
+                        data-testid={`select-user-${resident.id}`}
+                      >
+                        <Avatar className="w-10 h-10 flex-shrink-0">
+                          {resident.profilePicture && (
+                            <AvatarImage src={resident.profilePicture} className="object-cover" />
+                          )}
+                          <AvatarFallback className="text-sm bg-muted text-muted-foreground">
+                            {resident.firstName && resident.lastName
+                              ? `${resident.firstName[0]}${resident.lastName[0]}`
+                              : resident.lastName?.slice(0, 2).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-base truncate text-foreground">
+                            {resident.firstName ? `${resident.firstName} ${resident.lastName}` : resident.lastName}
+                          </p>
+                          <p className="text-sm text-muted-foreground truncate">
+                            {resident.role === 'admin' ? 'Park Management' : `Lot ${resident.lotNumber}`}
+                          </p>
+                        </div>
+                      </button>
+                    ))}
                     {!residentsLoading && !residentsError && filteredResidents?.length === 0 && (
                       <div className="text-center py-12 text-muted-foreground">
                         <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />

@@ -861,36 +861,33 @@ function AdminDirectMessages() {
             </div>
             <ScrollArea className="h-[400px]">
               <div className="divide-y">
-                {filteredResidents?.map((resident) => {
-                  const lastMsg = getLastMessage(resident.id);
-                  return (
+                {filteredResidents?.map((resident) => (
                     <button
                       key={resident.id}
                       onClick={() => setSelectedUserId(resident.id)}
-                      className={`w-full flex items-center gap-3 p-3 text-left transition-colors hover:bg-muted/50 ${selectedUserId === resident.id ? 'bg-muted' : ''}`}
+                      className={`w-full flex items-center gap-3 py-2.5 px-3 text-left transition-colors hover:bg-muted/50 bg-background ${selectedUserId === resident.id ? 'bg-muted' : ''}`}
                       data-testid={`button-select-contact-${resident.id}`}
                     >
                       <Avatar className="w-10 h-10 flex-shrink-0">
                         {resident.profilePicture && (
                           <AvatarImage src={resident.profilePicture} className="object-cover" />
                         )}
-                        <AvatarFallback className="text-sm bg-gradient-to-br from-blue-400 to-blue-600 text-white">
+                        <AvatarFallback className="text-sm bg-muted text-muted-foreground">
                           {resident.firstName && resident.lastName
                             ? `${resident.firstName[0]}${resident.lastName[0]}`
                             : resident.lastName?.slice(0, 2).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1 min-w-0">
-                        <p className="font-medium truncate text-sm" data-testid={`text-contact-name-${resident.id}`}>
+                        <p className="text-base truncate text-foreground" data-testid={`text-contact-name-${resident.id}`}>
                           {resident.firstName ? `${resident.firstName} ${resident.lastName}` : resident.lastName}
                         </p>
-                        <p className="text-xs text-muted-foreground truncate" data-testid={`text-contact-lot-${resident.id}`}>
-                          {resident.role === 'admin' ? 'Admin' : `Lot ${resident.lotNumber}`}
+                        <p className="text-sm text-muted-foreground truncate" data-testid={`text-contact-lot-${resident.id}`}>
+                          {resident.role === 'admin' ? 'Park Management' : `Lot ${resident.lotNumber}`}
                         </p>
                       </div>
                     </button>
-                  );
-                })}
+                  ))}
                 {filteredResidents?.length === 0 && (
                   <div className="p-4 text-center text-muted-foreground text-sm">
                     No contacts found
