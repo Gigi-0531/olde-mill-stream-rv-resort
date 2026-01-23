@@ -48,9 +48,15 @@ export default function Messages() {
     refetchInterval: 5000,
   });
 
-  const { data: residents } = useQuery<User[]>({
+  const { data: residents, isLoading: residentsLoading, error: residentsError } = useQuery<User[]>({
     queryKey: ["/api/users"],
+    retry: 1,
   });
+
+  // Debug: log any errors
+  if (residentsError) {
+    console.error("Error loading residents:", residentsError);
+  }
 
   const { data: conversation } = useQuery<Message[]>({
     queryKey: ["/api/messages/conversation", selectedUserId],
@@ -366,7 +372,18 @@ export default function Messages() {
 
                 <ScrollArea className="flex-1">
                   <div className="divide-y">
-                    {filteredResidents?.map((resident) => {
+                    {residentsLoading && (
+                      <div className="text-center py-12 text-muted-foreground">
+                        <Loader2 className="w-8 h-8 mx-auto mb-4 animate-spin" />
+                        <p>Loading contacts...</p>
+                      </div>
+                    )}
+                    {residentsError && (
+                      <div className="text-center py-12 text-destructive">
+                        <p>Failed to load contacts. Please refresh the page.</p>
+                      </div>
+                    )}
+                    {!residentsLoading && !residentsError && filteredResidents?.map((resident) => {
                       const lastMsg = getLastMessage(resident.id);
                       return (
                         <button
@@ -408,7 +425,7 @@ export default function Messages() {
                         </button>
                       );
                     })}
-                    {filteredResidents?.length === 0 && (
+                    {!residentsLoading && !residentsError && filteredResidents?.length === 0 && (
                       <div className="text-center py-12 text-muted-foreground">
                         <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
                         <p>No neighbors found</p>
