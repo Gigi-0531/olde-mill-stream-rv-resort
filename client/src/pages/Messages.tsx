@@ -50,13 +50,10 @@ export default function Messages() {
 
   const { data: residents, isLoading: residentsLoading, error: residentsError } = useQuery<User[]>({
     queryKey: ["/api/users"],
-    retry: 1,
+    retry: 2,
+    staleTime: 30000,
+    enabled: !!user,
   });
-
-  // Debug: log any errors
-  if (residentsError) {
-    console.error("Error loading residents:", residentsError);
-  }
 
   const { data: conversation } = useQuery<Message[]>({
     queryKey: ["/api/messages/conversation", selectedUserId],
