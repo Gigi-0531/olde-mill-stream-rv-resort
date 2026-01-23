@@ -93,6 +93,7 @@ export async function registerRoutes(
       }
 
       req.session.userId = user.id;
+      req.session.userRole = user.role;
       res.json(safeUser(user));
 
 
