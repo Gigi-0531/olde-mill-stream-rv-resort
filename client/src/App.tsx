@@ -58,6 +58,7 @@ export async function logout() {
       credentials: "include",
     });
     localStorage.removeItem("selectedProfile");
+    localStorage.removeItem("staySignedIn");
   } finally {
     window.location.assign("/");
   }

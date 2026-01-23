@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Plus, User, Loader2, ArrowRight } from "lucide-react";
@@ -23,6 +24,7 @@ export default function ProfileSelect() {
   const [, setLocation] = useLocation();
   const [showAddForm, setShowAddForm] = useState(false);
   const [newName, setNewName] = useState("");
+  const [staySignedIn, setStaySignedIn] = useState(false);
 
   const { data: profiles, isLoading } = useQuery<ResidentProfile[]>({
     queryKey: ["/api/profiles"],
@@ -34,10 +36,21 @@ export default function ProfileSelect() {
       const res = await apiRequest("POST", "/api/profiles", { firstName });
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: async (profile: ResidentProfile) => {
       queryClient.invalidateQueries({ queryKey: ["/api/profiles"] });
+      
+      // Store "stay signed in" preference if checked
+      if (staySignedIn) {
+        localStorage.setItem("staySignedIn", "true");
+      }
+      
+      // Automatically select the new profile and go to dashboard
+      await apiRequest("POST", "/api/profiles/select", { profileId: profile.id });
+      localStorage.setItem("selectedProfile", JSON.stringify(profile));
       setNewName("");
       setShowAddForm(false);
+      setStaySignedIn(false);
+      setLocation("/dashboard");
     },
   });
 
@@ -122,7 +135,7 @@ export default function ProfileSelect() {
                 )}
 
                 {showAddForm ? (
-                  <form onSubmit={handleAddProfile} className="space-y-3 pt-2">
+                  <form onSubmit={handleAddProfile} className="space-y-4 pt-2">
                     <Input
                       value={newName}
                       onChange={(e) => setNewName(e.target.value)}
@@ -130,6 +143,20 @@ export default function ProfileSelect() {
                       autoFocus
                       data-testid="input-new-profile-name"
                     />
+                    <div className="flex items-center gap-2">
+                      <Checkbox
+                        id="stay-signed-in"
+                        checked={staySignedIn}
+                        onCheckedChange={(checked) => setStaySignedIn(checked === true)}
+                        data-testid="checkbox-stay-signed-in"
+                      />
+                      <label 
+                        htmlFor="stay-signed-in" 
+                        className="text-sm text-muted-foreground cursor-pointer"
+                      >
+                        Stay signed in on this device
+                      </label>
+                    </div>
                     <div className="flex gap-2">
                       <Button
                         type="button"
@@ -137,6 +164,7 @@ export default function ProfileSelect() {
                         onClick={() => {
                           setShowAddForm(false);
                           setNewName("");
+                          setStaySignedIn(false);
                         }}
                         className="flex-1"
                       >
