@@ -312,6 +312,43 @@ export async function registerRoutes(
     }
   });
 
+  app.patch(api.profiles.updatePicture.path, requireAuth, async (req, res) => {
+    try {
+      const profileId = parseInt(req.params.id);
+      const { objectPath, imageData, mimeType } = req.body;
+      
+      if (!objectPath) {
+        return res.status(400).json({ message: "Object path required" });
+      }
+      
+      // Verify profile belongs to user
+      const profile = await storage.getResidentProfile(profileId);
+      if (!profile || profile.userId !== req.session.userId) {
+        return res.status(404).json({ message: "Profile not found" });
+      }
+      
+      // Server-side image moderation if image data provided
+      if (imageData) {
+        const moderation = await moderateImage(imageData, mimeType || "image/jpeg");
+        if (!moderation.isAllowed) {
+          return res.status(400).json({ 
+            message: "Image not allowed", 
+            reason: moderation.reason || "Image violates community guidelines" 
+          });
+        }
+      }
+      
+      const updated = await storage.updateResidentProfilePicture(profileId, objectPath);
+      res.json({
+        ...updated,
+        profilePicture: updated.profilePicture ? objectStorageService.normalizeObjectEntityPath(updated.profilePicture) : null
+      });
+    } catch (error) {
+      console.error("Profile picture update error:", error);
+      res.status(500).json({ message: "Failed to update profile picture" });
+    }
+  });
+
   app.get(api.gallery.list.path, async (_req, res) => {
     const photos = await storage.getGalleryPhotos();
     res.json(

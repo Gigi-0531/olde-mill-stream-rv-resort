@@ -63,6 +63,7 @@ export interface IStorage {
   getResidentProfile(profileId: number): Promise<ResidentProfile | undefined>;
   createResidentProfile(profile: InsertResidentProfile): Promise<ResidentProfile>;
   deleteResidentProfile(profileId: number): Promise<void>;
+  updateResidentProfilePicture(profileId: number, objectPath: string): Promise<ResidentProfile>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -280,6 +281,15 @@ export class DatabaseStorage implements IStorage {
 
   async deleteResidentProfile(profileId: number): Promise<void> {
     await db.delete(residentProfiles).where(eq(residentProfiles.id, profileId));
+  }
+
+  async updateResidentProfilePicture(profileId: number, objectPath: string): Promise<ResidentProfile> {
+    const [updated] = await db
+      .update(residentProfiles)
+      .set({ profilePicture: objectPath })
+      .where(eq(residentProfiles.id, profileId))
+      .returning();
+    return updated;
   }
 }
 

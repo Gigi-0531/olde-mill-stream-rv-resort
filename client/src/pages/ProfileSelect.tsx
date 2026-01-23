@@ -1,14 +1,15 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Plus, User, Loader2, ArrowRight } from "lucide-react";
+import { Plus, User, Loader2, ArrowRight, Camera } from "lucide-react";
 import { Redirect, useLocation } from "wouter";
+import { useToast } from "@/hooks/use-toast";
 import logoImg from "@/assets/logo.jpg";
 
 interface ResidentProfile {
@@ -19,12 +20,21 @@ interface ResidentProfile {
   createdAt: string;
 }
 
+interface UploadUrlResponse {
+  uploadUrl: string;
+  objectPath: string;
+}
+
 export default function ProfileSelect() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
+  const { toast } = useToast();
   const [showAddForm, setShowAddForm] = useState(false);
   const [newName, setNewName] = useState("");
   const [staySignedIn, setStaySignedIn] = useState(false);
+  const [uploadingProfileId, setUploadingProfileId] = useState<number | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedProfileForUpload, setSelectedProfileForUpload] = useState<ResidentProfile | null>(null);
 
   const { data: profiles, isLoading } = useQuery<ResidentProfile[]>({
     queryKey: ["/api/profiles"],
@@ -39,14 +49,15 @@ export default function ProfileSelect() {
     onSuccess: async (profile: ResidentProfile) => {
       queryClient.invalidateQueries({ queryKey: ["/api/profiles"] });
       
-      // Store "stay signed in" preference if checked
       if (staySignedIn) {
         localStorage.setItem("staySignedIn", "true");
       }
       
-      // Automatically select the new profile and go to dashboard
       await apiRequest("POST", "/api/profiles/select", { profileId: profile.id });
-      localStorage.setItem("selectedProfile", JSON.stringify(profile));
+      localStorage.setItem("selectedProfile", JSON.stringify({
+        ...profile,
+        lastName: user?.lastName
+      }));
       setNewName("");
       setShowAddForm(false);
       setStaySignedIn(false);
@@ -60,10 +71,100 @@ export default function ProfileSelect() {
       return res.json();
     },
     onSuccess: (profile: ResidentProfile) => {
-      localStorage.setItem("selectedProfile", JSON.stringify(profile));
+      localStorage.setItem("selectedProfile", JSON.stringify({
+        ...profile,
+        lastName: user?.lastName
+      }));
       setLocation("/dashboard");
     },
   });
+
+  const updateProfilePicture = useMutation({
+    mutationFn: async ({ profileId, objectPath, imageData, mimeType }: { profileId: number; objectPath: string; imageData?: string; mimeType?: string }) => {
+      const res = await apiRequest("PATCH", `/api/profiles/${profileId}/picture`, { objectPath, imageData, mimeType });
+      return res.json();
+    },
+    onSuccess: (updatedProfile: ResidentProfile) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/profiles"] });
+      
+      // Update localStorage if this is the selected profile
+      const storedProfile = localStorage.getItem("selectedProfile");
+      if (storedProfile) {
+        const parsed = JSON.parse(storedProfile);
+        if (parsed.id === updatedProfile.id) {
+          localStorage.setItem("selectedProfile", JSON.stringify({
+            ...parsed,
+            profilePicture: updatedProfile.profilePicture
+          }));
+        }
+      }
+      
+      toast({ title: "Profile picture updated!" });
+      setUploadingProfileId(null);
+    },
+    onError: (error: any) => {
+      toast({ title: error.message || "Failed to update picture", variant: "destructive" });
+      setUploadingProfileId(null);
+    },
+  });
+
+  const handleProfilePictureClick = (e: React.MouseEvent, profile: ResidentProfile) => {
+    e.stopPropagation();
+    setSelectedProfileForUpload(profile);
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !selectedProfileForUpload) return;
+
+    setUploadingProfileId(selectedProfileForUpload.id);
+
+    try {
+      const reader = new FileReader();
+      const imageDataPromise = new Promise<string>((resolve) => {
+        reader.onloadend = () => {
+          const base64 = (reader.result as string).split(',')[1];
+          resolve(base64);
+        };
+        reader.readAsDataURL(file);
+      });
+      const imageData = await imageDataPromise;
+
+      const urlRes = await apiRequest("POST", "/api/uploads/request-url", {
+        filename: file.name,
+        contentType: file.type,
+        directory: ".private/profile-pictures",
+      });
+      const { uploadUrl, objectPath }: UploadUrlResponse = await urlRes.json();
+
+      const uploadResponse = await fetch(uploadUrl, {
+        method: "PUT",
+        body: file,
+        headers: { "Content-Type": file.type },
+      });
+      
+      if (!uploadResponse.ok) {
+        throw new Error("Failed to upload file to storage");
+      }
+
+      await updateProfilePicture.mutateAsync({
+        profileId: selectedProfileForUpload.id,
+        objectPath,
+        imageData,
+        mimeType: file.type,
+      });
+    } catch (error: any) {
+      console.error("Failed to upload:", error);
+      toast({ title: "Failed to upload picture", variant: "destructive" });
+      setUploadingProfileId(null);
+    }
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+    setSelectedProfileForUpload(null);
+  };
 
   if (!user) {
     return <Redirect to="/" />;
@@ -85,16 +186,25 @@ export default function ProfileSelect() {
   };
 
   const canAddMore = (profiles?.length || 0) < 3;
+  const lastName = user.lastName || "";
 
   return (
     <div className="min-h-screen bg-[#E6F3F7] flex flex-col items-center justify-center p-4">
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileChange}
+        accept="image/*"
+        className="hidden"
+      />
+      
       <div className="w-full max-w-md space-y-4">
         <div className="text-center space-y-2">
           <div className="relative w-32 h-32 mx-auto bg-[#E6F3F7] rounded-lg">
             <img src={logoImg} alt="Olde Mill Stream" className="w-full h-full object-contain mix-blend-multiply" />
           </div>
           <h1 className="text-2xl font-bold text-[#2a4a6e]">Welcome!</h1>
-          <p className="text-muted-foreground">Lot {user.lotNumber}</p>
+          <p className="text-muted-foreground">Lot {user.lotNumber} • {lastName} Family</p>
         </div>
 
         <Card className="border-none shadow-2xl bg-white/95 backdrop-blur-sm">
@@ -111,21 +221,50 @@ export default function ProfileSelect() {
             ) : (
               <div className="space-y-3">
                 {profiles?.map((profile) => (
-                  <button
+                  <div
                     key={profile.id}
-                    onClick={() => handleSelectProfile(profile)}
-                    disabled={selectProfile.isPending}
-                    className="w-full flex items-center gap-4 p-4 rounded-lg border border-border bg-background hover:bg-muted/50 transition-colors text-left"
-                    data-testid={`button-select-profile-${profile.id}`}
+                    className="w-full flex items-center gap-4 p-4 rounded-lg border border-border bg-background hover:bg-muted/50 transition-colors"
                   >
-                    <Avatar className="w-12 h-12">
-                      <AvatarFallback className="bg-primary/10 text-primary text-lg">
-                        {profile.firstName.charAt(0).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span className="flex-1 font-medium text-lg">{profile.firstName}</span>
-                    <ArrowRight className="w-5 h-5 text-muted-foreground" />
-                  </button>
+                    <button 
+                      className="relative cursor-pointer group"
+                      onClick={(e) => handleProfilePictureClick(e, profile)}
+                      data-testid={`button-change-picture-${profile.id}`}
+                      type="button"
+                    >
+                      <Avatar className="w-14 h-14">
+                        {profile.profilePicture ? (
+                          <AvatarImage src={profile.profilePicture} className="object-cover" />
+                        ) : null}
+                        <AvatarFallback className="bg-primary/10 text-primary text-lg">
+                          {profile.firstName.charAt(0).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      {uploadingProfileId === profile.id ? (
+                        <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center">
+                          <Loader2 className="w-5 h-5 animate-spin text-white" />
+                        </div>
+                      ) : (
+                        <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Camera className="w-5 h-5 text-white" />
+                        </div>
+                      )}
+                    </button>
+                    <button
+                      onClick={() => handleSelectProfile(profile)}
+                      disabled={selectProfile.isPending}
+                      className="flex-1 text-left"
+                      data-testid={`button-select-profile-${profile.id}`}
+                    >
+                      <span className="font-medium text-lg">{profile.firstName} {lastName}</span>
+                    </button>
+                    <button
+                      onClick={() => handleSelectProfile(profile)}
+                      disabled={selectProfile.isPending}
+                      data-testid={`button-select-arrow-${profile.id}`}
+                    >
+                      <ArrowRight className="w-5 h-5 text-muted-foreground" />
+                    </button>
+                  </div>
                 ))}
 
                 {profiles?.length === 0 && !showAddForm && (

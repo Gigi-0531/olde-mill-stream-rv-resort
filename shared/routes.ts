@@ -240,6 +240,20 @@ export const api = {
         404: errorSchemas.notFound,
       },
     },
+    updatePicture: {
+      method: 'PATCH' as const,
+      path: '/api/profiles/:id/picture',
+      input: z.object({
+        objectPath: z.string(),
+        imageData: z.string().optional(),
+        mimeType: z.string().optional(),
+      }),
+      responses: {
+        200: z.custom<typeof residentProfiles.$inferSelect>(),
+        400: errorSchemas.validation,
+        404: errorSchemas.notFound,
+      },
+    },
   },
   messages: {
     community: {
