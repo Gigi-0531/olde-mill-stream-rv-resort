@@ -50,8 +50,15 @@ export default function Messages() {
 
   const { data: residents, isLoading: residentsLoading, error: residentsError } = useQuery<User[]>({
     queryKey: ["/api/users"],
+    queryFn: async () => {
+      const res = await fetch("/api/users", { credentials: "include" });
+      if (!res.ok) {
+        throw new Error("Failed to load contacts");
+      }
+      return res.json();
+    },
     retry: 2,
-    staleTime: 30000,
+    staleTime: 0,
     enabled: !!user,
   });
 
