@@ -399,7 +399,9 @@ export default function Messages() {
                             <p className="text-sm text-muted-foreground truncate">
                               {lastMsg 
                                 ? lastMsg.content.slice(0, 40) + (lastMsg.content.length > 40 ? "..." : "")
-                                : `Lot ${resident.lotNumber}`
+                                : resident.role === 'admin' 
+                                  ? 'Park Management' 
+                                  : `Lot ${resident.lotNumber}`
                               }
                             </p>
                           </div>

@@ -19,6 +19,7 @@ export interface IStorage {
   searchUsers(query?: string): Promise<User[]>;
   getResidents(): Promise<User[]>;
   getFirstAdmin(): Promise<User | undefined>;
+  getAdmins(): Promise<User[]>;
   updateResident(id: number, data: Partial<InsertUser>): Promise<User | undefined>;
   deleteResident(id: number): Promise<void>;
   updateProfilePicture(userId: number, objectPath: string): Promise<void>;
@@ -150,6 +151,10 @@ export class DatabaseStorage implements IStorage {
   async getFirstAdmin(): Promise<User | undefined> {
     const [admin] = await db.select().from(users).where(eq(users.role, 'admin')).limit(1);
     return admin;
+  }
+
+  async getAdmins(): Promise<User[]> {
+    return db.select().from(users).where(eq(users.role, 'admin'));
   }
 
   async updateResident(id: number, data: Partial<InsertUser>): Promise<User | undefined> {

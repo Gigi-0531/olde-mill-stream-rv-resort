@@ -180,16 +180,19 @@ export async function registerRoutes(
     }
   );
 
-  // Public users list (for messaging - limited fields)
+  // Public users list (for messaging - limited fields, includes residents and admins)
   app.get(api.users.list.path, requireAuth, async (_req, res) => {
     const residents = await storage.getResidents();
-    res.json(residents.map(r => ({
+    const admins = await storage.getAdmins();
+    const allUsers = [...admins, ...residents];
+    res.json(allUsers.map(r => ({
       id: r.id,
       firstName: r.firstName,
       lastName: r.lastName,
       lotNumber: r.lotNumber,
       profilePicture: r.profilePicture ? objectStorageService.normalizeObjectEntityPath(r.profilePicture) : null,
       role: r.role,
+      username: r.role === 'admin' ? r.username : undefined,
     })));
   });
 
