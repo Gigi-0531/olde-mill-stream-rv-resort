@@ -392,9 +392,42 @@ export async function registerRoutes(
         });
       }
       
+      // Get sender profile info for residents
+      let senderProfileId: number | null = null;
+      let senderName: string | null = null;
+      
+      if (!isAdmin) {
+        senderProfileId = input.senderProfileId || (req.session as any).selectedProfileId || null;
+        
+        // Validate profile ownership - profile must belong to logged-in user
+        if (senderProfileId) {
+          const profile = await storage.getResidentProfile(senderProfileId);
+          if (!profile || profile.userId !== req.session.userId) {
+            return res.status(403).json({ message: "Invalid profile" });
+          }
+          senderName = profile.firstName;
+        } else {
+          // Resident must have a profile selected to send messages
+          return res.status(400).json({ message: "Please select a profile first" });
+        }
+        
+        // Validate recipient profile ownership if specified
+        if (input.recipientProfileId && input.recipientId) {
+          const recipientProfile = await storage.getResidentProfile(input.recipientProfileId);
+          if (!recipientProfile || recipientProfile.userId !== input.recipientId) {
+            return res.status(400).json({ message: "Invalid recipient profile" });
+          }
+        }
+      } else {
+        senderName = "Admin";
+      }
+      
       const message = await storage.createMessage({
         senderId: req.session.userId,
+        senderProfileId,
+        senderName,
         recipientId: input.recipientId || null,
+        recipientProfileId: input.recipientProfileId || null,
         content: input.content,
         approved: isAdmin || input.recipientId !== null,
       });

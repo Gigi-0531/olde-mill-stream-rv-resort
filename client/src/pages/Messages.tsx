@@ -15,7 +15,10 @@ import { useToast } from "@/hooks/use-toast";
 interface Message {
   id: number;
   senderId: number;
+  senderProfileId?: number | null;
+  senderName?: string | null;
   recipientId: number | null;
+  recipientProfileId?: number | null;
   content: string;
   isRead: boolean;
   createdAt: string;
@@ -68,9 +71,24 @@ export default function Messages() {
     refetchInterval: 3000,
   });
 
+  // Get the selected profile from localStorage
+  const getSelectedProfile = () => {
+    try {
+      const stored = localStorage.getItem("selectedProfile");
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      return null;
+    }
+  };
+
   const sendMessage = useMutation({
-    mutationFn: async (data: { content: string; recipientId?: number }) => {
-      const res = await apiRequest("POST", "/api/messages", data);
+    mutationFn: async (data: { content: string; recipientId?: number; recipientProfileId?: number }) => {
+      const selectedProfile = getSelectedProfile();
+      const payload = {
+        ...data,
+        senderProfileId: selectedProfile?.id,
+      };
+      const res = await apiRequest("POST", "/api/messages", payload);
       if (!res.ok) {
         const error = await res.json();
         throw new Error(error.reason || error.message || "Failed to send message");
@@ -119,7 +137,25 @@ export default function Messages() {
     sendMessage.mutate({ content: newMessage, recipientId: selectedUserId });
   };
 
-  const getSenderName = (senderId: number) => {
+  const getSenderName = (senderId: number, msg?: Message) => {
+    // Use senderName from message if available (includes profile first name)
+    if (msg?.senderName) {
+      if (senderId === user?.id) {
+        const selectedProfile = getSelectedProfile();
+        if (selectedProfile && msg.senderProfileId === selectedProfile.id) {
+          return "You";
+        }
+        return msg.senderName;
+      }
+      // For others, show name and lot info
+      const sender = residents?.find(r => r.id === senderId);
+      if (sender) {
+        return `${msg.senderName} (Lot ${sender.lotNumber})`;
+      }
+      return msg.senderName;
+    }
+    
+    // Fallback to old logic
     if (senderId === user?.id) return "You";
     const sender = residents?.find(r => r.id === senderId);
     if (sender) {
@@ -130,7 +166,16 @@ export default function Messages() {
     return "Unknown";
   };
 
-  const getInitials = (senderId: number) => {
+  const getInitials = (senderId: number, msg?: Message) => {
+    // Use senderName from message if available
+    if (msg?.senderName) {
+      if (senderId === user?.id) {
+        const selectedProfile = getSelectedProfile();
+        return selectedProfile?.firstName?.slice(0, 1).toUpperCase() || "ME";
+      }
+      return msg.senderName.slice(0, 1).toUpperCase();
+    }
+    
     if (senderId === user?.id) return user?.lastName?.slice(0, 2).toUpperCase() || "ME";
     const sender = residents?.find(r => r.id === senderId);
     if (sender?.firstName && sender?.lastName) {
@@ -222,12 +267,12 @@ export default function Messages() {
                             <AvatarImage src={getProfilePicture(msg.senderId)!} />
                           )}
                           <AvatarFallback className={msg.senderId === user?.id ? "bg-primary text-primary-foreground" : "bg-muted"}>
-                            {getInitials(msg.senderId)}
+                            {getInitials(msg.senderId, msg)}
                           </AvatarFallback>
                         </Avatar>
                         <div className={`max-w-[70%] ${msg.senderId === user?.id ? "text-right" : ""}`}>
                           <p className="text-xs text-muted-foreground mb-1">
-                            {getSenderName(msg.senderId)} • {format(new Date(msg.createdAt), "MMM d, h:mm a")}
+                            {getSenderName(msg.senderId, msg)} • {format(new Date(msg.createdAt), "MMM d, h:mm a")}
                           </p>
                           <div
                             className={`inline-block p-3 rounded-lg ${
@@ -318,12 +363,12 @@ export default function Messages() {
                             <AvatarImage src={getProfilePicture(msg.senderId)!} />
                           )}
                           <AvatarFallback className={msg.senderId === user?.id ? "bg-primary text-primary-foreground" : "bg-muted"}>
-                            {getInitials(msg.senderId)}
+                            {getInitials(msg.senderId, msg)}
                           </AvatarFallback>
                         </Avatar>
                         <div className={`max-w-[70%] ${msg.senderId === user?.id ? "text-right" : ""}`}>
                           <p className="text-xs text-muted-foreground mb-1">
-                            {format(new Date(msg.createdAt), "MMM d, h:mm a")}
+                            {getSenderName(msg.senderId, msg)} • {format(new Date(msg.createdAt), "MMM d, h:mm a")}
                           </p>
                           <div
                             className={`inline-block p-3 rounded-lg ${

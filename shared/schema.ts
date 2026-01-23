@@ -91,7 +91,10 @@ export const galleryPhotos = pgTable("gallery_photos", {
 export const messages = pgTable("messages", {
   id: serial("id").primaryKey(),
   senderId: integer("sender_id").notNull(),
+  senderProfileId: integer("sender_profile_id"), // profile of sender (for residents)
+  senderName: text("sender_name"), // display name for sender
   recipientId: integer("recipient_id"), // null = community-wide message
+  recipientProfileId: integer("recipient_profile_id"), // profile of recipient (for residents)
   content: text("content").notNull(),
   isRead: boolean("is_read").notNull().default(false),
   approved: boolean("approved").notNull().default(false), // community messages need admin approval

@@ -269,6 +269,8 @@ export const api = {
       input: z.object({
         content: z.string().min(1),
         recipientId: z.number().optional(),
+        senderProfileId: z.number().optional(),
+        recipientProfileId: z.number().optional(),
       }),
       responses: {
         201: z.custom<typeof messages.$inferSelect>(),
