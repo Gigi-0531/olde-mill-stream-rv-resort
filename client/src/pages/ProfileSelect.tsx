@@ -36,10 +36,17 @@ export default function ProfileSelect() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedProfileForUpload, setSelectedProfileForUpload] = useState<ResidentProfile | null>(null);
 
-  const { data: profiles, isLoading } = useQuery<ResidentProfile[]>({
+  const { data: profiles, isLoading, error } = useQuery<ResidentProfile[]>({
     queryKey: ["/api/profiles"],
     enabled: !!user && user.role === "resident",
+    staleTime: 0,
+    refetchOnMount: true,
   });
+
+  // Debug: Log if there's an error fetching profiles
+  if (error) {
+    console.error("Error fetching profiles:", error);
+  }
 
   const createProfile = useMutation({
     mutationFn: async (firstName: string) => {
