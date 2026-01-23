@@ -1,46 +1,7 @@
-import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { useToast } from "@/hooks/use-toast";
-import { useMutation } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
-import { HelpCircle, Send, Phone, Mail, MapPin, CheckCircle } from "lucide-react";
+import { HelpCircle, Phone, Mail, MapPin, PlayCircle, Home, Calendar, Image, MessageCircle, Map } from "lucide-react";
 
 export default function Help() {
-  const [message, setMessage] = useState("");
-  const [submitted, setSubmitted] = useState(false);
-  const { toast } = useToast();
-
-  const sendMessage = useMutation({
-    mutationFn: async (content: string) => {
-      const res = await apiRequest("POST", "/api/help", { content });
-      return res.json();
-    },
-    onSuccess: () => {
-      setMessage("");
-      setSubmitted(true);
-      toast({
-        title: "Message Sent",
-        description: "The admin will respond to you soon.",
-      });
-    },
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to send message. Please try again.",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (message.trim()) {
-      sendMessage.mutate(message.trim());
-    }
-  };
-
   return (
     <div className="min-h-screen bg-background p-4 md:p-8 pt-20">
       <div className="max-w-2xl mx-auto space-y-8">
@@ -50,11 +11,67 @@ export default function Help() {
             Get Help
           </h1>
           <p className="text-muted-foreground mt-2" data-testid="text-help-description">
-            Need assistance? Contact the park management team.
+            Learn how to use the app and contact park management.
           </p>
         </div>
 
         <div className="grid gap-6">
+          <Card data-testid="card-video-tutorial">
+            <CardHeader>
+              <CardTitle className="text-lg" data-testid="text-video-title">How to Use This App</CardTitle>
+              <CardDescription data-testid="text-video-description">Watch this quick tutorial to get started</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="aspect-video bg-muted rounded-lg flex items-center justify-center mb-4" data-testid="video-placeholder">
+                <div className="text-center">
+                  <PlayCircle className="w-16 h-16 mx-auto text-primary mb-2" />
+                  <p className="text-muted-foreground text-sm">Video tutorial coming soon</p>
+                </div>
+              </div>
+              
+              <div className="space-y-4 mt-6">
+                <h3 className="font-semibold" data-testid="text-features-title">App Features</h3>
+                <div className="grid gap-3">
+                  <div className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg" data-testid="feature-home">
+                    <Home className="w-5 h-5 text-primary mt-0.5" />
+                    <div>
+                      <p className="font-medium text-sm">Home</p>
+                      <p className="text-xs text-muted-foreground">View weather, alerts, and upcoming activities</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg" data-testid="feature-map">
+                    <Map className="w-5 h-5 text-primary mt-0.5" />
+                    <div>
+                      <p className="font-medium text-sm">Park Map</p>
+                      <p className="text-xs text-muted-foreground">View the resort layout and find locations</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg" data-testid="feature-activities">
+                    <Calendar className="w-5 h-5 text-primary mt-0.5" />
+                    <div>
+                      <p className="font-medium text-sm">Activities</p>
+                      <p className="text-xs text-muted-foreground">See all scheduled park activities and events</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg" data-testid="feature-gallery">
+                    <Image className="w-5 h-5 text-primary mt-0.5" />
+                    <div>
+                      <p className="font-medium text-sm">Gallery</p>
+                      <p className="text-xs text-muted-foreground">Browse photos from park events</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg" data-testid="feature-messages">
+                    <MessageCircle className="w-5 h-5 text-primary mt-0.5" />
+                    <div>
+                      <p className="font-medium text-sm">Messages</p>
+                      <p className="text-xs text-muted-foreground">Chat with neighbors and view community posts</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           <Card data-testid="card-contact-info">
             <CardHeader>
               <CardTitle className="text-lg" data-testid="text-contact-title">Contact Information</CardTitle>
@@ -73,61 +90,6 @@ export default function Help() {
                 <MapPin className="w-5 h-5 text-primary" />
                 <span data-testid="text-address">1000 N. Central Ave, Umatilla, FL 32784</span>
               </div>
-            </CardContent>
-          </Card>
-
-          <Card data-testid="card-send-message">
-            <CardHeader>
-              <CardTitle className="text-lg" data-testid="text-send-message-title">Send a Message</CardTitle>
-              <CardDescription data-testid="text-send-message-description">
-                Send a message directly to park management
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {submitted ? (
-                <div className="text-center py-8 space-y-4" data-testid="message-sent-confirmation">
-                  <CheckCircle className="w-16 h-16 text-green-500 mx-auto" />
-                  <div>
-                    <h3 className="text-lg font-semibold" data-testid="text-message-sent">Message Sent!</h3>
-                    <p className="text-muted-foreground" data-testid="text-confirmation-description">
-                      We'll get back to you as soon as possible.
-                    </p>
-                  </div>
-                  <Button 
-                    variant="outline" 
-                    onClick={() => setSubmitted(false)}
-                    data-testid="button-send-another"
-                  >
-                    Send Another Message
-                  </Button>
-                </div>
-              ) : (
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <Textarea
-                    placeholder="Describe your question or concern..."
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                    rows={5}
-                    className="resize-none"
-                    data-testid="textarea-help-message"
-                  />
-                  <Button 
-                    type="submit" 
-                    className="w-full gap-2"
-                    disabled={!message.trim() || sendMessage.isPending}
-                    data-testid="button-send-help"
-                  >
-                    {sendMessage.isPending ? (
-                      "Sending..."
-                    ) : (
-                      <>
-                        <Send className="w-4 h-4" />
-                        Send Message
-                      </>
-                    )}
-                  </Button>
-                </form>
-              )}
             </CardContent>
           </Card>
 
