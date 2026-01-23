@@ -204,7 +204,7 @@ export default function ProfileSelect() {
             <img src={logoImg} alt="Olde Mill Stream" className="w-full h-full object-contain mix-blend-multiply" />
           </div>
           <h1 className="text-2xl font-bold text-[#2a4a6e]">Welcome!</h1>
-          <p className="text-muted-foreground">Lot {user.lotNumber} • {lastName} Family</p>
+          <p className="text-muted-foreground">Lot {user.lotNumber}</p>
         </div>
 
         <Card className="border-none shadow-2xl bg-white/95 backdrop-blur-sm">
