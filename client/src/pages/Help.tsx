@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { HelpCircle, Phone, Mail, MapPin, PlayCircle, Home, Calendar, Image, MessageCircle, Map } from "lucide-react";
+import { HelpCircle, Phone, Mail, MapPin, Home, Calendar, Image, MessageCircle, Map } from "lucide-react";
 
 export default function Help() {
   return (
@@ -22,11 +22,19 @@ export default function Help() {
               <CardDescription data-testid="text-video-description">Watch this quick tutorial to get started</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="aspect-video bg-muted rounded-lg flex items-center justify-center mb-4" data-testid="video-placeholder">
-                <div className="text-center">
-                  <PlayCircle className="w-16 h-16 mx-auto text-primary mb-2" />
-                  <p className="text-muted-foreground text-sm">Video tutorial coming soon</p>
-                </div>
+              <div className="aspect-video bg-muted rounded-lg overflow-hidden mb-4" data-testid="video-tutorial">
+                <video 
+                  className="w-full h-full object-cover"
+                  controls
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  data-testid="video-player"
+                >
+                  <source src="/app-tutorial.mp4" type="video/mp4" />
+                  Your browser does not support the video tag.
+                </video>
               </div>
               
               <div className="space-y-4 mt-6">
