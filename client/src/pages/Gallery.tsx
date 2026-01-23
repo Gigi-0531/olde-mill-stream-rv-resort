@@ -1,8 +1,46 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Navbar } from "@/components/layout/Navbar";
 import { Image, Loader2 } from "lucide-react";
 import type { GalleryPhoto } from "@shared/schema";
+
+function GalleryImage({ photo }: { photo: GalleryPhoto }) {
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+
+  return (
+    <Card className="overflow-hidden group" data-testid={`card-photo-${photo.id}`}>
+      <CardContent className="p-0">
+        <div className="aspect-square relative bg-muted">
+          {loading && !error && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+            </div>
+          )}
+          {error ? (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <Image className="w-8 h-8 text-muted-foreground" />
+            </div>
+          ) : (
+            <img
+              src={photo.objectPath}
+              alt={photo.title || "Gallery photo"}
+              className={`w-full h-full object-cover transition-transform group-hover:scale-105 ${loading ? 'opacity-0' : 'opacity-100'}`}
+              onLoad={() => setLoading(false)}
+              onError={() => { setLoading(false); setError(true); }}
+            />
+          )}
+        </div>
+        {photo.title && (
+          <div className="p-3">
+            <p className="text-sm font-medium line-clamp-2">{photo.title}</p>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
 
 export default function Gallery() {
   const { data: photos, isLoading } = useQuery<GalleryPhoto[]>({
@@ -25,22 +63,7 @@ export default function Gallery() {
         ) : photos && photos.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {photos.map((photo) => (
-              <Card key={photo.id} className="overflow-hidden group" data-testid={`card-photo-${photo.id}`}>
-                <CardContent className="p-0">
-                  <div className="aspect-square relative">
-                    <img
-                      src={photo.objectPath}
-                      alt={photo.title || "Gallery photo"}
-                      className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                    />
-                  </div>
-                  {photo.title && (
-                    <div className="p-3">
-                      <p className="text-sm font-medium line-clamp-2">{photo.title}</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+              <GalleryImage key={photo.id} photo={photo} />
             ))}
           </div>
         ) : (
