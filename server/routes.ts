@@ -249,6 +249,68 @@ export async function registerRoutes(
     });
   });
 
+  // Resident Profiles - for multiple family members per lot
+  app.get(api.profiles.list.path, requireAuth, async (req, res) => {
+    if (req.session.userRole !== 'resident') {
+      return res.status(403).json({ message: "Only residents can have profiles" });
+    }
+    const profiles = await storage.getResidentProfiles(req.session.userId);
+    res.json(profiles);
+  });
+
+  app.post(api.profiles.create.path, requireAuth, async (req, res) => {
+    try {
+      if (req.session.userRole !== 'resident') {
+        return res.status(403).json({ message: "Only residents can create profiles" });
+      }
+      const input = api.profiles.create.input.parse(req.body);
+      
+      // Check if user already has 3 profiles
+      const existingProfiles = await storage.getResidentProfiles(req.session.userId);
+      if (existingProfiles.length >= 3) {
+        return res.status(400).json({ message: "Maximum of 3 profiles allowed" });
+      }
+      
+      const profile = await storage.createResidentProfile({
+        userId: req.session.userId,
+        firstName: input.firstName,
+      });
+      res.status(201).json(profile);
+    } catch (err: any) {
+      res.status(400).json({ message: err.message });
+    }
+  });
+
+  app.delete(api.profiles.delete.path, requireAuth, async (req, res) => {
+    const profileId = parseInt(req.params.id);
+    
+    // Verify profile belongs to user
+    const profile = await storage.getResidentProfile(profileId);
+    if (!profile || profile.userId !== req.session.userId) {
+      return res.status(404).json({ message: "Profile not found" });
+    }
+    
+    await storage.deleteResidentProfile(profileId);
+    res.status(204).send();
+  });
+
+  app.post(api.profiles.select.path, requireAuth, async (req, res) => {
+    try {
+      const input = api.profiles.select.input.parse(req.body);
+      
+      const profile = await storage.getResidentProfile(input.profileId);
+      if (!profile || profile.userId !== req.session.userId) {
+        return res.status(404).json({ message: "Profile not found" });
+      }
+      
+      // Store selected profile in session
+      (req.session as any).selectedProfileId = profile.id;
+      res.json(profile);
+    } catch (err: any) {
+      res.status(400).json({ message: err.message });
+    }
+  });
+
   app.get(api.gallery.list.path, async (_req, res) => {
     const photos = await storage.getGalleryPhotos();
     res.json(

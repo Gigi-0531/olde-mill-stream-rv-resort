@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { insertUserSchema, insertActivitySchema, insertNotificationSchema, insertGalleryPhotoSchema, insertMessageSchema, users, activities, notifications, galleryPhotos, messages } from './schema';
+import { insertUserSchema, insertActivitySchema, insertNotificationSchema, insertGalleryPhotoSchema, insertMessageSchema, insertResidentProfileSchema, users, activities, notifications, galleryPhotos, messages, residentProfiles } from './schema';
 
 export const errorSchemas = {
   validation: z.object({
@@ -198,6 +198,45 @@ export const api = {
       path: '/api/gallery/:id',
       responses: {
         204: z.void(),
+        404: errorSchemas.notFound,
+      },
+    },
+  },
+  profiles: {
+    list: {
+      method: 'GET' as const,
+      path: '/api/profiles',
+      responses: {
+        200: z.array(z.custom<typeof residentProfiles.$inferSelect>()),
+      },
+    },
+    create: {
+      method: 'POST' as const,
+      path: '/api/profiles',
+      input: z.object({
+        firstName: z.string().min(1, "First name is required"),
+      }),
+      responses: {
+        201: z.custom<typeof residentProfiles.$inferSelect>(),
+        400: errorSchemas.validation,
+      },
+    },
+    delete: {
+      method: 'DELETE' as const,
+      path: '/api/profiles/:id',
+      responses: {
+        204: z.void(),
+        404: errorSchemas.notFound,
+      },
+    },
+    select: {
+      method: 'POST' as const,
+      path: '/api/profiles/select',
+      input: z.object({
+        profileId: z.number(),
+      }),
+      responses: {
+        200: z.custom<typeof residentProfiles.$inferSelect>(),
         404: errorSchemas.notFound,
       },
     },

@@ -7,6 +7,7 @@ import { Navbar } from "@/components/layout/Navbar";
 import { InstallPrompt } from "@/components/InstallPrompt";
 
 import Landing from "@/pages/Landing";
+import ProfileSelect from "@/pages/ProfileSelect";
 import Dashboard from "@/pages/Dashboard";
 import Activities from "@/pages/Activities";
 import MapPage from "@/pages/Map";
@@ -56,6 +57,7 @@ export async function logout() {
       method: "POST",
       credentials: "include",
     });
+    localStorage.removeItem("selectedProfile");
   } finally {
     window.location.assign("/");
   }
@@ -64,9 +66,11 @@ export async function logout() {
 function ProtectedRoute({
   component: Component,
   adminOnly = false,
+  skipProfileCheck = false,
 }: {
   component: React.ComponentType;
   adminOnly?: boolean;
+  skipProfileCheck?: boolean;
 }) {
   const { data: user, isLoading, error } = useAuth();
 
@@ -80,6 +84,14 @@ function ProtectedRoute({
     return <NotFound />;
   }
 
+  // Check if resident has selected a profile (skip for profile-select page itself)
+  if (!skipProfileCheck && user.role === "resident") {
+    const selectedProfile = localStorage.getItem("selectedProfile");
+    if (!selectedProfile) {
+      return <Redirect to="/profile-select" />;
+    }
+  }
+
   return <Component />;
 }
 
@@ -91,6 +103,10 @@ function Router() {
       <main className="flex-1">
         <Switch>
           <Route path="/" component={Landing} />
+
+          <Route path="/profile-select">
+            <ProtectedRoute component={ProfileSelect} skipProfileCheck />
+          </Route>
 
           <Route path="/dashboard">
             <ProtectedRoute component={Dashboard} />

@@ -29,7 +29,7 @@ export default function Landing() {
 
   // If already logged in, redirect
   if (user) {
-    return <Redirect to={user.role === 'admin' ? '/admin' : '/dashboard'} />;
+    return <Redirect to={user.role === 'admin' ? '/admin' : '/profile-select'} />;
   }
 
   return (
