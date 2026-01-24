@@ -1,10 +1,11 @@
 import { Switch, Route, Redirect } from "wouter";
-import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Navbar } from "@/components/layout/Navbar";
 import { InstallPrompt } from "@/components/InstallPrompt";
+import { useAuth } from "@/hooks/use-auth";
 
 import Landing from "@/pages/Landing";
 import ProfileSelect from "@/pages/ProfileSelect";
@@ -31,26 +32,6 @@ const queryClient = new QueryClient({
   },
 });
 
-function useAuth() {
-  return useQuery({
-    queryKey: ["me"],
-    queryFn: async () => {
-      try {
-        const res = await fetch("/api/auth/me", {
-          credentials: "include",
-        });
-
-        if (!res.ok) return null;
-
-        const data = await res.json();
-        return data;
-      } catch {
-        return null;
-      }
-    },
-  });
-}
-
 export async function logout() {
   try {
     await fetch("/api/auth/logout", {
@@ -73,11 +54,11 @@ function ProtectedRoute({
   adminOnly?: boolean;
   skipProfileCheck?: boolean;
 }) {
-  const { data: user, isLoading, error } = useAuth();
+  const { user, isLoading } = useAuth();
 
   if (isLoading) return null;
 
-  if (error || !user) {
+  if (!user) {
     return <Redirect to="/" />;
   }
 
