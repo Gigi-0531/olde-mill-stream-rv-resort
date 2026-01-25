@@ -237,17 +237,66 @@ export async function registerRoutes(
     res.status(204).send();
   });
 
-  app.get(api.weather.get.path, (_req, res) => {
-    res.json({
-      location: "Umatilla, FL",
-      temp: 78,
-      condition: "Sunny",
-      forecast: [
-        { day: "Today", temp: 78, condition: "Sunny" },
-        { day: "Tomorrow", temp: 76, condition: "Partly Cloudy" },
-        { day: "Wed", temp: 80, condition: "Clear" },
-      ],
-    });
+  app.get(api.weather.get.path, async (_req, res) => {
+    try {
+      // Umatilla, FL coordinates
+      const lat = 28.9295;
+      const lon = -81.6654;
+      
+      // Fetch from Open-Meteo (free, no API key required)
+      const response = await fetch(
+        `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code&daily=temperature_2m_max,weather_code&temperature_unit=fahrenheit&timezone=America/New_York&forecast_days=4`
+      );
+      
+      if (!response.ok) {
+        throw new Error("Weather API failed");
+      }
+      
+      const data = await response.json();
+      
+      // Map weather codes to conditions
+      const getCondition = (code: number): string => {
+        if (code === 0) return "Clear";
+        if (code <= 3) return "Partly Cloudy";
+        if (code <= 49) return "Foggy";
+        if (code <= 69) return "Rainy";
+        if (code <= 79) return "Snowy";
+        if (code <= 99) return "Stormy";
+        return "Cloudy";
+      };
+      
+      const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+      const today = new Date();
+      
+      const forecast = data.daily.time.slice(0, 3).map((date: string, i: number) => {
+        const d = new Date(date);
+        return {
+          day: i === 0 ? "Today" : i === 1 ? "Tomorrow" : dayNames[d.getDay()],
+          temp: Math.round(data.daily.temperature_2m_max[i]),
+          condition: getCondition(data.daily.weather_code[i]),
+        };
+      });
+      
+      res.json({
+        location: "Umatilla, FL",
+        temp: Math.round(data.current.temperature_2m),
+        condition: getCondition(data.current.weather_code),
+        forecast,
+      });
+    } catch (error) {
+      console.error("Weather fetch error:", error);
+      // Fallback to default if API fails
+      res.json({
+        location: "Umatilla, FL",
+        temp: 75,
+        condition: "Sunny",
+        forecast: [
+          { day: "Today", temp: 75, condition: "Sunny" },
+          { day: "Tomorrow", temp: 76, condition: "Partly Cloudy" },
+          { day: "Wed", temp: 78, condition: "Clear" },
+        ],
+      });
+    }
   });
 
   // Resident Profiles - for multiple family members per lot
