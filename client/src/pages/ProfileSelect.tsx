@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Plus, User, Loader2, ArrowRight, Camera, LogOut } from "lucide-react";
+import { Plus, User, Loader2, ArrowRight, Camera, LogOut, Trash2 } from "lucide-react";
 import { Redirect, useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import logoImg from "@/assets/logo.jpg";
@@ -83,6 +83,20 @@ export default function ProfileSelect() {
         lastName: user?.lastName
       }));
       setLocation("/dashboard");
+    },
+  });
+
+  const deleteProfile = useMutation({
+    mutationFn: async (profileId: number) => {
+      const res = await apiRequest("DELETE", `/api/profiles/${profileId}`);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/profiles"] });
+      toast({ title: "Profile deleted" });
+    },
+    onError: (error: any) => {
+      toast({ title: error.message || "Failed to delete profile", variant: "destructive" });
     },
   });
 
@@ -263,6 +277,19 @@ export default function ProfileSelect() {
                       data-testid={`button-select-profile-${profile.id}`}
                     >
                       <span className="font-medium text-lg">{profile.firstName} {lastName}</span>
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (confirm(`Delete ${profile.firstName}'s profile?`)) {
+                          deleteProfile.mutate(profile.id);
+                        }
+                      }}
+                      disabled={deleteProfile.isPending}
+                      className="p-2 hover:bg-destructive/10 rounded-full transition-colors"
+                      data-testid={`button-delete-profile-${profile.id}`}
+                    >
+                      <Trash2 className="w-4 h-4 text-muted-foreground hover:text-destructive" />
                     </button>
                     <button
                       onClick={() => handleSelectProfile(profile)}

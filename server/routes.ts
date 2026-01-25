@@ -312,6 +312,22 @@ export async function registerRoutes(
     }
   });
 
+  app.delete("/api/profiles/:id", requireAuth, async (req, res) => {
+    try {
+      const profileId = parseInt(req.params.id);
+      
+      const profile = await storage.getResidentProfile(profileId);
+      if (!profile || profile.userId !== req.session.userId) {
+        return res.status(404).json({ message: "Profile not found" });
+      }
+      
+      await storage.deleteResidentProfile(profileId);
+      res.json({ message: "Profile deleted" });
+    } catch (err: any) {
+      res.status(400).json({ message: err.message });
+    }
+  });
+
   app.patch(api.profiles.updatePicture.path, requireAuth, async (req, res) => {
     try {
       const profileId = parseInt(req.params.id);
