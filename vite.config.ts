@@ -30,6 +30,8 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
+    target: "es2017", // <-- Added for Samsung S24 compatibility
+    minify: "esbuild", // optional but keeps it safe and fast
   },
   server: {
     fs: {
