@@ -7,6 +7,8 @@ import type { GalleryPhoto } from "@shared/schema";
 export default function Gallery() {
   const { data: photos, isLoading } = useQuery<GalleryPhoto[]>({
     queryKey: ["/api/gallery"],
+    staleTime: 0,
+    refetchOnMount: "always",
   });
 
   return (
