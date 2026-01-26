@@ -36,8 +36,10 @@ export interface IStorage {
   deleteNotification(id: number): Promise<void>;
 
   // Gallery
-  getGalleryPhotos(): Promise<GalleryPhoto[]>;
+  getGalleryPhotos(onlyApproved?: boolean): Promise<GalleryPhoto[]>;
+  getPendingGalleryPhotos(): Promise<GalleryPhoto[]>;
   createGalleryPhoto(photo: InsertGalleryPhoto): Promise<GalleryPhoto>;
+  updateGalleryPhotoStatus(id: number, status: string): Promise<GalleryPhoto | undefined>;
   deleteGalleryPhoto(id: number): Promise<void>;
 
   // Messages
@@ -140,13 +142,32 @@ export class DatabaseStorage implements IStorage {
     await db.delete(notifications).where(eq(notifications.id, id));
   }
 
-  async getGalleryPhotos(): Promise<GalleryPhoto[]> {
+  async getGalleryPhotos(onlyApproved: boolean = true): Promise<GalleryPhoto[]> {
+    if (onlyApproved) {
+      return db.select().from(galleryPhotos)
+        .where(eq(galleryPhotos.status, 'approved'))
+        .orderBy(desc(galleryPhotos.createdAt));
+    }
     return db.select().from(galleryPhotos).orderBy(desc(galleryPhotos.createdAt));
+  }
+
+  async getPendingGalleryPhotos(): Promise<GalleryPhoto[]> {
+    return db.select().from(galleryPhotos)
+      .where(eq(galleryPhotos.status, 'pending'))
+      .orderBy(desc(galleryPhotos.createdAt));
   }
 
   async createGalleryPhoto(photo: InsertGalleryPhoto): Promise<GalleryPhoto> {
     const [newPhoto] = await db.insert(galleryPhotos).values(photo).returning();
     return newPhoto;
+  }
+
+  async updateGalleryPhotoStatus(id: number, status: string): Promise<GalleryPhoto | undefined> {
+    const [updated] = await db.update(galleryPhotos)
+      .set({ status: status as any })
+      .where(eq(galleryPhotos.id, id))
+      .returning();
+    return updated;
   }
 
   async deleteGalleryPhoto(id: number): Promise<void> {

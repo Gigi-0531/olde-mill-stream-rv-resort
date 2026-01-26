@@ -75,10 +75,14 @@ export const notifications = pgTable("notifications", {
    GALLERY
 ====================================================== */
 
+export const photoStatusEnum = pgEnum("photo_status", ["pending", "approved", "rejected"]);
+
 export const galleryPhotos = pgTable("gallery_photos", {
   id: serial("id").primaryKey(),
   title: text("title"),
   objectPath: text("object_path").notNull(),
+  status: photoStatusEnum("status").notNull().default("approved"),
+  submitterId: integer("submitter_id"),
   createdAt: timestamp("created_at", { withTimezone: false })
     .defaultNow()
     .notNull(),
