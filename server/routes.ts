@@ -290,13 +290,41 @@ export async function registerRoutes(
   });
 
   app.get(api.gallery.list.path, async (_req, res) => {
-    const photos = await storage.getGalleryPhotos();
+    const photos = await storage.getGalleryPhotos(true);
     res.json(
       photos.map(photo => ({
         ...photo,
         objectPath: objectStorageService.normalizeObjectEntityPath(photo.objectPath),
       }))
     );
+  });
+
+  app.get(api.gallery.pending.path, requireAuth, requireAdmin, async (_req, res) => {
+    const photos = await storage.getPendingGalleryPhotos();
+    res.json(
+      photos.map(photo => ({
+        ...photo,
+        objectPath: objectStorageService.normalizeObjectEntityPath(photo.objectPath),
+      }))
+    );
+  });
+
+  app.post(api.gallery.submit.path, requireAuth, async (req, res) => {
+    try {
+      const input = api.gallery.submit.input.parse(req.body);
+      const normalizedPath = objectStorageService.normalizeObjectEntityPath(input.objectPath);
+
+      const photo = await storage.createGalleryPhoto({
+        title: input.title,
+        objectPath: normalizedPath,
+        status: "pending",
+        submitterId: req.session.userId,
+      });
+
+      res.status(201).json(photo);
+    } catch {
+      res.status(400).json({ message: "Invalid input" });
+    }
   });
 
   app.post(
@@ -312,6 +340,7 @@ export async function registerRoutes(
         const photo = await storage.createGalleryPhoto({
           ...input,
           objectPath: normalizedPath,
+          status: "approved",
         });
 
         res.status(201).json(photo);
@@ -320,6 +349,22 @@ export async function registerRoutes(
       }
     }
   );
+
+  app.post(api.gallery.approve.path, requireAuth, requireAdmin, async (req, res) => {
+    const photo = await storage.updateGalleryPhotoStatus(Number(req.params.id), "approved");
+    if (!photo) {
+      return res.status(404).json({ message: "Photo not found" });
+    }
+    res.json(photo);
+  });
+
+  app.post(api.gallery.reject.path, requireAuth, requireAdmin, async (req, res) => {
+    const photo = await storage.updateGalleryPhotoStatus(Number(req.params.id), "rejected");
+    if (!photo) {
+      return res.status(404).json({ message: "Photo not found" });
+    }
+    res.json(photo);
+  });
 
   app.delete(
     api.gallery.delete.path,

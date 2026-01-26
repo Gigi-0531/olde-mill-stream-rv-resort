@@ -184,6 +184,25 @@ export const api = {
         200: z.array(z.custom<typeof galleryPhotos.$inferSelect>()),
       },
     },
+    pending: {
+      method: 'GET' as const,
+      path: '/api/gallery/pending',
+      responses: {
+        200: z.array(z.custom<typeof galleryPhotos.$inferSelect>()),
+      },
+    },
+    submit: {
+      method: 'POST' as const,
+      path: '/api/gallery/submit',
+      input: z.object({
+        title: z.string().optional(),
+        objectPath: z.string(),
+      }),
+      responses: {
+        201: z.custom<typeof galleryPhotos.$inferSelect>(),
+        400: errorSchemas.validation,
+      },
+    },
     create: {
       method: 'POST' as const,
       path: '/api/gallery',
@@ -191,6 +210,22 @@ export const api = {
       responses: {
         201: z.custom<typeof galleryPhotos.$inferSelect>(),
         400: errorSchemas.validation,
+      },
+    },
+    approve: {
+      method: 'POST' as const,
+      path: '/api/gallery/:id/approve',
+      responses: {
+        200: z.custom<typeof galleryPhotos.$inferSelect>(),
+        404: errorSchemas.notFound,
+      },
+    },
+    reject: {
+      method: 'POST' as const,
+      path: '/api/gallery/:id/reject',
+      responses: {
+        200: z.custom<typeof galleryPhotos.$inferSelect>(),
+        404: errorSchemas.notFound,
       },
     },
     delete: {
