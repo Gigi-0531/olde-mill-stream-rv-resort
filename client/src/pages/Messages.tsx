@@ -4,11 +4,10 @@ import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Send, Users, MessageCircle, Loader2, Search, ChevronLeft, Camera } from "lucide-react";
+import { Send, Users, MessageCircle, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 
@@ -34,8 +33,6 @@ export default function Messages() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [newMessage, setNewMessage] = useState("");
-  const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const { data: communityMessages, isLoading: communityLoading } = useQuery<Message[]>({
@@ -43,23 +40,12 @@ export default function Messages() {
     refetchInterval: 5000,
   });
 
-  const { data: directMessages, isLoading: directLoading } = useQuery<Message[]>({
-    queryKey: ["/api/messages/direct"],
-    refetchInterval: 5000,
-  });
-
   const { data: residents } = useQuery<User[]>({
     queryKey: ["/api/users"],
   });
 
-  const { data: conversation } = useQuery<Message[]>({
-    queryKey: ["/api/messages/conversation", selectedUserId],
-    enabled: !!selectedUserId,
-    refetchInterval: 3000,
-  });
-
   const sendMessage = useMutation({
-    mutationFn: async (data: { content: string; recipientId?: number }) => {
+    mutationFn: async (data: { content: string }) => {
       const res = await apiRequest("POST", "/api/messages", data);
       if (!res.ok) {
         const error = await res.json();
@@ -69,10 +55,6 @@ export default function Messages() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/messages/community"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/messages/direct"] });
-      if (selectedUserId) {
-        queryClient.invalidateQueries({ queryKey: ["/api/messages/conversation", selectedUserId] });
-      }
       setNewMessage("");
     },
     onError: (error: Error) => {
@@ -86,7 +68,7 @@ export default function Messages() {
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [communityMessages, conversation]);
+  }, [communityMessages]);
 
   const handleSendCommunity = (e: React.FormEvent) => {
     e.preventDefault();
@@ -101,12 +83,6 @@ export default function Messages() {
         }
       }
     });
-  };
-
-  const handleSendDirect = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newMessage.trim() || !selectedUserId) return;
-    sendMessage.mutate({ content: newMessage, recipientId: selectedUserId });
   };
 
   const getSenderName = (senderId: number) => {
@@ -135,289 +111,86 @@ export default function Messages() {
     return resident?.profilePicture || null;
   };
 
-  const getLastMessage = (partnerId: number) => {
-    if (!directMessages) return null;
-    const msgs = directMessages.filter(
-      m => m.senderId === partnerId || m.recipientId === partnerId
-    );
-    return msgs[0];
-  };
-
-  const getConversationPartners = () => {
-    if (!directMessages || !user) return [];
-    const partnerMap = new Map<number, { lastMessage: Message }>();
-    directMessages.forEach(m => {
-      const partnerId = m.senderId !== user.id ? m.senderId : m.recipientId;
-      if (partnerId && partnerId !== user.id) {
-        if (!partnerMap.has(partnerId) || new Date(m.createdAt) > new Date(partnerMap.get(partnerId)!.lastMessage.createdAt)) {
-          partnerMap.set(partnerId, { lastMessage: m });
-        }
-      }
-    });
-    return Array.from(partnerMap.entries()).sort((a, b) => 
-      new Date(b[1].lastMessage.createdAt).getTime() - new Date(a[1].lastMessage.createdAt).getTime()
-    );
-  };
-
-  const filteredResidents = residents?.filter(r => {
-    if (r.id === user?.id) return false;
-    if (!searchQuery) return true;
-    const name = r.firstName ? `${r.firstName} ${r.lastName}` : r.lastName || "";
-    return name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-           r.lotNumber?.toLowerCase().includes(searchQuery.toLowerCase());
-  });
-
-  const selectedUser = residents?.find(r => r.id === selectedUserId);
-
   return (
     <div className="min-h-screen bg-background pb-20 pt-16">
       <div className="bg-[#4a7ab0] py-8 px-4 md:px-8">
         <div className="max-w-4xl mx-auto">
-          <h1 className="text-2xl md:text-3xl font-display text-white flex items-center gap-2">
+          <h1 className="text-2xl md:text-3xl font-display text-white flex items-center gap-2" data-testid="text-page-title">
             <MessageCircle className="w-7 h-7" />
-            Community Messages
+            Community Board
           </h1>
-          <p className="text-primary-foreground/80">Stay connected with your neighbors</p>
+          <p className="text-primary-foreground/80" data-testid="text-page-subtitle">Stay connected with your neighbors</p>
         </div>
       </div>
 
       <div className="max-w-4xl mx-auto px-4 md:px-8 py-6">
-        <Tabs defaultValue="direct" className="w-full">
-          <TabsList className="w-full mb-4">
-            <TabsTrigger value="community" className="flex-1 gap-2" data-testid="tab-community">
-              <Users className="w-4 h-4" /> Community Board
-            </TabsTrigger>
-            <TabsTrigger value="direct" className="flex-1 gap-2" data-testid="tab-direct">
-              <MessageCircle className="w-4 h-4" /> Direct Messages
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="community">
-            <Card className="flex flex-col h-[60vh]">
-              <ScrollArea className="flex-1 p-4">
-                {communityLoading ? (
-                  <div className="flex justify-center py-8">
-                    <Loader2 className="w-6 h-6 animate-spin text-primary" />
-                  </div>
-                ) : communityMessages && communityMessages.length > 0 ? (
-                  <div className="space-y-4">
-                    {[...communityMessages].reverse().map((msg) => (
-                      <div
-                        key={msg.id}
-                        className={`flex gap-3 ${msg.senderId === user?.id ? "flex-row-reverse" : ""}`}
-                        data-testid={`message-${msg.id}`}
-                      >
-                        <Avatar className="w-8 h-8 flex-shrink-0">
-                          {getProfilePicture(msg.senderId) && (
-                            <AvatarImage src={getProfilePicture(msg.senderId)!} />
-                          )}
-                          <AvatarFallback className={msg.senderId === user?.id ? "bg-primary text-primary-foreground" : "bg-muted"}>
-                            {getInitials(msg.senderId)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className={`max-w-[70%] ${msg.senderId === user?.id ? "text-right" : ""}`}>
-                          <p className="text-xs text-muted-foreground mb-1">
-                            {getSenderName(msg.senderId)} • {format(new Date(msg.createdAt), "MMM d, h:mm a")}
-                          </p>
-                          <div
-                            className={`inline-block p-3 rounded-lg ${
-                              msg.senderId === user?.id
-                                ? "bg-primary text-primary-foreground"
-                                : "bg-muted"
-                            }`}
-                          >
-                            {msg.content}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                    <div ref={messagesEndRef} />
-                  </div>
-                ) : (
-                  <div className="text-center py-12 text-muted-foreground">
-                    <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                    <p>No community messages yet.</p>
-                    <p className="text-sm">Be the first to say hello!</p>
-                  </div>
-                )}
-              </ScrollArea>
-
-              <form onSubmit={handleSendCommunity} className="p-4 border-t flex gap-2">
-                <Input
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  placeholder="Share something with the community..."
-                  className="flex-1"
-                  data-testid="input-community-message"
-                />
-                <Button 
-                  type="submit" 
-                  size="icon" 
-                  disabled={sendMessage.isPending || !newMessage.trim()}
-                  data-testid="button-send-community"
-                >
-                  <Send className="w-4 h-4" />
-                </Button>
-              </form>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="direct">
-            {selectedUserId ? (
-              <Card className="flex flex-col h-[70vh]">
-                <div className="flex items-center gap-3 p-3 border-b bg-card">
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    onClick={() => setSelectedUserId(null)}
-                    data-testid="button-back"
+        <Card className="flex flex-col h-[70vh]" data-testid="card-community-messages">
+          <ScrollArea className="flex-1 p-4">
+            {communityLoading ? (
+              <div className="flex justify-center py-8">
+                <Loader2 className="w-6 h-6 animate-spin text-primary" />
+              </div>
+            ) : communityMessages && communityMessages.length > 0 ? (
+              <div className="space-y-4">
+                {[...communityMessages].reverse().map((msg) => (
+                  <div
+                    key={msg.id}
+                    className={`flex gap-3 ${msg.senderId === user?.id ? "flex-row-reverse" : ""}`}
+                    data-testid={`message-${msg.id}`}
                   >
-                    <ChevronLeft className="w-5 h-5" />
-                  </Button>
-                  <Avatar className="w-10 h-10">
-                    {selectedUser?.profilePicture && (
-                      <AvatarImage src={selectedUser.profilePicture} />
-                    )}
-                    <AvatarFallback>
-                      {selectedUser?.firstName && selectedUser?.lastName
-                        ? `${selectedUser.firstName[0]}${selectedUser.lastName[0]}`
-                        : selectedUser?.lastName?.slice(0, 2).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1">
-                    <p className="font-semibold">
-                      {selectedUser?.firstName
-                        ? `${selectedUser.firstName} ${selectedUser.lastName}`
-                        : selectedUser?.lastName}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Lot {selectedUser?.lotNumber}
-                    </p>
-                  </div>
-                </div>
-
-                <ScrollArea className="flex-1 p-4">
-                  <div className="space-y-4">
-                    {conversation?.map((msg) => (
+                    <Avatar className="w-8 h-8 flex-shrink-0">
+                      {getProfilePicture(msg.senderId) && (
+                        <AvatarImage src={getProfilePicture(msg.senderId)!} />
+                      )}
+                      <AvatarFallback className={msg.senderId === user?.id ? "bg-primary text-primary-foreground" : "bg-muted"}>
+                        {getInitials(msg.senderId)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className={`max-w-[70%] ${msg.senderId === user?.id ? "text-right" : ""}`}>
+                      <p className="text-xs text-muted-foreground mb-1">
+                        {getSenderName(msg.senderId)} • {format(new Date(msg.createdAt), "MMM d, h:mm a")}
+                      </p>
                       <div
-                        key={msg.id}
-                        className={`flex gap-3 ${msg.senderId === user?.id ? "flex-row-reverse" : ""}`}
+                        className={`inline-block p-3 rounded-lg ${
+                          msg.senderId === user?.id
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-muted"
+                        }`}
                       >
-                        <Avatar className="w-8 h-8 flex-shrink-0">
-                          {getProfilePicture(msg.senderId) && (
-                            <AvatarImage src={getProfilePicture(msg.senderId)!} />
-                          )}
-                          <AvatarFallback className={msg.senderId === user?.id ? "bg-primary text-primary-foreground" : "bg-muted"}>
-                            {getInitials(msg.senderId)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className={`max-w-[70%] ${msg.senderId === user?.id ? "text-right" : ""}`}>
-                          <p className="text-xs text-muted-foreground mb-1">
-                            {format(new Date(msg.createdAt), "MMM d, h:mm a")}
-                          </p>
-                          <div
-                            className={`inline-block p-3 rounded-lg ${
-                              msg.senderId === user?.id
-                                ? "bg-primary text-primary-foreground"
-                                : "bg-muted"
-                            }`}
-                          >
-                            {msg.content}
-                          </div>
-                        </div>
+                        {msg.content}
                       </div>
-                    ))}
-                    <div ref={messagesEndRef} />
+                    </div>
                   </div>
-                </ScrollArea>
-
-                <form onSubmit={handleSendDirect} className="p-4 border-t flex gap-2">
-                  <Input
-                    value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
-                    placeholder="Message..."
-                    className="flex-1"
-                    data-testid="input-direct-message"
-                  />
-                  <Button 
-                    type="submit" 
-                    size="icon" 
-                    disabled={sendMessage.isPending || !newMessage.trim()}
-                    data-testid="button-send-direct"
-                  >
-                    <Send className="w-4 h-4" />
-                  </Button>
-                </form>
-              </Card>
+                ))}
+                <div ref={messagesEndRef} />
+              </div>
             ) : (
-              <Card className="h-[70vh] flex flex-col">
-                <div className="p-4 border-b">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Search neighbors..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-10"
-                      data-testid="input-search-neighbors"
-                    />
-                  </div>
-                </div>
-
-                <ScrollArea className="flex-1">
-                  <div className="divide-y">
-                    {filteredResidents?.map((resident) => {
-                      const lastMsg = getLastMessage(resident.id);
-                      return (
-                        <button
-                          key={resident.id}
-                          onClick={() => setSelectedUserId(resident.id)}
-                          className="w-full flex items-center gap-3 p-4 text-left transition-colors hover:bg-muted/50"
-                          data-testid={`select-user-${resident.id}`}
-                        >
-                          <Avatar className="w-14 h-14 flex-shrink-0 border-2 border-border">
-                            {resident.profilePicture && (
-                              <AvatarImage src={resident.profilePicture} className="object-cover" />
-                            )}
-                            <AvatarFallback className="text-lg bg-gradient-to-br from-blue-400 to-blue-600 text-white">
-                              {resident.firstName && resident.lastName
-                                ? `${resident.firstName[0]}${resident.lastName[0]}`
-                                : resident.lastName?.slice(0, 2).toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between gap-2">
-                              <p className="font-semibold truncate">
-                                {resident.firstName ? `${resident.firstName} ${resident.lastName}` : resident.lastName}
-                              </p>
-                              {lastMsg && (
-                                <span className="text-xs text-muted-foreground flex-shrink-0">
-                                  {format(new Date(lastMsg.createdAt), "MMM d")}
-                                </span>
-                              )}
-                            </div>
-                            <p className="text-sm text-muted-foreground truncate">
-                              {lastMsg 
-                                ? lastMsg.content.slice(0, 40) + (lastMsg.content.length > 40 ? "..." : "")
-                                : `Lot ${resident.lotNumber}`
-                              }
-                            </p>
-                          </div>
-                        </button>
-                      );
-                    })}
-                    {filteredResidents?.length === 0 && (
-                      <div className="text-center py-12 text-muted-foreground">
-                        <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                        <p>No neighbors found</p>
-                      </div>
-                    )}
-                  </div>
-                </ScrollArea>
-              </Card>
+              <div className="text-center py-12 text-muted-foreground">
+                <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                <p data-testid="text-empty-state">No community messages yet.</p>
+                <p className="text-sm">Be the first to say hello!</p>
+              </div>
             )}
-          </TabsContent>
-        </Tabs>
+          </ScrollArea>
+
+          <form onSubmit={handleSendCommunity} className="p-4 border-t flex gap-2">
+            <Input
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              placeholder="Share something with the community..."
+              className="flex-1"
+              data-testid="input-community-message"
+            />
+            <Button 
+              type="submit" 
+              size="icon" 
+              disabled={sendMessage.isPending || !newMessage.trim()}
+              data-testid="button-send-community"
+            >
+              <Send className="w-4 h-4" />
+            </Button>
+          </form>
+        </Card>
       </div>
     </div>
   );

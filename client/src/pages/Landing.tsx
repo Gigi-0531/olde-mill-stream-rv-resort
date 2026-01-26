@@ -9,7 +9,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
 import { Redirect } from "wouter";
 import logoImg from "@/assets/logo.jpg";
-import { User, ShieldCheck, Loader2 } from "lucide-react";
+import { User, ShieldCheck, Loader2, UserCircle, ArrowLeft } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const residentSchema = z.object({
   role: z.literal("resident"),
@@ -24,12 +25,72 @@ const adminSchema = z.object({
 });
 
 export default function Landing() {
-  const { user, login, isLoggingIn } = useAuth();
+  const { user, login, isLoggingIn, pendingProfiles, selectProfile, isSelectingProfile, clearPendingProfiles } = useAuth();
   const [mode, setMode] = useState<'select' | 'resident' | 'admin'>('select');
 
   // If already logged in, redirect
   if (user) {
     return <Redirect to={user.role === 'admin' ? '/admin' : '/dashboard'} />;
+  }
+
+  // Profile selection screen
+  if (pendingProfiles && pendingProfiles.length > 0) {
+    return (
+      <div className="min-h-screen bg-[#E6F3F7] flex flex-col items-center justify-center p-4">
+        <div className="w-full max-w-md space-y-4">
+          <div className="text-center space-y-2">
+            <div className="relative w-40 h-40 mx-auto bg-[#E6F3F7] rounded-lg">
+              <img src={logoImg} alt="Olde Mill Stream" className="w-full h-full object-contain mix-blend-multiply" />
+            </div>
+          </div>
+
+          <Card className="border-none shadow-2xl bg-white/95 backdrop-blur-sm">
+            <CardContent className="p-8">
+              <div className="space-y-6">
+                <div className="text-center">
+                  <h2 className="text-xl font-bold text-primary" data-testid="text-select-profile">Who's logging in?</h2>
+                  <p className="text-sm text-muted-foreground">Select your profile to continue</p>
+                </div>
+                
+                <div className="space-y-3">
+                  {pendingProfiles.map((profile) => (
+                    <Button
+                      key={profile.id}
+                      variant="outline"
+                      className="w-full h-16 justify-start gap-4 text-left"
+                      onClick={() => selectProfile(profile.id)}
+                      disabled={isSelectingProfile}
+                      data-testid={`button-profile-${profile.id}`}
+                    >
+                      <Avatar className="h-10 w-10">
+                        {profile.profilePicture ? (
+                          <AvatarImage src={profile.profilePicture} alt={profile.firstName} />
+                        ) : null}
+                        <AvatarFallback>
+                          <UserCircle className="h-8 w-8 text-muted-foreground" />
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="text-lg font-medium">{profile.firstName}</span>
+                      {isSelectingProfile && <Loader2 className="ml-auto w-4 h-4 animate-spin" />}
+                    </Button>
+                  ))}
+                </div>
+
+                <Button
+                  variant="ghost"
+                  className="w-full"
+                  onClick={clearPendingProfiles}
+                  data-testid="button-back-to-login"
+                >
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Back to Login
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
   }
 
   return (

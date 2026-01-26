@@ -82,14 +82,30 @@ export async function registerRoutes(
         }
 
       } else {
-        user = await storage.getUserByLotAndName(
+        const residents = await storage.getUsersByLotAndName(
           input.lotNumber,
           input.lastName
         );
 
-        if (!user || user.role !== "resident") {
+        if (!residents.length) {
           return res.status(401).json({ message: "Invalid credentials" });
         }
+
+        if (residents.length === 1) {
+          user = residents[0];
+          req.session.userId = user.id;
+          return res.json(safeUser(user));
+        }
+
+        req.session.pendingProfiles = residents.map(r => r.id);
+        return res.json({
+          requiresProfileSelection: true,
+          profiles: residents.map(r => ({
+            id: r.id,
+            firstName: r.firstName || "Resident",
+            profilePicture: r.profilePicture ? objectStorageService.normalizeObjectEntityPath(r.profilePicture) : null
+          }))
+        });
       }
 
       req.session.userId = user.id;
@@ -99,6 +115,33 @@ export async function registerRoutes(
     } catch (err) {
       console.error("Login error:", err);
       res.status(400).json({ message: "Invalid input" });
+    }
+  });
+
+  app.post("/api/auth/select-profile", async (req, res) => {
+    try {
+      const profileId = Number(req.body.profileId);
+      if (isNaN(profileId)) {
+        return res.status(400).json({ message: "Invalid profile ID" });
+      }
+      
+      const pendingProfiles = req.session.pendingProfiles;
+
+      if (!pendingProfiles || !pendingProfiles.includes(profileId)) {
+        return res.status(401).json({ message: "Invalid profile selection" });
+      }
+
+      const user = await storage.getUser(profileId);
+      if (!user) {
+        return res.status(401).json({ message: "Profile not found" });
+      }
+
+      req.session.userId = user.id;
+      delete req.session.pendingProfiles;
+      res.json(safeUser(user));
+    } catch (err) {
+      console.error("Profile selection error:", err);
+      res.status(400).json({ message: "Invalid request" });
     }
   });
 

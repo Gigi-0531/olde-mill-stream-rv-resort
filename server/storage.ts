@@ -19,6 +19,7 @@ export interface IStorage {
   searchUsers(query?: string): Promise<User[]>;
   getResidents(): Promise<User[]>;
   getFirstAdmin(): Promise<User | undefined>;
+  getUsersByLotAndName(lotNumber: string, lastName: string): Promise<User[]>;
   updateResident(id: number, data: Partial<InsertUser>): Promise<User | undefined>;
   deleteResident(id: number): Promise<void>;
   updateProfilePicture(userId: number, objectPath: string): Promise<void>;
@@ -76,6 +77,15 @@ export class DatabaseStorage implements IStorage {
       )
     );
     return user;
+  }
+
+  async getUsersByLotAndName(lotNumber: string, lastName: string): Promise<User[]> {
+    return db.select().from(users).where(
+      and(
+        ilike(users.lotNumber, `%${lotNumber}%`),
+        ilike(users.lastName, lastName)
+      )
+    );
   }
 
   async createUser(user: InsertUser): Promise<User> {
