@@ -83,6 +83,7 @@ export const galleryPhotos = pgTable("gallery_photos", {
   objectPath: text("object_path").notNull(),
   status: photoStatusEnum("status").notNull().default("approved"),
   submitterId: integer("submitter_id"),
+  submitterName: text("submitter_name"),
   createdAt: timestamp("created_at", { withTimezone: false })
     .defaultNow()
     .notNull(),

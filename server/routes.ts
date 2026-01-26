@@ -314,11 +314,23 @@ export async function registerRoutes(
       const input = api.gallery.submit.input.parse(req.body);
       const normalizedPath = objectStorageService.normalizeObjectEntityPath(input.objectPath);
 
+      // Get the submitter's name
+      const user = await storage.getUser(req.session.userId);
+      let submitterName = "Unknown";
+      if (user) {
+        if (user.role === "admin") {
+          submitterName = user.email || "Admin";
+        } else {
+          submitterName = `Lot ${user.lotNumber}${user.firstName ? ` - ${user.firstName}` : ""}`;
+        }
+      }
+
       const photo = await storage.createGalleryPhoto({
         title: input.title,
         objectPath: normalizedPath,
         status: "pending",
         submitterId: req.session.userId,
+        submitterName,
       });
 
       res.status(201).json(photo);

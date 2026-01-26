@@ -3,6 +3,7 @@ import { Redirect } from "wouter";
 import { useActivities, useCreateActivity, useDeleteActivity, useNotifications } from "@/hooks/use-resources";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -259,12 +260,36 @@ function GalleryManager() {
     queryKey: ["/api/gallery"],
   });
 
+  const { data: pendingPhotos, isLoading: pendingLoading } = useQuery<GalleryPhoto[]>({
+    queryKey: ["/api/gallery/pending"],
+  });
+
   const deletePhoto = useMutation({
     mutationFn: async (id: number) => {
       await apiRequest("DELETE", `/api/gallery/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/gallery"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/gallery/pending"] });
+    },
+  });
+
+  const approvePhoto = useMutation({
+    mutationFn: async (id: number) => {
+      await apiRequest("POST", `/api/gallery/${id}/approve`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/gallery"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/gallery/pending"] });
+    },
+  });
+
+  const rejectPhoto = useMutation({
+    mutationFn: async (id: number) => {
+      await apiRequest("POST", `/api/gallery/${id}/reject`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/gallery/pending"] });
     },
   });
 
@@ -345,11 +370,71 @@ function GalleryManager() {
         </Card>
       )}
 
-      {isLoading ? (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      <div className="space-y-4">
+        <div className="flex items-center gap-2">
+          <h3 className="text-lg font-semibold">Pending Submissions</h3>
+          {pendingPhotos && pendingPhotos.length > 0 && (
+            <Badge variant="secondary" data-testid="badge-pending-count">{pendingPhotos.length}</Badge>
+          )}
         </div>
-      ) : photos && photos.length > 0 ? (
+        {pendingLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="w-6 h-6 animate-spin text-primary" />
+          </div>
+        ) : pendingPhotos && pendingPhotos.length > 0 ? (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {pendingPhotos.map((photo) => (
+              <Card key={photo.id} className="overflow-hidden border-amber-300 dark:border-amber-700" data-testid={`card-pending-photo-${photo.id}`}>
+                <div className="aspect-square">
+                  <img
+                    src={photo.objectPath}
+                    alt={photo.title || "Pending photo"}
+                    className="w-full h-full object-cover"
+                    data-testid={`img-pending-photo-${photo.id}`}
+                  />
+                </div>
+                <div className="p-3 space-y-2 bg-amber-50 dark:bg-amber-950">
+                  {photo.title && (
+                    <p className="text-sm font-medium line-clamp-2" data-testid={`text-pending-title-${photo.id}`}>{photo.title}</p>
+                  )}
+                  <p className="text-xs text-muted-foreground" data-testid={`text-pending-submitter-${photo.id}`}>
+                    Submitted by: {photo.submitterName || "Unknown"}
+                  </p>
+                  <div className="flex gap-2">
+                    <Button 
+                      size="sm" 
+                      onClick={() => approvePhoto.mutate(photo.id)}
+                      disabled={approvePhoto.isPending}
+                      data-testid={`button-approve-${photo.id}`}
+                    >
+                      <Check className="w-4 h-4 mr-1" /> Approve
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => rejectPhoto.mutate(photo.id)}
+                      disabled={rejectPhoto.isPending}
+                      data-testid={`button-reject-${photo.id}`}
+                    >
+                      <X className="w-4 h-4 mr-1" /> Reject
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground py-4">No pending photo submissions.</p>
+        )}
+      </div>
+
+      <div>
+        <h3 className="text-lg font-semibold mb-4">Approved Photos</h3>
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          </div>
+        ) : photos && photos.length > 0 ? (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {photos.map((photo) => (
             <Card key={photo.id} className="overflow-hidden group relative" data-testid={`admin-photo-${photo.id}`}>
@@ -389,6 +474,7 @@ function GalleryManager() {
           </div>
         </Card>
       )}
+      </div>
     </div>
   );
 }
