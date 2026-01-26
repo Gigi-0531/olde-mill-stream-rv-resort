@@ -36,7 +36,7 @@ export function useAuth() {
       if (user.role === 'admin') {
         setLocation('/admin');
       } else {
-        setLocation('/profile-select');
+        setLocation('/dashboard');
       }
     },
   });

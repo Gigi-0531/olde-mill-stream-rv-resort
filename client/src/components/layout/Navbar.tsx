@@ -107,7 +107,7 @@ export function Navbar() {
                   {!isAdmin && <NavLink href="/map" icon={MapIcon}>Park Map</NavLink>}
                   {!isAdmin && <NavLink href="/activities" icon={Calendar}>Activities</NavLink>}
                   {!isAdmin && <NavLink href="/gallery" icon={Image}>Gallery</NavLink>}
-                  <NavLink href="/messages" icon={MessageCircle}>Messages</NavLink>
+                  {!isAdmin && <NavLink href="/messages" icon={MessageCircle}>Messages</NavLink>}
                   {!isAdmin && <NavLink href="/help" icon={HelpCircle}>Get Help</NavLink>}
                   {!isAdmin && <NavLink href="/settings" icon={Settings}>Settings</NavLink>}
                 </>

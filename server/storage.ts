@@ -1,13 +1,12 @@
 import { db } from "./db";
 import {
-  users, activities, notifications, galleryPhotos, messages, pushSubscriptions, residentProfiles,
+  users, activities, notifications, galleryPhotos, messages, pushSubscriptions,
   type User, type InsertUser,
   type Activity, type InsertActivity,
   type Notification, type InsertNotification,
   type GalleryPhoto, type InsertGalleryPhoto,
   type Message, type InsertMessage,
-  type PushSubscription, type InsertPushSubscription,
-  type ResidentProfile, type InsertResidentProfile
+  type PushSubscription, type InsertPushSubscription
 } from "@shared/schema";
 import { eq, ilike, or, and, desc, isNull } from "drizzle-orm";
 
@@ -20,7 +19,6 @@ export interface IStorage {
   searchUsers(query?: string): Promise<User[]>;
   getResidents(): Promise<User[]>;
   getFirstAdmin(): Promise<User | undefined>;
-  getAdmins(): Promise<User[]>;
   updateResident(id: number, data: Partial<InsertUser>): Promise<User | undefined>;
   deleteResident(id: number): Promise<void>;
   updateProfilePicture(userId: number, objectPath: string): Promise<void>;
@@ -57,13 +55,6 @@ export interface IStorage {
   savePushSubscription(subscription: InsertPushSubscription): Promise<PushSubscription>;
   updatePushPreferences(userId: number, weatherEnabled: boolean, alertsEnabled: boolean): Promise<void>;
   deletePushSubscription(userId: number): Promise<void>;
-
-  // Resident Profiles
-  getResidentProfiles(userId: number): Promise<ResidentProfile[]>;
-  getResidentProfile(profileId: number): Promise<ResidentProfile | undefined>;
-  createResidentProfile(profile: InsertResidentProfile): Promise<ResidentProfile>;
-  deleteResidentProfile(profileId: number): Promise<void>;
-  updateResidentProfilePicture(profileId: number, objectPath: string): Promise<ResidentProfile>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -159,10 +150,6 @@ export class DatabaseStorage implements IStorage {
   async getFirstAdmin(): Promise<User | undefined> {
     const [admin] = await db.select().from(users).where(eq(users.role, 'admin')).limit(1);
     return admin;
-  }
-
-  async getAdmins(): Promise<User[]> {
-    return db.select().from(users).where(eq(users.role, 'admin'));
   }
 
   async updateResident(id: number, data: Partial<InsertUser>): Promise<User | undefined> {
@@ -262,34 +249,6 @@ export class DatabaseStorage implements IStorage {
 
   async deletePushSubscription(userId: number): Promise<void> {
     await db.delete(pushSubscriptions).where(eq(pushSubscriptions.userId, userId));
-  }
-
-  // Resident Profiles
-  async getResidentProfiles(userId: number): Promise<ResidentProfile[]> {
-    return db.select().from(residentProfiles).where(eq(residentProfiles.userId, userId));
-  }
-
-  async getResidentProfile(profileId: number): Promise<ResidentProfile | undefined> {
-    const [profile] = await db.select().from(residentProfiles).where(eq(residentProfiles.id, profileId));
-    return profile;
-  }
-
-  async createResidentProfile(profile: InsertResidentProfile): Promise<ResidentProfile> {
-    const [newProfile] = await db.insert(residentProfiles).values(profile).returning();
-    return newProfile;
-  }
-
-  async deleteResidentProfile(profileId: number): Promise<void> {
-    await db.delete(residentProfiles).where(eq(residentProfiles.id, profileId));
-  }
-
-  async updateResidentProfilePicture(profileId: number, objectPath: string): Promise<ResidentProfile> {
-    const [updated] = await db
-      .update(residentProfiles)
-      .set({ profilePicture: objectPath })
-      .where(eq(residentProfiles.id, profileId))
-      .returning();
-    return updated;
   }
 }
 

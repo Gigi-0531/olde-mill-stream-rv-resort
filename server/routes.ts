@@ -93,7 +93,6 @@ export async function registerRoutes(
       }
 
       req.session.userId = user.id;
-      req.session.userRole = user.role;
       res.json(safeUser(user));
 
 
@@ -181,19 +180,16 @@ export async function registerRoutes(
     }
   );
 
-  // Public users list (for messaging - limited fields, includes residents and admins)
+  // Public users list (for messaging - limited fields)
   app.get(api.users.list.path, requireAuth, async (_req, res) => {
     const residents = await storage.getResidents();
-    const admins = await storage.getAdmins();
-    const allUsers = [...admins, ...residents];
-    res.json(allUsers.map(r => ({
+    res.json(residents.map(r => ({
       id: r.id,
       firstName: r.firstName,
       lastName: r.lastName,
       lotNumber: r.lotNumber,
       profilePicture: r.profilePicture ? objectStorageService.normalizeObjectEntityPath(r.profilePicture) : null,
       role: r.role,
-      username: r.role === 'admin' ? r.username : undefined,
     })));
   });
 
@@ -237,181 +233,17 @@ export async function registerRoutes(
     res.status(204).send();
   });
 
-  app.get(api.weather.get.path, async (_req, res) => {
-    try {
-      // Umatilla, FL coordinates
-      const lat = 28.9295;
-      const lon = -81.6654;
-      
-      // Fetch from Open-Meteo (free, no API key required)
-      const response = await fetch(
-        `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code&daily=temperature_2m_max,weather_code&temperature_unit=fahrenheit&timezone=America/New_York&forecast_days=4`
-      );
-      
-      if (!response.ok) {
-        throw new Error("Weather API failed");
-      }
-      
-      const data = await response.json();
-      
-      // Map weather codes to conditions
-      const getCondition = (code: number): string => {
-        if (code === 0) return "Clear";
-        if (code <= 3) return "Partly Cloudy";
-        if (code <= 49) return "Foggy";
-        if (code <= 69) return "Rainy";
-        if (code <= 79) return "Snowy";
-        if (code <= 99) return "Stormy";
-        return "Cloudy";
-      };
-      
-      const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-      const today = new Date();
-      
-      const forecast = data.daily.time.slice(0, 3).map((date: string, i: number) => {
-        const d = new Date(date);
-        return {
-          day: i === 0 ? "Today" : i === 1 ? "Tomorrow" : dayNames[d.getDay()],
-          temp: Math.round(data.daily.temperature_2m_max[i]),
-          condition: getCondition(data.daily.weather_code[i]),
-        };
-      });
-      
-      res.json({
-        location: "Umatilla, FL",
-        temp: Math.round(data.current.temperature_2m),
-        condition: getCondition(data.current.weather_code),
-        forecast,
-      });
-    } catch (error) {
-      console.error("Weather fetch error:", error);
-      // Fallback to default if API fails
-      res.json({
-        location: "Umatilla, FL",
-        temp: 75,
-        condition: "Sunny",
-        forecast: [
-          { day: "Today", temp: 75, condition: "Sunny" },
-          { day: "Tomorrow", temp: 76, condition: "Partly Cloudy" },
-          { day: "Wed", temp: 78, condition: "Clear" },
-        ],
-      });
-    }
-  });
-
-  // Resident Profiles - for multiple family members per lot
-  app.get(api.profiles.list.path, requireAuth, async (req, res) => {
-    if (req.session.userRole !== 'resident') {
-      return res.status(403).json({ message: "Only residents can have profiles" });
-    }
-    const profiles = await storage.getResidentProfiles(req.session.userId);
-    res.json(profiles);
-  });
-
-  app.post(api.profiles.create.path, requireAuth, async (req, res) => {
-    try {
-      if (req.session.userRole !== 'resident') {
-        return res.status(403).json({ message: "Only residents can create profiles" });
-      }
-      const input = api.profiles.create.input.parse(req.body);
-      
-      // Check if user already has 3 profiles
-      const existingProfiles = await storage.getResidentProfiles(req.session.userId);
-      if (existingProfiles.length >= 3) {
-        return res.status(400).json({ message: "Maximum of 3 profiles allowed" });
-      }
-      
-      const profile = await storage.createResidentProfile({
-        userId: req.session.userId,
-        firstName: input.firstName,
-      });
-      res.status(201).json(profile);
-    } catch (err: any) {
-      res.status(400).json({ message: err.message });
-    }
-  });
-
-  app.delete(api.profiles.delete.path, requireAuth, async (req, res) => {
-    const profileId = parseInt(req.params.id);
-    
-    // Verify profile belongs to user
-    const profile = await storage.getResidentProfile(profileId);
-    if (!profile || profile.userId !== req.session.userId) {
-      return res.status(404).json({ message: "Profile not found" });
-    }
-    
-    await storage.deleteResidentProfile(profileId);
-    res.status(204).send();
-  });
-
-  app.post(api.profiles.select.path, requireAuth, async (req, res) => {
-    try {
-      const input = api.profiles.select.input.parse(req.body);
-      
-      const profile = await storage.getResidentProfile(input.profileId);
-      if (!profile || profile.userId !== req.session.userId) {
-        return res.status(404).json({ message: "Profile not found" });
-      }
-      
-      // Store selected profile in session
-      (req.session as any).selectedProfileId = profile.id;
-      res.json(profile);
-    } catch (err: any) {
-      res.status(400).json({ message: err.message });
-    }
-  });
-
-  app.delete("/api/profiles/:id", requireAuth, async (req, res) => {
-    try {
-      const profileId = parseInt(req.params.id);
-      
-      const profile = await storage.getResidentProfile(profileId);
-      if (!profile || profile.userId !== req.session.userId) {
-        return res.status(404).json({ message: "Profile not found" });
-      }
-      
-      await storage.deleteResidentProfile(profileId);
-      res.json({ message: "Profile deleted" });
-    } catch (err: any) {
-      res.status(400).json({ message: err.message });
-    }
-  });
-
-  app.patch(api.profiles.updatePicture.path, requireAuth, async (req, res) => {
-    try {
-      const profileId = parseInt(req.params.id);
-      const { objectPath, imageData, mimeType } = req.body;
-      
-      if (!objectPath) {
-        return res.status(400).json({ message: "Object path required" });
-      }
-      
-      // Verify profile belongs to user
-      const profile = await storage.getResidentProfile(profileId);
-      if (!profile || profile.userId !== req.session.userId) {
-        return res.status(404).json({ message: "Profile not found" });
-      }
-      
-      // Server-side image moderation if image data provided
-      if (imageData) {
-        const moderation = await moderateImage(imageData, mimeType || "image/jpeg");
-        if (!moderation.isAllowed) {
-          return res.status(400).json({ 
-            message: "Image not allowed", 
-            reason: moderation.reason || "Image violates community guidelines" 
-          });
-        }
-      }
-      
-      const updated = await storage.updateResidentProfilePicture(profileId, objectPath);
-      res.json({
-        ...updated,
-        profilePicture: updated.profilePicture ? objectStorageService.normalizeObjectEntityPath(updated.profilePicture) : null
-      });
-    } catch (error) {
-      console.error("Profile picture update error:", error);
-      res.status(500).json({ message: "Failed to update profile picture" });
-    }
+  app.get(api.weather.get.path, (_req, res) => {
+    res.json({
+      location: "Umatilla, FL",
+      temp: 78,
+      condition: "Sunny",
+      forecast: [
+        { day: "Today", temp: 78, condition: "Sunny" },
+        { day: "Tomorrow", temp: 76, condition: "Partly Cloudy" },
+        { day: "Wed", temp: 80, condition: "Clear" },
+      ],
+    });
   });
 
   app.get(api.gallery.list.path, async (_req, res) => {
@@ -495,42 +327,9 @@ export async function registerRoutes(
         });
       }
       
-      // Get sender profile info for residents
-      let senderProfileId: number | null = null;
-      let senderName: string | null = null;
-      
-      if (!isAdmin) {
-        senderProfileId = input.senderProfileId || (req.session as any).selectedProfileId || null;
-        
-        // Validate profile ownership - profile must belong to logged-in user
-        if (senderProfileId) {
-          const profile = await storage.getResidentProfile(senderProfileId);
-          if (!profile || profile.userId !== req.session.userId) {
-            return res.status(403).json({ message: "Invalid profile" });
-          }
-          senderName = profile.firstName;
-        } else {
-          // Resident must have a profile selected to send messages
-          return res.status(400).json({ message: "Please select a profile first" });
-        }
-        
-        // Validate recipient profile ownership if specified
-        if (input.recipientProfileId && input.recipientId) {
-          const recipientProfile = await storage.getResidentProfile(input.recipientProfileId);
-          if (!recipientProfile || recipientProfile.userId !== input.recipientId) {
-            return res.status(400).json({ message: "Invalid recipient profile" });
-          }
-        }
-      } else {
-        senderName = "Admin";
-      }
-      
       const message = await storage.createMessage({
         senderId: req.session.userId,
-        senderProfileId,
-        senderName,
         recipientId: input.recipientId || null,
-        recipientProfileId: input.recipientProfileId || null,
         content: input.content,
         approved: isAdmin || input.recipientId !== null,
       });

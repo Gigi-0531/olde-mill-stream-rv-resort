@@ -1,14 +1,12 @@
 import { Switch, Route, Redirect } from "wouter";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query";
 
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Navbar } from "@/components/layout/Navbar";
 import { InstallPrompt } from "@/components/InstallPrompt";
-import { useAuth } from "@/hooks/use-auth";
 
 import Landing from "@/pages/Landing";
-import ProfileSelect from "@/pages/ProfileSelect";
 import Dashboard from "@/pages/Dashboard";
 import Activities from "@/pages/Activities";
 import MapPage from "@/pages/Map";
@@ -32,14 +30,32 @@ const queryClient = new QueryClient({
   },
 });
 
+function useAuth() {
+  return useQuery({
+    queryKey: ["me"],
+    queryFn: async () => {
+      try {
+        const res = await fetch("/api/auth/me", {
+          credentials: "include",
+        });
+
+        if (!res.ok) return null;
+
+        const data = await res.json();
+        return data;
+      } catch {
+        return null;
+      }
+    },
+  });
+}
+
 export async function logout() {
   try {
     await fetch("/api/auth/logout", {
       method: "POST",
       credentials: "include",
     });
-    localStorage.removeItem("selectedProfile");
-    localStorage.removeItem("staySignedIn");
   } finally {
     window.location.assign("/");
   }
@@ -48,30 +64,20 @@ export async function logout() {
 function ProtectedRoute({
   component: Component,
   adminOnly = false,
-  skipProfileCheck = false,
 }: {
   component: React.ComponentType;
   adminOnly?: boolean;
-  skipProfileCheck?: boolean;
 }) {
-  const { user, isLoading } = useAuth();
+  const { data: user, isLoading, error } = useAuth();
 
   if (isLoading) return null;
 
-  if (!user) {
+  if (error || !user) {
     return <Redirect to="/" />;
   }
 
   if (adminOnly && user.role !== "admin") {
     return <NotFound />;
-  }
-
-  // Check if resident has selected a profile (skip for profile-select page itself)
-  if (!skipProfileCheck && user.role === "resident") {
-    const selectedProfile = localStorage.getItem("selectedProfile");
-    if (!selectedProfile) {
-      return <Redirect to="/profile-select" />;
-    }
   }
 
   return <Component />;
@@ -85,10 +91,6 @@ function Router() {
       <main className="flex-1">
         <Switch>
           <Route path="/" component={Landing} />
-
-          <Route path="/profile-select">
-            <ProtectedRoute component={ProfileSelect} skipProfileCheck />
-          </Route>
 
           <Route path="/dashboard">
             <ProtectedRoute component={Dashboard} />

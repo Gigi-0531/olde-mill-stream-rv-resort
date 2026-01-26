@@ -11,17 +11,14 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertActivitySchema } from "@shared/schema";
-import { Plus, Trash2, Calendar, Bell, MapPin, Clock, Image, Loader2, Users, Pencil, Search, MessageSquare, Check, X, Send, Mail } from "lucide-react";
+import { Plus, Trash2, Calendar, Bell, MapPin, Clock, Image, Loader2, Users, Pencil, Search, MessageSquare, Check, X } from "lucide-react";
 import { format } from "date-fns";
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
 import { NotificationsWidget } from "@/components/NotificationsWidget";
 import { ObjectUploader } from "@/components/ObjectUploader";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import type { GalleryPhoto, Message, User } from "@shared/schema";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { useToast } from "@/hooks/use-toast";
+import type { GalleryPhoto } from "@shared/schema";
 
 export default function Admin() {
   const { user } = useAuth();
@@ -55,10 +52,7 @@ export default function Admin() {
               <Users className="w-4 h-4 mr-2" /> Directory
             </TabsTrigger>
             <TabsTrigger value="messages" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              <MessageSquare className="w-4 h-4 mr-2" /> Moderation
-            </TabsTrigger>
-            <TabsTrigger value="direct" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              <Mail className="w-4 h-4 mr-2" /> Direct Messages
+              <MessageSquare className="w-4 h-4 mr-2" /> Messages
             </TabsTrigger>
           </TabsList>
 
@@ -84,10 +78,6 @@ export default function Admin() {
 
           <TabsContent value="messages">
             <MessageModeration />
-          </TabsContent>
-
-          <TabsContent value="direct">
-            <AdminDirectMessages />
           </TabsContent>
         </Tabs>
       </div>
@@ -748,234 +738,6 @@ function MessageModeration() {
           ))}
         </div>
       )}
-    </div>
-  );
-}
-
-function AdminDirectMessages() {
-  const { user } = useAuth();
-  const { toast } = useToast();
-  const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [newMessage, setNewMessage] = useState("");
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  const { data: residents, isLoading: residentsLoading } = useQuery<User[]>({
-    queryKey: ["/api/users"],
-  });
-
-  const { data: directMessages } = useQuery<Message[]>({
-    queryKey: ["/api/messages/direct"],
-    refetchInterval: 5000,
-  });
-
-  const { data: conversation } = useQuery<Message[]>({
-    queryKey: ["/api/messages/conversation", selectedUserId],
-    enabled: !!selectedUserId,
-    refetchInterval: 3000,
-  });
-
-  const sendMessage = useMutation({
-    mutationFn: async (data: { content: string; recipientId: number }) => {
-      const res = await apiRequest("POST", "/api/messages", data);
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || "Failed to send message");
-      }
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/messages/direct"] });
-      if (selectedUserId) {
-        queryClient.invalidateQueries({ queryKey: ["/api/messages/conversation", selectedUserId] });
-      }
-      setNewMessage("");
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Failed to send",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [conversation]);
-
-  const handleSend = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newMessage.trim() || !selectedUserId) return;
-    sendMessage.mutate({ content: newMessage.trim(), recipientId: selectedUserId });
-  };
-
-  const filteredResidents = residents?.filter(r => {
-    if (r.id === user?.id) return false;
-    if (!searchQuery) return true;
-    const name = `${r.firstName || ''} ${r.lastName || ''}`.toLowerCase();
-    return name.includes(searchQuery.toLowerCase()) || 
-           r.lotNumber?.toLowerCase().includes(searchQuery.toLowerCase());
-  });
-
-  const getLastMessage = (userId: number) => {
-    if (!directMessages) return null;
-    const msgs = directMessages.filter(m => m.senderId === userId || m.recipientId === userId);
-    return msgs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
-  };
-
-  const selectedResident = residents?.find(r => r.id === selectedUserId);
-
-  if (residentsLoading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-4">
-      <div className="mb-4">
-        <h2 className="text-xl font-bold" data-testid="text-admin-dm-title">Direct Messages</h2>
-        <p className="text-muted-foreground" data-testid="text-admin-dm-description">Send private messages to residents</p>
-      </div>
-
-      <div className="grid md:grid-cols-3 gap-4">
-        <Card className="md:col-span-1" data-testid="card-admin-contacts">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base">Contacts</CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="p-3 border-b">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search residents..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                  data-testid="input-admin-search-contacts"
-                />
-              </div>
-            </div>
-            <ScrollArea className="h-[400px]">
-              <div className="divide-y">
-                {filteredResidents?.map((resident) => (
-                    <button
-                      key={resident.id}
-                      onClick={() => setSelectedUserId(resident.id)}
-                      className={`w-full flex items-center gap-3 py-2.5 px-3 text-left transition-colors hover:bg-muted/50 bg-background ${selectedUserId === resident.id ? 'bg-muted' : ''}`}
-                      data-testid={`button-select-contact-${resident.id}`}
-                    >
-                      <Avatar className="w-10 h-10 flex-shrink-0">
-                        {resident.profilePicture && (
-                          <AvatarImage src={resident.profilePicture} className="object-cover" />
-                        )}
-                        <AvatarFallback className="text-sm bg-muted text-muted-foreground">
-                          {resident.firstName && resident.lastName
-                            ? `${resident.firstName[0]}${resident.lastName[0]}`
-                            : resident.lastName?.slice(0, 2).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-base truncate text-foreground" data-testid={`text-contact-name-${resident.id}`}>
-                          {resident.firstName ? `${resident.firstName} ${resident.lastName}` : resident.lastName}
-                        </p>
-                        <p className="text-sm text-muted-foreground truncate" data-testid={`text-contact-lot-${resident.id}`}>
-                          {resident.role === 'admin' ? 'Park Management' : `Lot ${resident.lotNumber}`}
-                        </p>
-                      </div>
-                    </button>
-                  ))}
-                {filteredResidents?.length === 0 && (
-                  <div className="p-4 text-center text-muted-foreground text-sm">
-                    No contacts found
-                  </div>
-                )}
-              </div>
-            </ScrollArea>
-          </CardContent>
-        </Card>
-
-        <Card className="md:col-span-2 flex flex-col h-[500px]" data-testid="card-admin-conversation">
-          {selectedResident ? (
-            <>
-              <CardHeader className="pb-2 border-b">
-                <div className="flex items-center gap-3">
-                  <Avatar className="w-10 h-10">
-                    {selectedResident.profilePicture && (
-                      <AvatarImage src={selectedResident.profilePicture} className="object-cover" />
-                    )}
-                    <AvatarFallback className="bg-gradient-to-br from-blue-400 to-blue-600 text-white">
-                      {selectedResident.firstName && selectedResident.lastName
-                        ? `${selectedResident.firstName[0]}${selectedResident.lastName[0]}`
-                        : selectedResident.lastName?.slice(0, 2).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <CardTitle className="text-base" data-testid="text-selected-contact-name">
-                      {selectedResident.firstName ? `${selectedResident.firstName} ${selectedResident.lastName}` : selectedResident.lastName}
-                    </CardTitle>
-                    <p className="text-xs text-muted-foreground" data-testid="text-selected-contact-lot">
-                      {selectedResident.role === 'admin' ? 'Admin' : `Lot ${selectedResident.lotNumber}`}
-                    </p>
-                  </div>
-                </div>
-              </CardHeader>
-              <ScrollArea className="flex-1 p-4">
-                <div className="space-y-3">
-                  {conversation?.map((msg) => (
-                    <div
-                      key={msg.id}
-                      className={`flex ${msg.senderId === user?.id ? 'justify-end' : 'justify-start'}`}
-                      data-testid={`message-${msg.id}`}
-                    >
-                      <div
-                        className={`max-w-[70%] rounded-lg px-3 py-2 ${
-                          msg.senderId === user?.id
-                            ? 'bg-primary text-primary-foreground'
-                            : 'bg-muted'
-                        }`}
-                      >
-                        <p className="text-sm">{msg.content}</p>
-                        <p className={`text-xs mt-1 ${msg.senderId === user?.id ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
-                          {format(new Date(msg.createdAt), 'h:mm a')}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                  <div ref={messagesEndRef} />
-                </div>
-              </ScrollArea>
-              <form onSubmit={handleSend} className="p-3 border-t flex gap-2">
-                <Input
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  placeholder="Type a message..."
-                  className="flex-1"
-                  data-testid="input-admin-message"
-                />
-                <Button 
-                  type="submit" 
-                  size="icon"
-                  disabled={sendMessage.isPending || !newMessage.trim()}
-                  data-testid="button-admin-send"
-                >
-                  <Send className="w-4 h-4" />
-                </Button>
-              </form>
-            </>
-          ) : (
-            <div className="flex-1 flex items-center justify-center text-muted-foreground">
-              <div className="text-center">
-                <Mail className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <p data-testid="text-select-contact-prompt">Select a contact to start messaging</p>
-              </div>
-            </div>
-          )}
-        </Card>
-      </div>
     </div>
   );
 }
