@@ -46,6 +46,8 @@ export async function registerRoutes(
   if (!process.env.SESSION_SECRET) {
     throw new Error("SESSION_SECRET is required");
   }
+  const isProduction = process.env.NODE_ENV === "production";
+  
   app.use(session({
     name: "session",
     secret: process.env.SESSION_SECRET!,
@@ -57,8 +59,8 @@ export async function registerRoutes(
     cookie: {
       maxAge: 86400000,
       httpOnly: true,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
+      sameSite: isProduction ? "none" : "lax",
+      secure: isProduction,
     },
   }));
 
