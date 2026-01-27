@@ -209,7 +209,7 @@ function ResidentLogin({ onBack, onSubmit, isLoading }: { onBack: () => void, on
           />
           <div className="pt-2 flex gap-3">
             <Button type="button" variant="ghost" onClick={onBack} className="flex-1">Back</Button>
-            <Button type="submit" className="flex-1" disabled={isLoading}>
+            <Button type="submit" className="flex-1" disabled={isLoading} data-testid="button-resident-submit">
               {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               Login
             </Button>
