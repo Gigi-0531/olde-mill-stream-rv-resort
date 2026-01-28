@@ -1,7 +1,7 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { api, type LoginRequest } from "@shared/routes";
 import { useLocation } from "wouter";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 type ProfileOption = {
   id: number;
@@ -16,24 +16,45 @@ type LoginResponse = {
   role?: string;
 };
 
+type User = {
+  id: number;
+  role: string;
+  username?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  lotNumber?: string | null;
+  phoneNumber?: string | null;
+  profilePicture?: string | null;
+};
+
+// Store user in localStorage for persistence
+function getStoredUser(): User | null {
+  try {
+    const stored = localStorage.getItem('oms_user');
+    return stored ? JSON.parse(stored) : null;
+  } catch {
+    return null;
+  }
+}
+
+function setStoredUser(user: User | null) {
+  if (user) {
+    localStorage.setItem('oms_user', JSON.stringify(user));
+  } else {
+    localStorage.removeItem('oms_user');
+  }
+}
+
 export function useAuth() {
-  const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
   const [pendingProfiles, setPendingProfiles] = useState<ProfileOption[] | null>(null);
+  const [user, setUser] = useState<User | null>(getStoredUser);
+  const [isLoading] = useState(false);
 
-  const userQuery = useQuery({
-    queryKey: [api.auth.me.path],
-    queryFn: async () => {
-      const res = await fetch(api.auth.me.path, { credentials: 'include' });
-      if (res.status === 401) return null;
-      if (!res.ok) throw new Error("Failed to fetch user");
-      return await res.json();
-    },
-    retry: false,
-    staleTime: 1000 * 60 * 5, // 5 minutes
-    refetchOnWindowFocus: false,
-    refetchOnMount: false,
-  });
+  // Sync user state with localStorage
+  useEffect(() => {
+    setStoredUser(user);
+  }, [user]);
 
   const loginMutation = useMutation({
     mutationFn: async (credentials: LoginRequest) => {
@@ -53,7 +74,7 @@ export function useAuth() {
       if (data.requiresProfileSelection && data.profiles) {
         setPendingProfiles(data.profiles);
       } else {
-        queryClient.setQueryData([api.auth.me.path], data);
+        setUser(data as User);
         if (data.role === 'admin') {
           setLocation('/admin');
         } else {
@@ -77,30 +98,29 @@ export function useAuth() {
       }
       return await res.json();
     },
-    onSuccess: (user) => {
+    onSuccess: (userData) => {
       setPendingProfiles(null);
-      queryClient.setQueryData([api.auth.me.path], user);
+      setUser(userData as User);
       setLocation('/dashboard');
     },
   });
 
   const logoutMutation = useMutation({
     mutationFn: async () => {
-      const res = await fetch(api.auth.logout.path, {
+      await fetch(api.auth.logout.path, {
         method: api.auth.logout.method,
         credentials: 'include',
       });
-      if (!res.ok) throw new Error("Logout failed");
     },
     onSuccess: () => {
-      queryClient.setQueryData([api.auth.me.path], null);
+      setUser(null);
       setLocation('/');
     },
   });
 
   return {
-    user: userQuery.data,
-    isLoading: userQuery.isLoading,
+    user,
+    isLoading,
     login: loginMutation.mutate,
     isLoggingIn: loginMutation.isPending,
     logout: logoutMutation.mutate,

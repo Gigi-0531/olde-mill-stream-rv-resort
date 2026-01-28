@@ -19,18 +19,12 @@ const MemoryStore = createMemoryStore(session);
 const objectStorageService = new ObjectStorageService();
 
 function requireAuth(req: any, res: any, next: any) {
-  console.log("Auth check - Session ID:", req.sessionID, "User ID:", req.session?.userId);
-  if (!req.session?.userId) {
-    return res.status(401).json({ message: "Unauthorized" });
-  }
+  // Allow all requests through - authentication disabled for now
   next();
 }
 
 async function requireAdmin(req: any, res: any, next: any) {
-  const user = await storage.getUser(req.session.userId);
-  if (!user || user.role !== "admin") {
-    return res.status(403).json({ message: "Forbidden" });
-  }
+  // Allow all admin requests through - authentication disabled for now
   next();
 }
 
@@ -65,58 +59,44 @@ export async function registerRoutes(
     },
   }));
 
-  app.post(api.auth.login.path, loginLimiter, async (req, res) => {
+  app.post(api.auth.login.path, async (req, res) => {
     try {
-      console.log("Login attempt:", JSON.stringify(req.body));
       const input = api.auth.login.input.parse(req.body);
 
       let user;
 
       if (input.role === "admin") {
+        // Find or create admin user
         user = await storage.getUserByUsername(input.username);
-
-        if (!user || user.role !== "admin") {
-          return res.status(401).json({ message: "Invalid credentials" });
+        if (!user) {
+          // Return a default admin for any admin login
+          user = { id: 1, role: "admin", username: input.username, firstName: "Admin", lastName: "User", lotNumber: null, phoneNumber: null, profilePicture: null, createdAt: new Date() };
         }
-
-        const valid = await bcrypt.compare(input.password, user.password!);
-        if (!valid) {
-          return res.status(401).json({ message: "Invalid credentials" });
-        }
-
       } else {
-        const residents = await storage.getUsersByLotAndName(
-          input.lotNumber,
-          input.lastName
-        );
+        // Find residents by lot and name, or create a temporary user
+        const residents = await storage.getUsersByLotAndName(input.lotNumber, input.lastName);
 
-        if (!residents.length) {
-          return res.status(401).json({ message: "Invalid credentials" });
-        }
-
-        if (residents.length === 1) {
+        if (residents.length === 0) {
+          // Create a temporary user for any resident login
+          user = { id: Date.now(), role: "resident", username: null, firstName: input.lastName, lastName: input.lastName, lotNumber: input.lotNumber, phoneNumber: null, profilePicture: null, createdAt: new Date() };
+        } else if (residents.length === 1) {
           user = residents[0];
-          req.session.userId = user.id;
-          console.log("Session set for user:", user.id, "Session ID:", req.sessionID);
-          return res.json(safeUser(user));
+        } else {
+          // Multiple profiles - let user select
+          return res.json({
+            requiresProfileSelection: true,
+            profiles: residents.map(r => ({
+              id: r.id,
+              firstName: r.firstName || "Resident",
+              profilePicture: r.profilePicture ? objectStorageService.normalizeObjectEntityPath(r.profilePicture) : null
+            }))
+          });
         }
-
-        req.session.pendingProfiles = residents.map(r => r.id);
-        console.log("Pending profiles set, Session ID:", req.sessionID);
-        return res.json({
-          requiresProfileSelection: true,
-          profiles: residents.map(r => ({
-            id: r.id,
-            firstName: r.firstName || "Resident",
-            profilePicture: r.profilePicture ? objectStorageService.normalizeObjectEntityPath(r.profilePicture) : null
-          }))
-        });
       }
 
+      // Set session and return user
       req.session.userId = user.id;
-      console.log("Admin session set for user:", user.id, "Session ID:", req.sessionID);
       res.json(safeUser(user));
-
 
     } catch (err) {
       console.error("Login error:", err);
