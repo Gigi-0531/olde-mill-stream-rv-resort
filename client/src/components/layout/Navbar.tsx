@@ -111,7 +111,7 @@ export function Navbar() {
                   {!isAdmin && renderNavLink("/map", MapIcon, "Park Map")}
                   {!isAdmin && renderNavLink("/activities", Calendar, "Activities")}
                   {!isAdmin && renderNavLink("/gallery", Image, "Gallery")}
-                  {!isAdmin && renderNavLink("/messages", MessageCircle, "Messages")}
+                  {!isAdmin && renderNavLink("/messages", MessageCircle, "Community Board")}
                   {!isAdmin && renderNavLink("/help", HelpCircle, "Get Help")}
                   {!isAdmin && renderNavLink("/settings", Settings, "Settings")}
                 </>

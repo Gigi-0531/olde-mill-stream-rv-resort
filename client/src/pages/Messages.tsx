@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Send, Users, MessageCircle, Loader2 } from "lucide-react";
+import { Send, Users, MessageCircle, Loader2, Megaphone, Pin, ClipboardList } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 
@@ -112,19 +112,33 @@ export default function Messages() {
   };
 
   return (
-    <div className="min-h-screen bg-background pb-20 pt-16">
-      <div className="bg-[#4a7ab0] py-8 px-4 md:px-8">
-        <div className="max-w-4xl mx-auto">
-          <h1 className="text-2xl md:text-3xl font-display text-white flex items-center gap-2" data-testid="text-page-title">
-            <MessageCircle className="w-7 h-7" />
+    <div className="min-h-screen bg-gradient-to-b from-amber-50 via-background to-background dark:from-amber-950/20 pb-20 pt-16">
+      {/* Header Banner */}
+      <div className="bg-gradient-to-r from-amber-600 via-amber-500 to-yellow-500 py-8 px-4 md:px-8 shadow-lg">
+        <div className="max-w-4xl mx-auto text-center">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm mb-4">
+            <ClipboardList className="w-8 h-8 text-white" />
+          </div>
+          <h1 className="text-3xl md:text-4xl font-display font-bold text-white flex items-center justify-center gap-3" data-testid="text-page-title">
+            <Pin className="w-8 h-8 rotate-45" />
             Community Board
+            <Pin className="w-8 h-8 -rotate-45" />
           </h1>
-          <p className="text-primary-foreground/80" data-testid="text-page-subtitle">Stay connected with your neighbors</p>
+          <div className="mt-4 bg-white/20 backdrop-blur-sm rounded-lg py-3 px-6 inline-block">
+            <p className="text-white font-bold text-lg tracking-wide" data-testid="text-page-subtitle">
+              <Megaphone className="w-5 h-5 inline mr-2" />
+              SHARE INFO WITH ALL YOUR NEIGHBORS
+            </p>
+            <p className="text-white/90 text-sm mt-1">All posts approved by admin</p>
+          </div>
         </div>
       </div>
 
       <div className="max-w-4xl mx-auto px-4 md:px-8 py-6">
-        <Card className="flex flex-col h-[70vh]" data-testid="card-community-messages">
+        {/* Board Frame */}
+        <div className="relative">
+          <div className="absolute inset-0 bg-gradient-to-br from-amber-700 to-amber-900 rounded-xl transform rotate-1 scale-[1.01]"></div>
+          <Card className="relative flex flex-col h-[65vh] bg-amber-100 dark:bg-amber-950/50 border-4 border-amber-700 shadow-2xl" data-testid="card-community-messages">
           <ScrollArea className="flex-1 p-4">
             {communityLoading ? (
               <div className="flex justify-center py-8">
@@ -191,6 +205,7 @@ export default function Messages() {
             </Button>
           </form>
         </Card>
+        </div>
       </div>
     </div>
   );
