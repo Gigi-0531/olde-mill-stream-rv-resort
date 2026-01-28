@@ -17,6 +17,7 @@ import Messages from "@/pages/Messages";
 import Settings from "@/pages/Settings";
 import Help from "@/pages/Help";
 import Admin from "@/pages/Admin";
+import Residents from "@/pages/Residents";
 import NotFound from "@/pages/not-found";
 
 function ProtectedRoute({
@@ -68,6 +69,10 @@ function Router() {
 
           <Route path="/messages">
             <ProtectedRoute component={Messages} />
+          </Route>
+
+          <Route path="/residents">
+            <ProtectedRoute component={Residents} />
           </Route>
 
           <Route path="/settings">

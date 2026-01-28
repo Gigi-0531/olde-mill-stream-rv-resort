@@ -12,6 +12,7 @@ import {
   LogIn,
   Settings,
   HelpCircle,
+  Users,
   LucideIcon
 } from "lucide-react";
 import { useState, useRef, useEffect, useCallback } from "react";
@@ -112,6 +113,7 @@ export function Navbar() {
                   {!isAdmin && renderNavLink("/activities", Calendar, "Activities")}
                   {!isAdmin && renderNavLink("/gallery", Image, "Gallery")}
                   {!isAdmin && renderNavLink("/messages", MessageCircle, "Community Board")}
+                  {!isAdmin && renderNavLink("/residents", Users, "Directory")}
                   {!isAdmin && renderNavLink("/help", HelpCircle, "Get Help")}
                   {!isAdmin && renderNavLink("/settings", Settings, "Settings")}
                 </>
