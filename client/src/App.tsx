@@ -5,7 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Navbar } from "@/components/layout/Navbar";
 import { InstallPrompt } from "@/components/InstallPrompt";
-import { useAuth } from "@/hooks/use-auth";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 
 import Landing from "@/pages/Landing";
 import Dashboard from "@/pages/Dashboard";
@@ -28,11 +28,6 @@ const queryClient = new QueryClient({
     },
   },
 });
-
-export async function logout() {
-  localStorage.removeItem('oms_user');
-  window.location.assign("/");
-}
 
 function ProtectedRoute({
   component: Component,
@@ -107,11 +102,13 @@ function Router() {
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Router />
-        <InstallPrompt />
-      </TooltipProvider>
+      <AuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Router />
+          <InstallPrompt />
+        </TooltipProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }
