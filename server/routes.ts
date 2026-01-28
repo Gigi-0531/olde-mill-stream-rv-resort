@@ -96,22 +96,40 @@ export async function registerRoutes(
         if (residents.length === 1) {
           user = residents[0];
           req.session.userId = user.id;
-          return res.json(safeUser(user));
+          return req.session.save((err) => {
+            if (err) {
+              console.error("Session save error:", err);
+              return res.status(500).json({ message: "Session error" });
+            }
+            res.json(safeUser(user!));
+          });
         }
 
         req.session.pendingProfiles = residents.map(r => r.id);
-        return res.json({
-          requiresProfileSelection: true,
-          profiles: residents.map(r => ({
-            id: r.id,
-            firstName: r.firstName || "Resident",
-            profilePicture: r.profilePicture ? objectStorageService.normalizeObjectEntityPath(r.profilePicture) : null
-          }))
+        return req.session.save((err) => {
+          if (err) {
+            console.error("Session save error:", err);
+            return res.status(500).json({ message: "Session error" });
+          }
+          res.json({
+            requiresProfileSelection: true,
+            profiles: residents.map(r => ({
+              id: r.id,
+              firstName: r.firstName || "Resident",
+              profilePicture: r.profilePicture ? objectStorageService.normalizeObjectEntityPath(r.profilePicture) : null
+            }))
+          });
         });
       }
 
       req.session.userId = user.id;
-      res.json(safeUser(user));
+      req.session.save((err) => {
+        if (err) {
+          console.error("Session save error:", err);
+          return res.status(500).json({ message: "Session error" });
+        }
+        res.json(safeUser(user!));
+      });
 
 
     } catch (err) {
@@ -140,7 +158,13 @@ export async function registerRoutes(
 
       req.session.userId = user.id;
       delete req.session.pendingProfiles;
-      res.json(safeUser(user));
+      req.session.save((err) => {
+        if (err) {
+          console.error("Session save error:", err);
+          return res.status(500).json({ message: "Session error" });
+        }
+        res.json(safeUser(user!));
+      });
     } catch (err) {
       console.error("Profile selection error:", err);
       res.status(400).json({ message: "Invalid request" });
