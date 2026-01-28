@@ -1,11 +1,12 @@
 import { Switch, Route, Redirect } from "wouter";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
 
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Navbar } from "@/components/layout/Navbar";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { queryClient } from "@/lib/queryClient";
 
 import Landing from "@/pages/Landing";
 import Dashboard from "@/pages/Dashboard";
@@ -17,17 +18,6 @@ import Settings from "@/pages/Settings";
 import Help from "@/pages/Help";
 import Admin from "@/pages/Admin";
 import NotFound from "@/pages/not-found";
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: 1,
-      staleTime: 0,
-      gcTime: 1000 * 60 * 5,
-      refetchOnWindowFocus: false,
-    },
-  },
-});
 
 function ProtectedRoute({
   component: Component,
