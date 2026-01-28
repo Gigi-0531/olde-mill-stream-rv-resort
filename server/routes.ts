@@ -48,6 +48,9 @@ export async function registerRoutes(
   }
   const isProduction = process.env.NODE_ENV === "production";
   
+  // Trust proxy for proper cookie handling behind reverse proxy
+  app.set('trust proxy', 1);
+  
   app.use(session({
     name: "session",
     secret: process.env.SESSION_SECRET!,
