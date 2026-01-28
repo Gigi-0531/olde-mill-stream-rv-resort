@@ -112,9 +112,9 @@ export default function Messages() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-amber-50 via-background to-background dark:from-amber-950/20 pb-20 pt-16">
+    <div className="min-h-screen bg-gradient-to-b from-sky-50 via-background to-background dark:from-sky-950/20 pb-20 pt-16">
       {/* Header Banner */}
-      <div className="bg-gradient-to-r from-amber-600 via-amber-500 to-yellow-500 py-8 px-4 md:px-8 shadow-lg">
+      <div className="bg-gradient-to-r from-[#1E3A5F] via-[#2a4a6e] to-sky-600 py-8 px-4 md:px-8 shadow-lg">
         <div className="max-w-4xl mx-auto text-center">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm mb-4">
             <ClipboardList className="w-8 h-8 text-white" />
@@ -137,8 +137,8 @@ export default function Messages() {
       <div className="max-w-4xl mx-auto px-4 md:px-8 py-6">
         {/* Board Frame */}
         <div className="relative">
-          <div className="absolute inset-0 bg-gradient-to-br from-amber-700 to-amber-900 rounded-xl transform rotate-1 scale-[1.01]"></div>
-          <Card className="relative flex flex-col h-[65vh] bg-amber-100 dark:bg-amber-950/50 border-4 border-amber-700 shadow-2xl" data-testid="card-community-messages">
+          <div className="absolute inset-0 bg-gradient-to-br from-[#1E3A5F] to-sky-800 rounded-xl transform rotate-1 scale-[1.01]"></div>
+          <Card className="relative flex flex-col h-[65vh] bg-sky-50 dark:bg-sky-950/50 border-4 border-[#1E3A5F] shadow-2xl" data-testid="card-community-messages">
           <ScrollArea className="flex-1 p-4">
             {communityLoading ? (
               <div className="flex justify-center py-8">
