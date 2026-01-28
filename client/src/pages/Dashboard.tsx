@@ -38,9 +38,10 @@ export default function Dashboard() {
 
       <div className="max-w-7xl mx-auto px-4 md:px-8 -mt-24 space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Column 1: Weather + Park Map & Directions */}
+          {/* Column 1: Weather + Resort Alerts + Park Map & Directions */}
           <div className="space-y-4">
             <WeatherWidget />
+            <NotificationsWidget />
             
             {/* Park Map & Directions */}
             <div className="flex gap-3">
@@ -111,7 +112,6 @@ export default function Dashboard() {
                 )}
               </CardContent>
             </Card>
-            <NotificationsWidget />
             
             {/* Resort Website Link */}
             <a 
