@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Link } from "wouter";
 import { Map, Calendar, ArrowRight, Navigation } from "lucide-react";
 import resortImage from "@assets/facebook_1767649108158_7414057724947186807_1767655553163.jpg";
-import parkMapImage from "@assets/ChatGPT_Image_Jan_6,_2026,_06_32_54_PM_1767742392809.png";
+import parkMapImage from "@assets/resort-map.jpg";
 import logoImg from "@/assets/logo.jpg";
 import { useActivities } from "@/hooks/use-resources";
 import { format } from "date-fns";
