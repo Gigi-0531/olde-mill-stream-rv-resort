@@ -1,7 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Navigation, ExternalLink } from "lucide-react";
-import parkMapImage from "@assets/ChatGPT_Image_Jan_6,_2026,_06_32_54_PM_1767742392809.png";
+import parkMapImage from "@assets/resort-map.jpg";
 
 const RESORT_ADDRESS = "1000 N Central Ave, Umatilla, FL 32784";
 const GOOGLE_MAPS_URL = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(RESORT_ADDRESS)}&travelmode=driving`;
