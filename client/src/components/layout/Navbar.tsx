@@ -80,7 +80,7 @@ export function Navbar() {
       </header>
 
       {/* RV Menu Button */}
-      <nav className="fixed top-2 right-4 z-50">
+      <nav className="fixed top-3 right-4 z-50">
         <div className="relative" ref={menuRef}>
           <Button
             variant="default"
