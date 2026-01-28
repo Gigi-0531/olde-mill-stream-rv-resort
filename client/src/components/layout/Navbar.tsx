@@ -11,9 +11,10 @@ import {
   ChevronDown,
   LogIn,
   Settings,
-  HelpCircle
+  HelpCircle,
+  LucideIcon
 } from "lucide-react";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import logoImg from "@/assets/logo.jpg";
 import rvIcon from "@assets/image_1767656588622.png";
 
@@ -37,10 +38,13 @@ export function Navbar() {
   const isAdmin = user?.role === 'admin';
   const baseRoute = isAdmin ? '/admin' : isLoggedIn ? '/dashboard' : '/';
 
-  const NavLink = ({ href, icon: Icon, children }: { href: string; icon: any; children: React.ReactNode }) => {
+  const closeMenu = useCallback(() => setIsMenuOpen(false), []);
+
+  const renderNavLink = (href: string, Icon: LucideIcon, label: string) => {
     const isActive = location === href;
     return (
       <Link 
+        key={href}
         href={href} 
         className={`
           flex items-center gap-3 px-4 py-3 transition-all duration-200
@@ -48,11 +52,11 @@ export function Navbar() {
             ? 'bg-primary text-primary-foreground' 
             : 'text-foreground hover:bg-accent'}
         `} 
-        onClick={() => setIsMenuOpen(false)}
-        data-testid={`nav-link-${children?.toString().toLowerCase().replace(/\s+/g, '-')}`}
+        onClick={closeMenu}
+        data-testid={`nav-link-${label.toLowerCase().replace(/\s+/g, '-')}`}
       >
         <Icon className="w-5 h-5" />
-        <span className="font-medium">{children}</span>
+        <span className="font-medium">{label}</span>
       </Link>
     );
   };
@@ -103,16 +107,16 @@ export function Navbar() {
             <div className="py-1">
               {isLoggedIn ? (
                 <>
-                  <NavLink href={baseRoute} icon={Home}>Home</NavLink>
-                  {!isAdmin && <NavLink href="/map" icon={MapIcon}>Park Map</NavLink>}
-                  {!isAdmin && <NavLink href="/activities" icon={Calendar}>Activities</NavLink>}
-                  {!isAdmin && <NavLink href="/gallery" icon={Image}>Gallery</NavLink>}
-                  {!isAdmin && <NavLink href="/messages" icon={MessageCircle}>Messages</NavLink>}
-                  {!isAdmin && <NavLink href="/help" icon={HelpCircle}>Get Help</NavLink>}
-                  {!isAdmin && <NavLink href="/settings" icon={Settings}>Settings</NavLink>}
+                  {renderNavLink(baseRoute, Home, "Home")}
+                  {!isAdmin && renderNavLink("/map", MapIcon, "Park Map")}
+                  {!isAdmin && renderNavLink("/activities", Calendar, "Activities")}
+                  {!isAdmin && renderNavLink("/gallery", Image, "Gallery")}
+                  {!isAdmin && renderNavLink("/messages", MessageCircle, "Messages")}
+                  {!isAdmin && renderNavLink("/help", HelpCircle, "Get Help")}
+                  {!isAdmin && renderNavLink("/settings", Settings, "Settings")}
                 </>
               ) : (
-                <NavLink href="/" icon={LogIn}>Login</NavLink>
+                renderNavLink("/", LogIn, "Login")
               )}
             </div>
 
