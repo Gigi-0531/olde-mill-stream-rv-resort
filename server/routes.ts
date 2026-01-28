@@ -19,6 +19,7 @@ const MemoryStore = createMemoryStore(session);
 const objectStorageService = new ObjectStorageService();
 
 function requireAuth(req: any, res: any, next: any) {
+  console.log("Auth check - Session ID:", req.sessionID, "User ID:", req.session?.userId);
   if (!req.session?.userId) {
     return res.status(401).json({ message: "Unauthorized" });
   }
@@ -48,14 +49,11 @@ export async function registerRoutes(
   }
   const isProduction = process.env.NODE_ENV === "production";
   
-  // Trust proxy for proper cookie handling behind reverse proxy
-  app.set('trust proxy', 1);
-  
   app.use(session({
-    name: "session",
+    name: "oms.sid",
     secret: process.env.SESSION_SECRET!,
-    resave: false,
-    saveUninitialized: false,
+    resave: true,
+    saveUninitialized: true,
     store: new MemoryStore({
       checkPeriod: 86400000,
     }),
@@ -63,7 +61,7 @@ export async function registerRoutes(
       maxAge: 86400000,
       httpOnly: true,
       sameSite: isProduction ? "none" : "lax",
-      secure: isProduction,
+      secure: isProduction || process.env.REPL_ID !== undefined,
     },
   }));
 
@@ -99,40 +97,25 @@ export async function registerRoutes(
         if (residents.length === 1) {
           user = residents[0];
           req.session.userId = user.id;
-          return req.session.save((err) => {
-            if (err) {
-              console.error("Session save error:", err);
-              return res.status(500).json({ message: "Session error" });
-            }
-            res.json(safeUser(user!));
-          });
+          console.log("Session set for user:", user.id, "Session ID:", req.sessionID);
+          return res.json(safeUser(user));
         }
 
         req.session.pendingProfiles = residents.map(r => r.id);
-        return req.session.save((err) => {
-          if (err) {
-            console.error("Session save error:", err);
-            return res.status(500).json({ message: "Session error" });
-          }
-          res.json({
-            requiresProfileSelection: true,
-            profiles: residents.map(r => ({
-              id: r.id,
-              firstName: r.firstName || "Resident",
-              profilePicture: r.profilePicture ? objectStorageService.normalizeObjectEntityPath(r.profilePicture) : null
-            }))
-          });
+        console.log("Pending profiles set, Session ID:", req.sessionID);
+        return res.json({
+          requiresProfileSelection: true,
+          profiles: residents.map(r => ({
+            id: r.id,
+            firstName: r.firstName || "Resident",
+            profilePicture: r.profilePicture ? objectStorageService.normalizeObjectEntityPath(r.profilePicture) : null
+          }))
         });
       }
 
       req.session.userId = user.id;
-      req.session.save((err) => {
-        if (err) {
-          console.error("Session save error:", err);
-          return res.status(500).json({ message: "Session error" });
-        }
-        res.json(safeUser(user!));
-      });
+      console.log("Admin session set for user:", user.id, "Session ID:", req.sessionID);
+      res.json(safeUser(user));
 
 
     } catch (err) {
@@ -161,13 +144,8 @@ export async function registerRoutes(
 
       req.session.userId = user.id;
       delete req.session.pendingProfiles;
-      req.session.save((err) => {
-        if (err) {
-          console.error("Session save error:", err);
-          return res.status(500).json({ message: "Session error" });
-        }
-        res.json(safeUser(user!));
-      });
+      console.log("Profile selected, Session ID:", req.sessionID);
+      res.json(safeUser(user));
     } catch (err) {
       console.error("Profile selection error:", err);
       res.status(400).json({ message: "Invalid request" });
