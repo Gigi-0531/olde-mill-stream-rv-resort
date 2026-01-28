@@ -263,17 +263,109 @@ export async function registerRoutes(
     res.status(204).send();
   });
 
-  app.get(api.weather.get.path, (_req, res) => {
-    res.json({
-      location: "Umatilla, FL",
-      temp: 78,
-      condition: "Sunny",
-      forecast: [
-        { day: "Today", temp: 78, condition: "Sunny" },
-        { day: "Tomorrow", temp: 76, condition: "Partly Cloudy" },
-        { day: "Wed", temp: 80, condition: "Clear" },
-      ],
-    });
+  app.get(api.weather.get.path, async (_req, res) => {
+    try {
+      const apiKey = process.env.OPENWEATHERMAP_API_KEY;
+      if (!apiKey) {
+        return res.json({
+          location: "Umatilla, FL",
+          temp: 78,
+          condition: "Sunny",
+          forecast: [
+            { day: "Today", temp: 78, condition: "Sunny" },
+            { day: "Tomorrow", temp: 76, condition: "Partly Cloudy" },
+            { day: "Wed", temp: 80, condition: "Clear" },
+          ],
+        });
+      }
+
+      // Umatilla, FL coordinates
+      const lat = 28.9295;
+      const lon = -81.6656;
+      
+      // Fetch current weather and forecast in parallel
+      const [currentRes, forecastRes] = await Promise.all([
+        fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${apiKey}&units=imperial`),
+        fetch(`https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${apiKey}&units=imperial&cnt=24`)
+      ]);
+
+      if (!currentRes.ok || !forecastRes.ok) {
+        const errorData = await currentRes.text();
+        console.error("Weather API response:", currentRes.status, errorData);
+        throw new Error(`Weather API error: ${currentRes.status}`);
+      }
+
+      const current = await currentRes.json();
+      const forecastData = await forecastRes.json();
+
+      // Get condition from weather description
+      const getCondition = (weather: any[]) => {
+        if (!weather || weather.length === 0) return "Clear";
+        const main = weather[0].main.toLowerCase();
+        const desc = weather[0].description.toLowerCase();
+        if (main.includes("rain") || desc.includes("rain")) return "Rain";
+        if (main.includes("cloud") || desc.includes("cloud")) return "Cloudy";
+        if (main.includes("clear") || desc.includes("clear")) return "Sunny";
+        if (main.includes("storm") || desc.includes("storm")) return "Stormy";
+        return weather[0].main;
+      };
+
+      // Build 3-day forecast from hourly data
+      const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+      const today = new Date();
+      const forecast = [];
+      
+      // Today
+      forecast.push({
+        day: "Today",
+        temp: Math.round(current.main.temp),
+        condition: getCondition(current.weather)
+      });
+
+      // Next 2 days - get noon forecast for each day
+      for (let i = 1; i <= 2; i++) {
+        const targetDate = new Date(today);
+        targetDate.setDate(today.getDate() + i);
+        const dayName = days[targetDate.getDay()];
+        
+        // Find forecast closest to noon for that day
+        const dayForecast = forecastData.list.find((item: any) => {
+          const itemDate = new Date(item.dt * 1000);
+          return itemDate.getDate() === targetDate.getDate() && itemDate.getHours() >= 11;
+        });
+
+        if (dayForecast) {
+          forecast.push({
+            day: dayName,
+            temp: Math.round(dayForecast.main.temp),
+            condition: getCondition(dayForecast.weather)
+          });
+        }
+      }
+
+      res.json({
+        location: "Umatilla, FL",
+        temp: Math.round(current.main.temp),
+        condition: getCondition(current.weather),
+        humidity: current.main.humidity,
+        windSpeed: Math.round(current.wind?.speed || 0),
+        forecast,
+        lastUpdated: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error("Weather fetch error:", error);
+      // Return fallback static data on error
+      res.json({
+        location: "Umatilla, FL",
+        temp: 78,
+        condition: "Sunny",
+        forecast: [
+          { day: "Today", temp: 78, condition: "Sunny" },
+          { day: "Tomorrow", temp: 76, condition: "Partly Cloudy" },
+          { day: "Wed", temp: 80, condition: "Clear" },
+        ],
+      });
+    }
   });
 
   app.get(api.gallery.list.path, async (_req, res) => {
