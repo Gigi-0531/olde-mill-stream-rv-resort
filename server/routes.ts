@@ -513,11 +513,12 @@ export async function registerRoutes(
         });
       }
       
+      const isDirect = input.recipientId !== null && input.recipientId !== undefined;
       const message = await storage.createMessage({
         senderId: req.session.userId,
         recipientId: input.recipientId || null,
         content: input.content,
-        approved: isAdmin || input.recipientId !== null,
+        approved: isDirect,
       });
       res.status(201).json(message);
     } catch {
