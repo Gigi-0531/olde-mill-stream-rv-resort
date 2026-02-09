@@ -18,6 +18,7 @@ import { useState } from "react";
 import { NotificationsWidget } from "@/components/NotificationsWidget";
 import { ObjectUploader } from "@/components/ObjectUploader";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import type { GalleryPhoto } from "@shared/schema";
 
@@ -729,6 +730,7 @@ interface PendingMessage {
 }
 
 function MessageModeration() {
+  const { toast } = useToast();
   const { data: pendingMessages, isLoading } = useQuery<PendingMessage[]>({
     queryKey: ['/api/messages/pending'],
   });
@@ -742,6 +744,10 @@ function MessageModeration() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/messages/pending'] });
       queryClient.invalidateQueries({ queryKey: ['/api/messages/community'] });
+      toast({ title: "Message approved", description: "The message is now visible on the community board." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Approval failed", description: error.message, variant: "destructive" });
     },
   });
 
@@ -749,6 +755,10 @@ function MessageModeration() {
     mutationFn: (id: number) => apiRequest('DELETE', `/api/messages/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/messages/pending'] });
+      toast({ title: "Message rejected", description: "The message has been removed." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Rejection failed", description: error.message, variant: "destructive" });
     },
   });
 

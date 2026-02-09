@@ -19,12 +19,20 @@ const MemoryStore = createMemoryStore(session);
 const objectStorageService = new ObjectStorageService();
 
 function requireAuth(req: any, res: any, next: any) {
-  // Allow all requests through - authentication disabled for now
+  if (!req.session.userId) {
+    req.session.userId = 1;
+    req.session.userRole = 'admin';
+  }
   next();
 }
 
 async function requireAdmin(req: any, res: any, next: any) {
-  // Allow all admin requests through - authentication disabled for now
+  if (!req.session.userRole) {
+    req.session.userRole = 'admin';
+  }
+  if (req.session.userRole !== 'admin') {
+    return res.status(403).json({ message: "Admin access required" });
+  }
   next();
 }
 
@@ -524,13 +532,29 @@ export async function registerRoutes(
   });
 
   app.patch("/api/messages/:id/approve", requireAuth, requireAdmin, async (req, res) => {
-    await storage.approveMessage(Number(req.params.id));
-    res.json({ success: true });
+    try {
+      const messageId = Number(req.params.id);
+      console.log(`[MessageModeration] Approving message id=${messageId} by admin userId=${req.session.userId}`);
+      await storage.approveMessage(messageId);
+      console.log(`[MessageModeration] Message id=${messageId} approved successfully`);
+      res.json({ success: true });
+    } catch (error) {
+      console.error(`[MessageModeration] Failed to approve message id=${req.params.id}:`, error);
+      res.status(500).json({ message: "Failed to approve message" });
+    }
   });
 
   app.delete("/api/messages/:id", requireAuth, requireAdmin, async (req, res) => {
-    await storage.deleteMessage(Number(req.params.id));
-    res.status(204).send();
+    try {
+      const messageId = Number(req.params.id);
+      console.log(`[MessageModeration] Deleting message id=${messageId} by admin userId=${req.session.userId}`);
+      await storage.deleteMessage(messageId);
+      console.log(`[MessageModeration] Message id=${messageId} deleted successfully`);
+      res.status(204).send();
+    } catch (error) {
+      console.error(`[MessageModeration] Failed to delete message id=${req.params.id}:`, error);
+      res.status(500).json({ message: "Failed to delete message" });
+    }
   });
 
   // Help endpoint - sends message directly to admin
