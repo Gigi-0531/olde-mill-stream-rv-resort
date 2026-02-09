@@ -514,11 +514,19 @@ export async function registerRoutes(
       }
       
       const isDirect = input.recipientId !== null && input.recipientId !== undefined;
+      
+      let autoApprove = isDirect;
+      if (!isDirect) {
+        const sender = await storage.getUser(req.session.userId);
+        autoApprove = sender?.role === 'admin';
+        console.log(`[Messages] Community post by user ${req.session.userId} (role: ${sender?.role}), autoApprove: ${autoApprove}`);
+      }
+      
       const message = await storage.createMessage({
         senderId: req.session.userId,
         recipientId: input.recipientId || null,
         content: input.content,
-        approved: isDirect,
+        approved: autoApprove,
       });
       res.status(201).json(message);
     } catch {
