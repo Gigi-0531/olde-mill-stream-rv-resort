@@ -20,17 +20,17 @@ const objectStorageService = new ObjectStorageService();
 
 function requireAuth(req: any, res: any, next: any) {
   if (!req.session.userId) {
-    req.session.userId = 1;
-    req.session.userRole = 'admin';
+    return res.status(401).json({ message: "Please log in" });
   }
   next();
 }
 
 async function requireAdmin(req: any, res: any, next: any) {
-  if (!req.session.userRole) {
-    req.session.userRole = 'admin';
+  if (!req.session.userId) {
+    return res.status(401).json({ message: "Please log in" });
   }
-  if (req.session.userRole !== 'admin') {
+  const user = await storage.getUser(req.session.userId);
+  if (!user || user.role !== 'admin') {
     return res.status(403).json({ message: "Admin access required" });
   }
   next();
@@ -74,19 +74,19 @@ export async function registerRoutes(
       let user;
 
       if (input.role === "admin") {
-        // Find or create admin user
         user = await storage.getUserByUsername(input.username);
-        if (!user) {
-          // Return a default admin for any admin login
-          user = { id: 1, role: "admin", username: input.username, firstName: "Admin", lastName: "User", lotNumber: null, phoneNumber: null, profilePicture: null, createdAt: new Date() };
+        if (!user || user.role !== 'admin') {
+          return res.status(401).json({ message: "Invalid email or password" });
+        }
+        const validPassword = await bcrypt.compare(input.password || '', user.password || '');
+        if (!validPassword) {
+          return res.status(401).json({ message: "Invalid email or password" });
         }
       } else {
-        // Find residents by lot and name, or create a temporary user
         const residents = await storage.getUsersByLotAndName(input.lotNumber, input.lastName);
 
         if (residents.length === 0) {
-          // Create a temporary user for any resident login
-          user = { id: Date.now(), role: "resident", username: null, firstName: input.lastName, lastName: input.lastName, lotNumber: input.lotNumber, phoneNumber: null, profilePicture: null, createdAt: new Date() };
+          return res.status(401).json({ message: "No resident found with that lot number and last name" });
         } else if (residents.length === 1) {
           user = residents[0];
         } else {

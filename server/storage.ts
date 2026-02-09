@@ -84,8 +84,9 @@ export class DatabaseStorage implements IStorage {
   async getUsersByLotAndName(lotNumber: string, lastName: string): Promise<User[]> {
     return db.select().from(users).where(
       and(
-        ilike(users.lotNumber, `%${lotNumber}%`),
-        ilike(users.lastName, lastName)
+        ilike(users.lotNumber, lotNumber),
+        ilike(users.lastName, lastName),
+        eq(users.role, 'resident')
       )
     );
   }
