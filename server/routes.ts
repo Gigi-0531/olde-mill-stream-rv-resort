@@ -477,8 +477,7 @@ export async function registerRoutes(
 
   // Messages
   app.get(api.messages.community.path, requireAuth, async (req, res) => {
-    const isAdmin = req.session.userRole === 'admin';
-    const msgs = await storage.getCommunityMessages(isAdmin);
+    const msgs = await storage.getCommunityMessages(false);
     res.json(msgs);
   });
 
