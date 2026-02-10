@@ -76,11 +76,11 @@ export async function registerRoutes(
       if (input.role === "admin") {
         user = await storage.getUserByUsername(input.username);
         if (!user || user.role !== 'admin') {
-          return res.status(401).json({ message: "Invalid email or password" });
+          return res.status(401).json({ message: "One tiny step away! Your admin powers are waiting—give it another shot." });
         }
         const validPassword = await bcrypt.compare(input.password || '', user.password || '');
         if (!validPassword) {
-          return res.status(401).json({ message: "Invalid email or password" });
+          return res.status(401).json({ message: "One tiny step away! Your admin powers are waiting—give it another shot." });
         }
       } else {
         const residents = await storage.getUsersByLotAndName(input.lotNumber, input.lastName);
