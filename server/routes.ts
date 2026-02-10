@@ -86,7 +86,7 @@ export async function registerRoutes(
         const residents = await storage.getUsersByLotAndName(input.lotNumber, input.lastName);
 
         if (residents.length === 0) {
-          return res.status(401).json({ message: "No resident found with that lot number and last name" });
+          return res.status(401).json({ message: "One step from your lot! Your RV is waiting—try again." });
         } else if (residents.length === 1) {
           user = residents[0];
         } else {
