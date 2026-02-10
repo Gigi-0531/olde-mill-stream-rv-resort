@@ -41,7 +41,7 @@ const loginLimiter = rateLimit({
 });
 
 // ------------------- Routes -------------------
-export function registerRoutes(app: Express) {
+export function registerRoutes(_server: any, app: Express) {
   if (!process.env.SESSION_SECRET) throw new Error("SESSION_SECRET is required");
 
   const isProduction = process.env.NODE_ENV === "production";
