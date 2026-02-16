@@ -67,6 +67,21 @@ export async function registerRoutes(
     },
   }));
 
+  app.get("/api/debug/db-check", async (_req, res) => {
+    try {
+      const residents = await storage.getResidents();
+      const admin = await storage.getFirstAdmin();
+      res.json({
+        residentCount: residents.length,
+        firstFewResidents: residents.slice(0, 3).map(r => ({ id: r.id, lotNumber: r.lotNumber, lastName: r.lastName })),
+        adminExists: !!admin,
+        adminUsername: admin?.username,
+      });
+    } catch (err) {
+      res.status(500).json({ error: String(err) });
+    }
+  });
+
   app.post(api.auth.login.path, async (req, res) => {
     try {
       const input = api.auth.login.input.parse(req.body);
@@ -83,9 +98,13 @@ export async function registerRoutes(
           return res.status(401).json({ message: "Invalid email or password" });
         }
       } else {
+        console.log("Resident login attempt - lotNumber:", JSON.stringify(input.lotNumber), "lastName:", JSON.stringify(input.lastName));
         const residents = await storage.getUsersByLotAndName(input.lotNumber, input.lastName);
+        console.log("Resident query result count:", residents.length, "ids:", residents.map(r => r.id));
 
         if (residents.length === 0) {
+          const allResidentCount = await storage.getResidents();
+          console.log("Total residents in DB:", allResidentCount.length);
           return res.status(401).json({ message: "No resident found with that lot number and last name" });
         } else if (residents.length === 1) {
           user = residents[0];
