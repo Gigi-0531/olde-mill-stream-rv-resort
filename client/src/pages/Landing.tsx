@@ -25,7 +25,7 @@ const adminSchema = z.object({
 });
 
 export default function Landing() {
-  const { user, login, isLoggingIn, pendingProfiles, selectProfile, isSelectingProfile, clearPendingProfiles } = useAuth();
+  const { user, login, isLoggingIn, loginError, pendingProfiles, selectProfile, isSelectingProfile, clearPendingProfiles } = useAuth();
   const [mode, setMode] = useState<'select' | 'resident' | 'admin'>('select');
 
   // If already logged in, redirect
@@ -149,7 +149,8 @@ export default function Landing() {
               <ResidentLogin 
                 onBack={() => setMode('select')} 
                 onSubmit={login} 
-                isLoading={isLoggingIn} 
+                isLoading={isLoggingIn}
+                error={loginError}
               />
             )}
 
@@ -157,7 +158,8 @@ export default function Landing() {
               <AdminLogin 
                 onBack={() => setMode('select')} 
                 onSubmit={login} 
-                isLoading={isLoggingIn} 
+                isLoading={isLoggingIn}
+                error={loginError}
               />
             )}
           </CardContent>
@@ -167,7 +169,7 @@ export default function Landing() {
   );
 }
 
-function ResidentLogin({ onBack, onSubmit, isLoading }: { onBack: () => void, onSubmit: any, isLoading: boolean }) {
+function ResidentLogin({ onBack, onSubmit, isLoading, error }: { onBack: () => void, onSubmit: any, isLoading: boolean, error: Error | null }) {
   const form = useForm({
     resolver: zodResolver(residentSchema),
     defaultValues: { role: "resident" as const, lotNumber: "", lastName: "" },
@@ -207,6 +209,9 @@ function ResidentLogin({ onBack, onSubmit, isLoading }: { onBack: () => void, on
               </FormItem>
             )}
           />
+          {error && (
+            <p className="text-sm text-destructive text-center" data-testid="text-resident-error">{error.message}</p>
+          )}
           <div className="pt-2 flex gap-3">
             <Button type="button" variant="ghost" onClick={onBack} className="flex-1">Back</Button>
             <Button type="submit" className="flex-1" disabled={isLoading} data-testid="button-resident-submit">
@@ -220,7 +225,7 @@ function ResidentLogin({ onBack, onSubmit, isLoading }: { onBack: () => void, on
   );
 }
 
-function AdminLogin({ onBack, onSubmit, isLoading }: { onBack: () => void, onSubmit: any, isLoading: boolean }) {
+function AdminLogin({ onBack, onSubmit, isLoading, error }: { onBack: () => void, onSubmit: any, isLoading: boolean, error: Error | null }) {
   const form = useForm({
     resolver: zodResolver(adminSchema),
     defaultValues: { role: "admin" as const, username: "", password: "" },
@@ -260,6 +265,9 @@ function AdminLogin({ onBack, onSubmit, isLoading }: { onBack: () => void, onSub
               </FormItem>
             )}
           />
+          {error && (
+            <p className="text-sm text-destructive text-center" data-testid="text-admin-error">{error.message}</p>
+          )}
           <div className="pt-2 flex gap-3">
             <Button type="button" variant="ghost" onClick={onBack} className="flex-1" data-testid="button-admin-back">Back</Button>
             <Button type="submit" className="flex-1" disabled={isLoading} data-testid="button-admin-submit">
