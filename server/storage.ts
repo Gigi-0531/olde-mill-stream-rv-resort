@@ -82,12 +82,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUsersByLotAndName(lotNumber: string, lastName: string): Promise<User[]> {
-    const trimmedLot = lotNumber?.trim() || '';
-    const trimmedName = lastName?.trim() || '';
     return db.select().from(users).where(
       and(
-        ilike(users.lotNumber, trimmedLot),
-        ilike(users.lastName, trimmedName),
+        ilike(users.lotNumber, lotNumber),
+        ilike(users.lastName, lastName),
         eq(users.role, 'resident')
       )
     );
