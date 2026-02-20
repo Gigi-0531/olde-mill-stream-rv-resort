@@ -106,8 +106,8 @@ export function registerRoutes(_server: any, app: Express) {
         return res.json(safeUser(user));
 
       } else if (role === "resident") {
-        const lotNumber = sanitizeAlphanumeric(req.body.lotNumber || "");
-        const lastName = sanitizeAlphanumeric(req.body.lastName || "");
+        const lotNumber = String(req.body.lotNumber || "").trim();
+        const lastName = String(req.body.lastName || "").trim();
 
         if (!lotNumber || !lastName) {
           return res.status(400).json({ message: "Please enter your lot number and last name." });
