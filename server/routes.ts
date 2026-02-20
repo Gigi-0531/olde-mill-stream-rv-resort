@@ -12,7 +12,7 @@ const MemoryStore = createMemoryStore(session);
 const objectStorageService = new ObjectStorageService();
 
 // ------------------- Utilities -------------------
-function sanitize(input: string) {
+function sanitizeAlphanumeric(input: string) {
   return input.replace(/[^a-zA-Z0-9]/g, "");
 }
 
@@ -33,10 +33,9 @@ async function requireAdmin(req: Request & { session: any }, res: Response, next
   next();
 }
 
-// Rate limiter for login
 const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 min
-  max: 10, // max attempts
+  windowMs: 15 * 60 * 1000,
+  max: 10,
   message: { message: "Too many login attempts, please try again later." },
 });
 
@@ -57,7 +56,7 @@ export function registerRoutes(_server: any, app: Express) {
         maxAge: 86400000,
         httpOnly: true,
         sameSite: isProduction ? "none" : "lax",
-        secure: isProduction || process.env.REPL_ID !== undefined,
+        secure: isProduction || !!process.env.REPL_ID,
       },
     })
   );
@@ -65,8 +64,11 @@ export function registerRoutes(_server: any, app: Express) {
   // -------- Register User --------
   app.post("/api/register", async (req: Request, res: Response) => {
     try {
-      const username = sanitize(req.body.username);
-      const password = sanitize(req.body.password);
+      const username = String(req.body.username || "").trim();
+      const password = String(req.body.password || "");
+      if (!username || !password) {
+        return res.status(400).json({ message: "Username and password are required" });
+      }
       const saltRounds = 12;
       const hashedPassword = await bcrypt.hash(password, saltRounds);
 
@@ -77,63 +79,88 @@ export function registerRoutes(_server: any, app: Express) {
     }
   });
 
-  // -------- Admin Login --------
-  app.post("/api/login/admin", loginLimiter, async (req: Request & { session: any }, res: Response) => {
+  // -------- Unified Login (matches frontend /api/auth/login) --------
+  app.post("/api/auth/login", loginLimiter, async (req: Request & { session: any }, res: Response) => {
     try {
-      const username = sanitize(req.body.username);
-      const password = sanitize(req.body.password);
+      const role = req.body.role;
 
-      const user = await storage.getUserByUsername(username);
-      if (!user || user.role !== "admin") {
-        return res.status(401).json({ message: "One tiny step away! Your admin powers are waiting—try again." });
+      if (role === "admin") {
+        const username = String(req.body.username || "").trim();
+        const password = String(req.body.password || "");
+
+        if (!username || !password) {
+          return res.status(400).json({ message: "Please enter your email and password." });
+        }
+
+        const user = await storage.getUserByUsername(username);
+        if (!user || user.role !== "admin") {
+          return res.status(401).json({ message: "Incorrect email or password. Please try again." });
+        }
+
+        const match = await bcrypt.compare(password, user.password);
+        if (!match) {
+          return res.status(401).json({ message: "Incorrect email or password. Please try again." });
+        }
+
+        req.session.userId = user.id;
+        return res.json(safeUser(user));
+
+      } else if (role === "resident") {
+        const lotNumber = sanitizeAlphanumeric(req.body.lotNumber || "");
+        const lastName = sanitizeAlphanumeric(req.body.lastName || "");
+
+        if (!lotNumber || !lastName) {
+          return res.status(400).json({ message: "Please enter your lot number and last name." });
+        }
+
+        const residents = await storage.getUsersByLotAndName(lotNumber, lastName);
+
+        if (residents.length === 0) {
+          return res.status(401).json({ message: "No resident found with that lot number and last name. Please check your info and try again." });
+        } else if (residents.length === 1) {
+          const user = residents[0];
+          req.session.userId = user.id;
+          return res.json(safeUser(user));
+        } else {
+          req.session.pendingProfiles = residents.map(r => r.id);
+          return res.json({
+            requiresProfileSelection: true,
+            profiles: residents.map(r => ({
+              id: r.id,
+              firstName: r.firstName || "Resident",
+              profilePicture: r.profilePicture
+                ? objectStorageService.normalizeObjectEntityPath(r.profilePicture)
+                : null,
+            })),
+          });
+        }
+      } else {
+        return res.status(400).json({ message: "Invalid login type." });
       }
-
-      const match = await bcrypt.compare(password, user.password);
-      if (!match) {
-        return res.status(401).json({ message: "One tiny step away! Your admin powers are waiting—try again." });
-      }
-
-      req.session.userId = user.id;
-      res.json(safeUser(user));
     } catch (err) {
-      res.status(400).json({ message: "Invalid input" });
+      console.error("Login error:", err);
+      res.status(500).json({ message: "Something went wrong. Please try again." });
     }
   });
 
-  // -------- RV Resident Login --------
-  app.post("/api/login/resident", loginLimiter, async (req: Request & { session: any }, res: Response) => {
+  // -------- Get Current User --------
+  app.get("/api/auth/me", async (req: Request & { session: any }, res: Response) => {
     try {
-      const lotNumber = sanitize(req.body.lotNumber);
-      const lastName = sanitize(req.body.lastName);
-
-      const residents = await storage.getUsersByLotAndName(lotNumber, lastName);
-
-      if (residents.length === 0) {
-        return res.status(401).json({ message: "One step from your lot! Your RV is waiting—try again." });
-      } else if (residents.length === 1) {
-        const user = residents[0];
-        req.session.userId = user.id;
-        return res.json(safeUser(user));
-      } else {
-        req.session.pendingProfiles = residents.map(r => r.id);
-        return res.json({
-          requiresProfileSelection: true,
-          profiles: residents.map(r => ({
-            id: r.id,
-            firstName: r.firstName || "Resident",
-            profilePicture: r.profilePicture
-              ? objectStorageService.normalizeObjectEntityPath(r.profilePicture)
-              : null,
-          })),
-        });
+      if (!req.session.userId) {
+        return res.status(401).json({ message: "Not logged in" });
       }
-    } catch (err) {
-      res.status(400).json({ message: "Invalid input" });
+      const user = await storage.getUser(req.session.userId);
+      if (!user) {
+        return res.status(401).json({ message: "Not logged in" });
+      }
+      res.json(safeUser(user));
+    } catch {
+      res.status(401).json({ message: "Not logged in" });
     }
   });
 
   // -------- Select profile if multiple --------
-  app.post("/api/login/select-profile", async (req: Request & { session: any }, res: Response) => {
+  app.post("/api/auth/select-profile", async (req: Request & { session: any }, res: Response) => {
     try {
       const profileId = Number(req.body.profileId);
       if (isNaN(profileId)) return res.status(400).json({ message: "Invalid profile ID" });
@@ -153,7 +180,7 @@ export function registerRoutes(_server: any, app: Express) {
   });
 
   // -------- Logout --------
-  app.post("/api/logout", requireAuth, (req: Request & { session: any }, res: Response) => {
+  app.post("/api/auth/logout", (req: Request & { session: any }, res: Response) => {
     req.session.destroy(() => {
       res.json({ message: "Logged out" });
     });

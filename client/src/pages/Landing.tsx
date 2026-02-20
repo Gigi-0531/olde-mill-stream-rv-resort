@@ -25,7 +25,7 @@ const adminSchema = z.object({
 });
 
 export default function Landing() {
-  const { user, login, isLoggingIn, pendingProfiles, selectProfile, isSelectingProfile, clearPendingProfiles } = useAuth();
+  const { user, login, isLoggingIn, loginError, pendingProfiles, selectProfile, isSelectingProfile, clearPendingProfiles } = useAuth();
   const [mode, setMode] = useState<'select' | 'resident' | 'admin'>('select');
 
   // If already logged in, redirect
@@ -149,7 +149,8 @@ export default function Landing() {
               <ResidentLogin 
                 onBack={() => setMode('select')} 
                 onSubmit={login} 
-                isLoading={isLoggingIn} 
+                isLoading={isLoggingIn}
+                error={loginError}
               />
             )}
 
@@ -157,7 +158,8 @@ export default function Landing() {
               <AdminLogin 
                 onBack={() => setMode('select')} 
                 onSubmit={login} 
-                isLoading={isLoggingIn} 
+                isLoading={isLoggingIn}
+                error={loginError}
               />
             )}
           </CardContent>
@@ -167,7 +169,7 @@ export default function Landing() {
   );
 }
 
-function ResidentLogin({ onBack, onSubmit, isLoading }: { onBack: () => void, onSubmit: any, isLoading: boolean }) {
+function ResidentLogin({ onBack, onSubmit, isLoading, error }: { onBack: () => void, onSubmit: any, isLoading: boolean, error: Error | null }) {
   const form = useForm({
     resolver: zodResolver(residentSchema),
     defaultValues: { role: "resident" as const, lotNumber: "", lastName: "" },
@@ -179,6 +181,11 @@ function ResidentLogin({ onBack, onSubmit, isLoading }: { onBack: () => void, on
         <h2 className="text-xl font-bold font-display text-primary">Resident Login</h2>
         <p className="text-sm text-muted-foreground">Enter your lot info to access the portal</p>
       </div>
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md text-sm" data-testid="text-login-error">
+          {error.message}
+        </div>
+      )}
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           <FormField
@@ -220,7 +227,7 @@ function ResidentLogin({ onBack, onSubmit, isLoading }: { onBack: () => void, on
   );
 }
 
-function AdminLogin({ onBack, onSubmit, isLoading }: { onBack: () => void, onSubmit: any, isLoading: boolean }) {
+function AdminLogin({ onBack, onSubmit, isLoading, error }: { onBack: () => void, onSubmit: any, isLoading: boolean, error: Error | null }) {
   const form = useForm({
     resolver: zodResolver(adminSchema),
     defaultValues: { role: "admin" as const, username: "", password: "" },
@@ -232,6 +239,11 @@ function AdminLogin({ onBack, onSubmit, isLoading }: { onBack: () => void, onSub
         <h2 className="text-xl font-bold font-display text-primary">Administration</h2>
         <p className="text-sm text-muted-foreground">Secure access for park managers</p>
       </div>
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md text-sm" data-testid="text-login-error">
+          {error.message}
+        </div>
+      )}
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           <FormField
