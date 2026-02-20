@@ -92,9 +92,17 @@ export class DatabaseStorage implements IStorage {
     if (results.length > 0) return results;
 
     const numericLot = lotNumber.replace(/\D/g, '');
-    if (numericLot && numericLot !== lotNumber) {
-      const altFormats = [`L-${numericLot}`, `Site ${numericLot.padStart(3, '0')}`, numericLot];
-      for (const fmt of altFormats) {
+    if (numericLot) {
+      const altFormats = [
+        `L-${parseInt(numericLot, 10)}`,
+        `Site ${numericLot.padStart(3, '0')}`,
+        `Site ${parseInt(numericLot, 10)}`,
+        numericLot,
+        numericLot.padStart(3, '0'),
+        String(parseInt(numericLot, 10)),
+      ];
+      const uniqueFormats = [...new Set(altFormats)].filter(f => f !== lotNumber);
+      for (const fmt of uniqueFormats) {
         const altResults = await db.select().from(users).where(
           and(
             ilike(users.lotNumber, fmt),
