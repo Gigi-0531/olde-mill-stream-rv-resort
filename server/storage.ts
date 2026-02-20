@@ -82,13 +82,31 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUsersByLotAndName(lotNumber: string, lastName: string): Promise<User[]> {
-    return db.select().from(users).where(
+    const results = await db.select().from(users).where(
       and(
         ilike(users.lotNumber, lotNumber),
-        ilike(users.lastName, lastName),
+        ilike(users.lastName, `%${lastName}%`),
         eq(users.role, 'resident')
       )
     );
+    if (results.length > 0) return results;
+
+    const numericLot = lotNumber.replace(/\D/g, '');
+    if (numericLot && numericLot !== lotNumber) {
+      const altFormats = [`L-${numericLot}`, `Site ${numericLot.padStart(3, '0')}`, numericLot];
+      for (const fmt of altFormats) {
+        const altResults = await db.select().from(users).where(
+          and(
+            ilike(users.lotNumber, fmt),
+            ilike(users.lastName, `%${lastName}%`),
+            eq(users.role, 'resident')
+          )
+        );
+        if (altResults.length > 0) return altResults;
+      }
+    }
+
+    return [];
   }
 
   async createUser(user: InsertUser): Promise<User> {
