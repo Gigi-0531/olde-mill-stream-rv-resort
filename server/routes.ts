@@ -202,7 +202,9 @@ export function registerRoutes(_server: any, app: Express) {
         lotNumber: r.lotNumber,
         phoneNumber: r.phoneNumber,
         username: r.username,
-        profilePicture: r.profilePicture,
+        profilePicture: r.profilePicture
+          ? objectStorageService.normalizeObjectEntityPath(r.profilePicture)
+          : null,
       }));
       res.json(safeResidents);
     } catch (err) {

@@ -12,9 +12,9 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertActivitySchema } from "@shared/schema";
-import { Plus, Trash2, Calendar, Bell, MapPin, Clock, Image, Loader2, Users, Pencil, Search, MessageSquare, Check, X } from "lucide-react";
+import { Plus, Trash2, Calendar, Bell, MapPin, Clock, Image, Loader2, Users, Pencil, Search, MessageSquare, Check, X, Upload, FileSpreadsheet } from "lucide-react";
 import { format } from "date-fns";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { NotificationsWidget } from "@/components/NotificationsWidget";
 import { ObjectUploader } from "@/components/ObjectUploader";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -481,13 +481,60 @@ function GalleryManager() {
 }
 
 function DirectoryManager() {
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editingResident, setEditingResident] = useState<any | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: residents, isLoading } = useQuery<any[]>({
     queryKey: ["/api/residents"],
   });
+
+  const { data: updatedInfo } = useQuery<{ updatedAt: string | null }>({
+    queryKey: ["/api/directory/updated"],
+  });
+
+  const uploadExcel = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/admin/directory/upload", {
+        method: "POST",
+        body: formData,
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || "Upload failed");
+      }
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/residents"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/directory"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/directory/updated"] });
+      toast({
+        title: "Directory Updated",
+        description: `${data.inserted} new residents added, ${data.skipped} existing updated.`,
+      });
+    },
+    onError: (err: Error) => {
+      toast({
+        title: "Upload Failed",
+        description: err.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      uploadExcel.mutate(file);
+      e.target.value = "";
+    }
+  };
 
   const createResident = useMutation({
     mutationFn: async (data: { lotNumber: string; lastName: string; firstName?: string; phoneNumber?: string }) => {
@@ -530,8 +577,57 @@ function DirectoryManager() {
     );
   });
 
+  const formatLastUpdated = (dateStr: string | null | undefined) => {
+    if (!dateStr) return "Never";
+    try {
+      return format(new Date(dateStr), "MMM d, yyyy 'at' h:mm a");
+    } catch {
+      return "Unknown";
+    }
+  };
+
   return (
     <div className="space-y-6">
+      <Card className="border-dashed">
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div className="flex items-center gap-3">
+              <FileSpreadsheet className="w-8 h-8 text-green-600" />
+              <div>
+                <h3 className="font-semibold">Excel Import</h3>
+                <p className="text-sm text-muted-foreground">
+                  Upload an Excel file (columns: Lot #, Name) to bulk update the directory.
+                  Last updated: {formatLastUpdated(updatedInfo?.updatedAt)}
+                </p>
+              </div>
+            </div>
+            <div>
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileSelect}
+                accept=".xlsx,.xls"
+                className="hidden"
+                data-testid="input-excel-upload"
+              />
+              <Button
+                variant="outline"
+                className="gap-2"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadExcel.isPending}
+                data-testid="button-upload-excel"
+              >
+                {uploadExcel.isPending ? (
+                  <><Loader2 className="w-4 h-4 animate-spin" /> Processing...</>
+                ) : (
+                  <><Upload className="w-4 h-4" /> Upload Excel</>
+                )}
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       <div className="flex justify-between items-center flex-wrap gap-4">
         <h2 className="text-xl font-bold">Resident Directory</h2>
         <div className="flex gap-2">
@@ -542,7 +638,7 @@ function DirectoryManager() {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-9 w-64"
-              data-testid="input-search-residents"
+              data-testid="input-search-admin-residents"
             />
           </div>
           <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
