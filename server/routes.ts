@@ -40,7 +40,9 @@ async function requireAdmin(req: Request & { session: any }, res: Response, next
 
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 10,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
   message: { message: "Too many login attempts, please try again later." },
 });
 
@@ -60,8 +62,8 @@ export function registerRoutes(_server: any, app: Express) {
       cookie: {
         maxAge: 86400000,
         httpOnly: true,
-        sameSite: isProduction ? "none" : "lax",
-        secure: isProduction || !!process.env.REPL_ID,
+        sameSite: "lax",
+        secure: true,
       },
     })
   );
