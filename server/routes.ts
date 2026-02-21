@@ -10,7 +10,7 @@ import ExcelJS from "exceljs";
 import { storage } from "./storage";
 import { db } from "./db";
 import { users } from "@shared/schema";
-import { eq, ilike } from "drizzle-orm";
+import { eq, ilike, sql } from "drizzle-orm";
 import { ObjectStorageService } from "./replit_integrations/object_storage";
 
 const MemoryStore = createMemoryStore(session);
@@ -217,7 +217,7 @@ export function registerRoutes(_server: any, app: Express) {
   app.get("/api/directory/updated", requireAuth, async (_req: Request, res: Response) => {
     try {
       const result = await db.execute(
-        `SELECT value FROM app_settings WHERE key = 'directory_updated_at'`
+        sql`SELECT value FROM app_settings WHERE key = 'directory_updated_at'`
       );
       const rows = result as any;
       const value = rows?.rows?.[0]?.value || rows?.[0]?.value || null;
@@ -286,7 +286,7 @@ export function registerRoutes(_server: any, app: Express) {
       }
 
       await db.execute(
-        `INSERT INTO app_settings (key, value, updated_at) VALUES ('directory_updated_at', NOW()::text, NOW()) ON CONFLICT (key) DO UPDATE SET value = NOW()::text, updated_at = NOW()`
+        sql`INSERT INTO app_settings (key, value, updated_at) VALUES ('directory_updated_at', NOW()::text, NOW()) ON CONFLICT (key) DO UPDATE SET value = NOW()::text, updated_at = NOW()`
       );
 
       res.json({ message: `Directory updated: ${inserted} added, ${skipped} existing.`, inserted, skipped, total: rows.length });
