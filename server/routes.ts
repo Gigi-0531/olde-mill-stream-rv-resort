@@ -95,27 +95,29 @@ export function registerRoutes(_server: any, app: Express) {
         const username = String(req.body.username || "").trim();
         const password = String(req.body.password || "");
 
-        console.log(`[LOGIN-TRACE] role=${role} username="${username}" passwordLen=${password.length}`);
-
         if (!username || !password) {
           return res.status(400).json({ message: "Please enter your email and password." });
         }
 
         const user = await storage.getUserByUsername(username);
-        console.log(`[LOGIN-TRACE] userFound=${!!user} dbRole=${user?.role} dbHashLen=${user?.password?.length} dbHash=${user?.password?.substring(0,15)}`);
         if (!user || user.role !== "admin") {
           return res.status(401).json({ message: "Incorrect email or password. Please try again." });
         }
 
-        try {
-          const match = await bcrypt.compare(password, user.password);
-          console.log(`[LOGIN-TRACE] bcryptResult=${match}`);
-          if (!match) {
-            return res.status(401).json({ message: "Incorrect email or password. Please try again." });
+        let match = false;
+        const isHashed = user.password.startsWith("$2b$") || user.password.startsWith("$2a$");
+        if (isHashed) {
+          match = await bcrypt.compare(password, user.password);
+        } else {
+          match = (password === user.password);
+          if (match) {
+            const hashed = await bcrypt.hash(password, 10);
+            await db.update(users).set({ password: hashed }).where(eq(users.id, user.id));
           }
-        } catch (bcryptErr: any) {
-          console.log(`[LOGIN-TRACE] bcrypt ERROR: ${bcryptErr.message}`);
-          return res.status(500).json({ message: "Login error, please try again." });
+        }
+
+        if (!match) {
+          return res.status(401).json({ message: "Incorrect email or password. Please try again." });
         }
 
         req.session.userId = user.id;
