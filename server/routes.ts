@@ -100,16 +100,12 @@ export function registerRoutes(_server: any, app: Express) {
         }
 
         const user = await storage.getUserByUsername(username);
-        console.log(`[ADMIN-LOGIN-DEBUG] input="${username}" found=${!!user} role=${user?.role} hashPrefix=${user?.password?.substring(0,7)} hashLen=${user?.password?.length}`);
         if (!user || user.role !== "admin") {
-          console.log(`[ADMIN-LOGIN-DEBUG] REJECTED: user not found or not admin`);
           return res.status(401).json({ message: "Incorrect email or password. Please try again." });
         }
 
         const match = await bcrypt.compare(password, user.password);
-        console.log(`[ADMIN-LOGIN-DEBUG] bcrypt match=${match}`);
         if (!match) {
-          console.log(`[ADMIN-LOGIN-DEBUG] REJECTED: password mismatch`);
           return res.status(401).json({ message: "Incorrect email or password. Please try again." });
         }
 
