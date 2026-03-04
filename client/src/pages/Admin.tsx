@@ -12,7 +12,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertActivitySchema } from "@shared/schema";
-import { Plus, Trash2, Calendar, Bell, MapPin, Clock, Image, Loader2, Users, Pencil, Search, MessageSquare, Check, X, Upload, FileSpreadsheet } from "lucide-react";
+import { Plus, Trash2, Calendar, Bell, MapPin, Clock, Image, Loader2, Users, Pencil, Search, MessageSquare, Check, X, Upload, FileSpreadsheet, ShieldCheck } from "lucide-react";
 import { format } from "date-fns";
 import { useState, useRef } from "react";
 import { NotificationsWidget } from "@/components/NotificationsWidget";
@@ -29,32 +29,72 @@ export default function Admin() {
     return <Redirect to="/" />;
   }
 
+  return <AdminContent />;
+}
+
+function AdminContent() {
+  const { data: activities } = useActivities();
+  const { data: notifications } = useNotifications();
+  const { data: photos } = useQuery<GalleryPhoto[]>({ queryKey: ["/api/gallery"] });
+  const { data: residents } = useQuery<any[]>({ queryKey: ["/api/residents"] });
+
+  const stats = [
+    { label: "Activities", value: activities?.length ?? 0, icon: Calendar, color: "bg-sky-500/15 text-sky-700 dark:text-sky-300" },
+    { label: "Alerts", value: notifications?.length ?? 0, icon: Bell, color: "bg-amber-500/15 text-amber-700 dark:text-amber-300" },
+    { label: "Photos", value: photos?.length ?? 0, icon: Image, color: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300" },
+    { label: "Residents", value: residents?.length ?? 0, icon: Users, color: "bg-violet-500/15 text-violet-700 dark:text-violet-300" },
+  ];
+
   return (
-    <div className="min-h-screen bg-background p-4 md:p-8 pt-20">
-      <div className="max-w-7xl mx-auto space-y-8">
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-display font-bold text-primary">Admin Dashboard</h1>
-            <p className="text-muted-foreground">Manage park activities and alerts</p>
+    <div className="min-h-screen bg-gradient-to-b from-sky-50 via-background to-background dark:from-sky-950/20 dark:via-background dark:to-background pt-16">
+      <div className="bg-gradient-to-r from-[#1E3A5F] via-[#2a4a6e] to-sky-600 text-white py-10 px-4 md:px-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center gap-4 mb-6">
+            <div className="w-14 h-14 rounded-full bg-white/15 backdrop-blur-sm flex items-center justify-center" data-testid="icon-admin-header">
+              <ShieldCheck className="w-7 h-7 text-white" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-display font-bold" data-testid="text-admin-title">Admin Dashboard</h1>
+              <p className="text-white/70">Manage park activities, alerts, and residents</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {stats.map((stat) => (
+              <div
+                key={stat.label}
+                className="bg-white/10 backdrop-blur-sm rounded-md p-4 flex items-center gap-3"
+                data-testid={`stat-${stat.label.toLowerCase()}`}
+              >
+                <div className={`w-10 h-10 rounded-md flex items-center justify-center ${stat.color}`}>
+                  <stat.icon className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold leading-none">{stat.value}</p>
+                  <p className="text-sm text-white/70">{stat.label}</p>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
+      </div>
 
+      <div className="max-w-7xl mx-auto p-4 md:p-8 space-y-8">
         <Tabs defaultValue="activities" className="space-y-6">
-          <TabsList className="bg-white p-1 shadow-sm border">
-            <TabsTrigger value="activities" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              <Calendar className="w-4 h-4 mr-2" /> Activities
+          <TabsList className="bg-card dark:bg-card p-1 shadow-sm border">
+            <TabsTrigger value="activities" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-2">
+              <Calendar className="w-4 h-4" /> Activities
             </TabsTrigger>
-            <TabsTrigger value="alerts" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              <Bell className="w-4 h-4 mr-2" /> Alerts
+            <TabsTrigger value="alerts" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-2">
+              <Bell className="w-4 h-4" /> Alerts
             </TabsTrigger>
-                        <TabsTrigger value="gallery" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              <Image className="w-4 h-4 mr-2" /> Gallery
+            <TabsTrigger value="gallery" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-2">
+              <Image className="w-4 h-4" /> Gallery
             </TabsTrigger>
-            <TabsTrigger value="directory" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              <Users className="w-4 h-4 mr-2" /> Directory
+            <TabsTrigger value="directory" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-2">
+              <Users className="w-4 h-4" /> Directory
             </TabsTrigger>
-            <TabsTrigger value="messages" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              <MessageSquare className="w-4 h-4 mr-2" /> Messages
+            <TabsTrigger value="messages" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-2">
+              <MessageSquare className="w-4 h-4" /> Messages
             </TabsTrigger>
           </TabsList>
 
@@ -69,7 +109,6 @@ export default function Admin() {
             </div>
           </TabsContent>
 
-          
           <TabsContent value="gallery">
             <GalleryManager />
           </TabsContent>
