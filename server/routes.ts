@@ -12,6 +12,8 @@ import { db } from "./db";
 import { users } from "@shared/schema";
 import { eq, ilike, sql } from "drizzle-orm";
 import { ObjectStorageService } from "./replit_integrations/object_storage";
+import { moderateText, moderateImage } from "./contentModeration";
+import { getVapidPublicKey, sendResortAlert } from "./pushService";
 
 const MemoryStore = createMemoryStore(session);
 const objectStorageService = new ObjectStorageService();
@@ -306,6 +308,446 @@ export function registerRoutes(_server: any, app: Express) {
     } catch (err) {
       console.error("Upload error:", err);
       res.status(500).json({ message: "Failed to process file" });
+    }
+  });
+
+  // -------- Activities CRUD --------
+  app.get("/api/activities", async (_req: Request, res: Response) => {
+    try {
+      const acts = await storage.getActivities();
+      res.json(acts);
+    } catch (err) {
+      console.error("Activities error:", err);
+      res.status(500).json({ message: "Failed to fetch activities" });
+    }
+  });
+
+  app.post("/api/activities", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const activity = await storage.createActivity(req.body);
+      res.status(201).json(activity);
+    } catch (err) {
+      console.error("Create activity error:", err);
+      res.status(400).json({ message: (err as Error).message });
+    }
+  });
+
+  app.delete("/api/activities/:id", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      await storage.deleteActivity(Number(req.params.id));
+      res.status(204).send();
+    } catch (err) {
+      res.status(404).json({ message: "Activity not found" });
+    }
+  });
+
+  // -------- Notifications CRUD --------
+  app.get("/api/notifications", async (_req: Request, res: Response) => {
+    try {
+      const notifs = await storage.getNotifications();
+      res.json(notifs);
+    } catch (err) {
+      console.error("Notifications error:", err);
+      res.status(500).json({ message: "Failed to fetch notifications" });
+    }
+  });
+
+  app.post("/api/notifications", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const notification = await storage.createNotification(req.body);
+      try {
+        await sendResortAlert("Resort Alert", notification.content);
+      } catch {}
+      res.status(201).json(notification);
+    } catch (err) {
+      console.error("Create notification error:", err);
+      res.status(400).json({ message: (err as Error).message });
+    }
+  });
+
+  app.delete("/api/notifications/:id", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      await storage.deleteNotification(Number(req.params.id));
+      res.status(204).send();
+    } catch (err) {
+      res.status(404).json({ message: "Notification not found" });
+    }
+  });
+
+  // -------- Gallery CRUD --------
+  app.get("/api/gallery", async (_req: Request, res: Response) => {
+    try {
+      const photos = await storage.getGalleryPhotos(true);
+      const normalized = photos.map(p => ({
+        ...p,
+        objectPath: objectStorageService.normalizeObjectEntityPath(p.objectPath),
+      }));
+      res.json(normalized);
+    } catch (err) {
+      console.error("Gallery error:", err);
+      res.status(500).json({ message: "Failed to fetch gallery" });
+    }
+  });
+
+  app.get("/api/gallery/pending", requireAdmin, async (_req: Request, res: Response) => {
+    try {
+      const photos = await storage.getPendingGalleryPhotos();
+      const normalized = photos.map(p => ({
+        ...p,
+        objectPath: objectStorageService.normalizeObjectEntityPath(p.objectPath),
+      }));
+      res.json(normalized);
+    } catch (err) {
+      res.status(500).json({ message: "Failed to fetch pending photos" });
+    }
+  });
+
+  app.post("/api/gallery", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const photo = await storage.createGalleryPhoto({
+        ...req.body,
+        status: "approved",
+      });
+      res.status(201).json(photo);
+    } catch (err) {
+      res.status(400).json({ message: (err as Error).message });
+    }
+  });
+
+  app.post("/api/gallery/submit", requireAuth, async (req: Request & { session: any }, res: Response) => {
+    try {
+      const user = await storage.getUser(req.session.userId);
+      const photo = await storage.createGalleryPhoto({
+        ...req.body,
+        status: "pending",
+        submitterId: req.session.userId,
+        submitterName: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : "Unknown",
+      });
+      res.status(201).json(photo);
+    } catch (err) {
+      res.status(400).json({ message: (err as Error).message });
+    }
+  });
+
+  app.post("/api/gallery/:id/approve", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const photo = await storage.updateGalleryPhotoStatus(Number(req.params.id), "approved");
+      if (!photo) return res.status(404).json({ message: "Photo not found" });
+      res.json(photo);
+    } catch (err) {
+      res.status(500).json({ message: "Failed to approve photo" });
+    }
+  });
+
+  app.post("/api/gallery/:id/reject", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const photo = await storage.updateGalleryPhotoStatus(Number(req.params.id), "rejected");
+      if (!photo) return res.status(404).json({ message: "Photo not found" });
+      res.json(photo);
+    } catch (err) {
+      res.status(500).json({ message: "Failed to reject photo" });
+    }
+  });
+
+  app.delete("/api/gallery/:id", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      await storage.deleteGalleryPhoto(Number(req.params.id));
+      res.status(204).send();
+    } catch (err) {
+      res.status(404).json({ message: "Photo not found" });
+    }
+  });
+
+  // -------- Messages --------
+  app.get("/api/messages/community", requireAuth, async (req: Request & { session: any }, res: Response) => {
+    try {
+      const user = await storage.getUser(req.session.userId);
+      const includeUnapproved = user?.role === "admin";
+      const msgs = await storage.getCommunityMessages(includeUnapproved);
+      res.json(msgs);
+    } catch (err) {
+      res.status(500).json({ message: "Failed to fetch messages" });
+    }
+  });
+
+  app.get("/api/messages/pending", requireAdmin, async (_req: Request, res: Response) => {
+    try {
+      const msgs = await storage.getPendingMessages();
+      res.json(msgs);
+    } catch (err) {
+      res.status(500).json({ message: "Failed to fetch pending messages" });
+    }
+  });
+
+  app.post("/api/messages", requireAuth, async (req: Request & { session: any }, res: Response) => {
+    try {
+      const user = await storage.getUser(req.session.userId);
+      if (!user) return res.status(401).json({ message: "Not authenticated" });
+
+      const content = String(req.body.content || "").trim();
+      if (!content) return res.status(400).json({ message: "Message content is required" });
+
+      const moderation = await moderateText(content);
+      if (!moderation.isAllowed) {
+        return res.status(400).json({ message: moderation.reason || "Message violates community guidelines", reason: moderation.reason });
+      }
+
+      const isAdmin = user.role === "admin";
+      const msg = await storage.createMessage({
+        senderId: user.id,
+        recipientId: req.body.recipientId || null,
+        content,
+        approved: isAdmin,
+      });
+      res.status(201).json(msg);
+    } catch (err) {
+      console.error("Message error:", err);
+      res.status(500).json({ message: "Failed to send message" });
+    }
+  });
+
+  app.patch("/api/messages/:id/approve", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      await storage.approveMessage(Number(req.params.id));
+      res.json({ success: true });
+    } catch (err) {
+      res.status(500).json({ message: "Failed to approve message" });
+    }
+  });
+
+  app.delete("/api/messages/:id", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      await storage.deleteMessage(Number(req.params.id));
+      res.status(204).send();
+    } catch (err) {
+      res.status(404).json({ message: "Message not found" });
+    }
+  });
+
+  app.patch("/api/messages/:id/read", requireAuth, async (req: Request, res: Response) => {
+    try {
+      await storage.markMessageRead(Number(req.params.id));
+      res.json({ success: true });
+    } catch (err) {
+      res.status(500).json({ message: "Failed to mark as read" });
+    }
+  });
+
+  // -------- Users / Residents --------
+  app.get("/api/users", requireAuth, async (_req: Request, res: Response) => {
+    try {
+      const allUsers = await storage.searchUsers();
+      const safe = allUsers.map(u => ({
+        id: u.id,
+        firstName: u.firstName,
+        lastName: u.lastName,
+        lotNumber: u.lotNumber,
+        profilePicture: u.profilePicture
+          ? objectStorageService.normalizeObjectEntityPath(u.profilePicture)
+          : null,
+        role: u.role,
+      }));
+      res.json(safe);
+    } catch (err) {
+      res.status(500).json({ message: "Failed to fetch users" });
+    }
+  });
+
+  app.get("/api/residents", requireAdmin, async (_req: Request, res: Response) => {
+    try {
+      const residents = await storage.getResidents();
+      res.json(residents);
+    } catch (err) {
+      res.status(500).json({ message: "Failed to fetch residents" });
+    }
+  });
+
+  app.post("/api/residents", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const resident = await storage.createUser({
+        role: "resident",
+        lotNumber: req.body.lotNumber,
+        lastName: req.body.lastName,
+        firstName: req.body.firstName,
+        phoneNumber: req.body.phoneNumber,
+      });
+      res.status(201).json(resident);
+    } catch (err) {
+      res.status(400).json({ message: (err as Error).message });
+    }
+  });
+
+  app.patch("/api/residents/:id", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const updated = await storage.updateResident(Number(req.params.id), req.body);
+      if (!updated) return res.status(404).json({ message: "Resident not found" });
+      res.json(updated);
+    } catch (err) {
+      res.status(400).json({ message: (err as Error).message });
+    }
+  });
+
+  app.delete("/api/residents/:id", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      await storage.deleteResident(Number(req.params.id));
+      res.status(204).send();
+    } catch (err) {
+      res.status(404).json({ message: "Resident not found" });
+    }
+  });
+
+  // -------- Weather --------
+  app.get("/api/weather", async (_req: Request, res: Response) => {
+    try {
+      const apiKey = process.env.OPENWEATHER_API_KEY;
+      if (!apiKey) {
+        return res.json({
+          temp: 75,
+          condition: "Sunny",
+          location: "Umatilla, FL",
+          forecast: [
+            { day: "Tomorrow", temp: 77, condition: "Partly Cloudy" },
+            { day: "Wed", temp: 80, condition: "Sunny" },
+            { day: "Thu", temp: 73, condition: "Rain" },
+          ],
+        });
+      }
+
+      const response = await fetch(
+        `https://api.openweathermap.org/data/2.5/forecast?q=Umatilla,FL,US&units=imperial&appid=${apiKey}`
+      );
+      const data = await response.json();
+
+      if (!data.list) {
+        throw new Error("Invalid weather data");
+      }
+
+      const current = data.list[0];
+      const forecastDays = data.list
+        .filter((_: any, i: number) => i % 8 === 0)
+        .slice(1, 4)
+        .map((item: any) => ({
+          day: new Date(item.dt * 1000).toLocaleDateString("en-US", { weekday: "short" }),
+          temp: Math.round(item.main.temp),
+          condition: item.weather[0].main,
+        }));
+
+      res.json({
+        temp: Math.round(current.main.temp),
+        condition: current.weather[0].main,
+        location: "Umatilla, FL",
+        forecast: forecastDays,
+      });
+    } catch (err) {
+      console.error("Weather error:", err);
+      res.json({
+        temp: 75,
+        condition: "Sunny",
+        location: "Umatilla, FL",
+        forecast: [
+          { day: "Tomorrow", temp: 77, condition: "Partly Cloudy" },
+          { day: "Wed", temp: 80, condition: "Sunny" },
+          { day: "Thu", temp: 73, condition: "Rain" },
+        ],
+      });
+    }
+  });
+
+  // -------- Push Notifications --------
+  app.get("/api/push/vapid-key", (_req: Request, res: Response) => {
+    res.json({ publicKey: getVapidPublicKey() });
+  });
+
+  app.get("/api/push/subscription", requireAuth, async (req: Request & { session: any }, res: Response) => {
+    try {
+      const sub = await storage.getPushSubscription(req.session.userId);
+      res.json(sub || null);
+    } catch (err) {
+      res.status(500).json({ message: "Failed to get subscription" });
+    }
+  });
+
+  app.post("/api/push/subscribe", requireAuth, async (req: Request & { session: any }, res: Response) => {
+    try {
+      const sub = await storage.savePushSubscription({
+        userId: req.session.userId,
+        endpoint: req.body.endpoint,
+        p256dh: req.body.keys.p256dh,
+        auth: req.body.keys.auth,
+        weatherEnabled: req.body.weatherEnabled ?? true,
+        alertsEnabled: req.body.alertsEnabled ?? true,
+      });
+      res.status(201).json(sub);
+    } catch (err) {
+      res.status(400).json({ message: "Failed to subscribe" });
+    }
+  });
+
+  app.patch("/api/push/preferences", requireAuth, async (req: Request & { session: any }, res: Response) => {
+    try {
+      await storage.updatePushPreferences(
+        req.session.userId,
+        req.body.weatherEnabled,
+        req.body.alertsEnabled
+      );
+      res.json({ success: true });
+    } catch (err) {
+      res.status(500).json({ message: "Failed to update preferences" });
+    }
+  });
+
+  app.delete("/api/push/unsubscribe", requireAuth, async (req: Request & { session: any }, res: Response) => {
+    try {
+      await storage.deletePushSubscription(req.session.userId);
+      res.json({ success: true });
+    } catch (err) {
+      res.status(500).json({ message: "Failed to unsubscribe" });
+    }
+  });
+
+  // -------- Help / Contact --------
+  app.post("/api/help", requireAuth, async (req: Request & { session: any }, res: Response) => {
+    try {
+      const content = String(req.body.content || "").trim();
+      if (!content) return res.status(400).json({ message: "Message is required" });
+
+      const admin = await storage.getFirstAdmin();
+      if (!admin) return res.status(500).json({ message: "No admin found" });
+
+      const msg = await storage.createMessage({
+        senderId: req.session.userId,
+        recipientId: admin.id,
+        content,
+        approved: true,
+      });
+      res.status(201).json(msg);
+    } catch (err) {
+      res.status(500).json({ message: "Failed to send message" });
+    }
+  });
+
+  // -------- Content Moderation --------
+  app.post("/api/moderate/image", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { image, mimeType } = req.body;
+      if (!image) return res.status(400).json({ message: "Image data required" });
+      const result = await moderateImage(image, mimeType || "image/jpeg");
+      res.json(result);
+    } catch (err) {
+      res.json({ isAllowed: true });
+    }
+  });
+
+  // -------- Profile Picture --------
+  app.patch("/api/profile/picture", requireAuth, async (req: Request & { session: any }, res: Response) => {
+    try {
+      const { objectPath } = req.body;
+      if (!objectPath) return res.status(400).json({ message: "Object path required" });
+
+      await storage.updateProfilePicture(req.session.userId, objectPath);
+      res.json({ success: true });
+    } catch (err) {
+      res.status(500).json({ message: "Failed to update profile picture" });
     }
   });
 }
