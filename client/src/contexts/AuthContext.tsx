@@ -63,27 +63,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [, setLocation] = useLocation();
   const [pendingProfiles, setPendingProfiles] = useState<ProfileOption[] | null>(null);
   const [user, setUser] = useState<User | null>(getStoredUser);
-  const [isLoading, setIsLoading] = useState(!getStoredUser());
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     setStoredUser(user);
   }, [user]);
 
   useEffect(() => {
-    if (!user) {
-      fetch("/api/auth/me", { credentials: "include" })
-        .then((res) => {
-          if (res.ok) return res.json();
-          return null;
-        })
-        .then((data) => {
-          if (data && data.id) {
-            setUser(data as User);
-          }
-        })
-        .catch(() => {})
-        .finally(() => setIsLoading(false));
-    }
+    fetch("/api/auth/me", { credentials: "include" })
+      .then((res) => {
+        if (res.ok) return res.json();
+        return null;
+      })
+      .then((data) => {
+        if (data && data.id) {
+          setUser(data as User);
+        } else {
+          setUser(null);
+        }
+      })
+      .catch(() => {
+        setUser(null);
+      })
+      .finally(() => setIsLoading(false));
   }, []);
 
   const loginMutation = useMutation({
