@@ -606,6 +606,19 @@ function DirectoryManager() {
     },
   });
 
+  const deleteAllResidents = useMutation({
+    mutationFn: async () => {
+      await apiRequest("DELETE", `/api/residents`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/residents"] });
+      toast({ title: "All residents deleted", description: "The directory has been cleared." });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to delete residents.", variant: "destructive" });
+    },
+  });
+
   const filteredResidents = residents?.filter((r) => {
     if (!searchTerm) return true;
     const term = searchTerm.toLowerCase();
@@ -680,6 +693,23 @@ function DirectoryManager() {
               data-testid="input-search-admin-residents"
             />
           </div>
+          <Button
+            variant="destructive"
+            className="gap-2"
+            disabled={deleteAllResidents.isPending || !residents?.length}
+            onClick={() => {
+              if (confirm(`Are you sure you want to delete ALL ${residents?.length || 0} residents? This cannot be undone.`)) {
+                deleteAllResidents.mutate();
+              }
+            }}
+            data-testid="button-delete-all-residents"
+          >
+            {deleteAllResidents.isPending ? (
+              <><Loader2 className="w-4 h-4 animate-spin" /> Deleting...</>
+            ) : (
+              <><Trash2 className="w-4 h-4" /> Delete All</>
+            )}
+          </Button>
           <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
             <DialogTrigger asChild>
               <Button className="gap-2" data-testid="button-add-resident">

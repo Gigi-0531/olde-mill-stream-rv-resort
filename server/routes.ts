@@ -599,6 +599,16 @@ export function registerRoutes(_server: any, app: Express) {
     }
   });
 
+  app.delete("/api/residents", requireAdmin, async (_req: Request, res: Response) => {
+    try {
+      const count = await storage.deleteAllResidents();
+      res.json({ message: `Deleted ${count} residents`, count });
+    } catch (err) {
+      console.error("Delete all residents error:", err);
+      res.status(500).json({ message: "Failed to delete residents" });
+    }
+  });
+
   // -------- Weather --------
   app.get("/api/weather", async (_req: Request, res: Response) => {
     try {
