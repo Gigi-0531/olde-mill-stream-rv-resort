@@ -9,7 +9,7 @@ import ExcelJS from "exceljs";
 
 import { storage } from "./storage";
 import { db } from "./db";
-import { users } from "@shared/schema";
+import { users, insertActivitySchema } from "@shared/schema";
 import { eq, ilike, sql } from "drizzle-orm";
 import { ObjectStorageService } from "./replit_integrations/object_storage";
 import { moderateText, moderateImage } from "./contentModeration";
@@ -54,6 +54,8 @@ export function registerRoutes(_server: any, app: Express) {
 
   const isProduction = process.env.NODE_ENV === "production";
 
+  app.set("trust proxy", 1);
+
   app.use(
     session({
       name: "oms.sid",
@@ -65,7 +67,7 @@ export function registerRoutes(_server: any, app: Express) {
         maxAge: 86400000,
         httpOnly: true,
         sameSite: "lax",
-        secure: true,
+        secure: isProduction,
       },
     })
   );
@@ -324,7 +326,8 @@ export function registerRoutes(_server: any, app: Express) {
 
   app.post("/api/activities", requireAdmin, async (req: Request, res: Response) => {
     try {
-      const activity = await storage.createActivity(req.body);
+      const parsed = insertActivitySchema.parse(req.body);
+      const activity = await storage.createActivity(parsed);
       res.status(201).json(activity);
     } catch (err) {
       console.error("Create activity error:", err);
