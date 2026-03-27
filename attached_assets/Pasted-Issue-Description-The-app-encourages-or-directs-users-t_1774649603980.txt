@@ -1,0 +1,80 @@
+Issue Description
+
+The app encourages or directs users to allow the app to access the location. Specifically, the app directs the user to grant permission in the following way(s): 
+
+- A custom message appears before the permission request, and to proceed users press a "Enable Features" and "Allow Location Access" buttons. Use words like "Continue" or "Next" on the button instead.
+- A custom message appears before the permission request, and the user can close the message and delay the permission request with the "Maybe Later" and "Skip" button. The user should always proceed to the permission request after the message. 
+
+Permission requests give users control of their personal information. It is important to respect their decision about how their data is used.
+
+Next Steps
+
+To resolve this issue, please revise the permission request process in the app to not display messages before the permission request with inappropriate words on buttons and not include an exit button on the message before the permission request.
+
+If necessary, you may provide more information about why you are requesting permission before the request appears. If the user is trying to use a feature in the app that won't function without access to the microphone, you may include a notification to inform the user and provide a link to the Settings app. 
+
+Resources 
+
+- Learn more about data collection and storage requirements in guideline 5.1.1. 
+- Learn more about designing appropriate permission requests.
+
+Guideline 2.1(a) - Performance - App Completeness
+
+Issue Description
+
+The app exhibited one or more bugs that would negatively impact users.
+
+Bug description: app was unresponsive when 'Allow location access' was tapped.
+
+Review device details:
+
+- Device type: iPad Air 11-inch (M3) 
+- OS version: iPadOS 26.4
+- Internet Connection: Active
+
+Next Steps
+
+Test the app on supported devices to identify and resolve bugs and stability issues before submitting for review.
+
+If the bug cannot be reproduced, try the following:
+
+- For new apps, uninstall all previous versions of the app from a device, then install and follow the steps to reproduce.
+- For app updates, install the new version as an update to the previous version, then follow the steps to reproduce.
+
+Note that users expect apps they download to function on all the devices where they are available. For example, apps that may be downloaded onto iPad devices should function as expected for iPad users. Learn more about supporting apps on compatible devices.
+
+Resources
+
+- For information about testing apps and preparing them for review, see Testing a Release Build.
+- To learn about troubleshooting networking issues, see Networking Overview.
+
+Guideline 2.1(a) - Performance
+
+Issue Description
+
+The app crashed during review. Apps that crash negatively impact users. 
+
+Steps leading to crash:
+
+1. Launched app and logged in
+2. Tapped RV icon on top right corner
+3. Tapped 'Settings'
+4. Tapped camera icon to change profile picture
+5. Tapped 'Take Photo'
+6. Crash occurred 
+
+Review device details:
+
+- Device type: iPad Air 11-inch (M3) 
+- OS version: iPadOS 26.4
+
+Next Steps
+
+Test the app on supported devices to identify crashes and stability issues before resubmitting for review. Crash logs have been attached to help resolve this issue:
+
+1. Fully symbolicate the crash report. See Adding Identifiable Symbol Names to a Crash Report.
+2. Match the crash report to a common pattern. Based on the pattern, take specific actions to further investigate the crash. See Identifying the Cause of Common Crashes.
+3. Once the root causes of the crash have been identified, make the appropriate changes to the binary to resolve the issue.
+4. Test the app on a device to ensure that it runs as expected.
+
+Note that users expect apps they download to function on all the devices where they are available. For example, apps that may be downloaded onto iPad devices should function as expected for iPad users. Learn more about supporting apps on compatible devices.

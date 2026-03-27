@@ -7,9 +7,10 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Bell, Cloud, AlertTriangle, Loader2, Settings as SettingsIcon, Camera, User } from "lucide-react";
+import { Bell, Cloud, AlertTriangle, Loader2, Settings as SettingsIcon, Camera, User, ImageIcon } from "lucide-react";
 
 interface PushSubscriptionData {
   id: number;
@@ -29,7 +30,9 @@ export default function Settings() {
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [isSubscribing, setIsSubscribing] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [showPhotoSourceDialog, setShowPhotoSourceDialog] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   const { data: vapidKey } = useQuery<{ publicKey: string }>({
     queryKey: ["/api/push/vapid-key"],
@@ -151,6 +154,20 @@ export default function Settings() {
   };
 
   const handleProfilePictureClick = () => {
+    setShowPhotoSourceDialog(true);
+  };
+
+  const handleChooseCamera = () => {
+    setShowPhotoSourceDialog(false);
+    try {
+      cameraInputRef.current?.click();
+    } catch {
+      toast({ title: "Camera not available", description: "Please choose from your photo library instead.", variant: "destructive" });
+    }
+  };
+
+  const handleChooseLibrary = () => {
+    setShowPhotoSourceDialog(false);
     fileInputRef.current?.click();
   };
 
@@ -308,6 +325,14 @@ export default function Settings() {
               className="hidden"
               onChange={handleFileSelect}
             />
+            <input
+              ref={cameraInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+              onChange={handleFileSelect}
+            />
             <p className="text-xs text-muted-foreground mt-4">
               Images are automatically checked to ensure they meet community guidelines.
             </p>
@@ -406,6 +431,34 @@ export default function Settings() {
           </CardContent>
         </Card>
       </div>
+
+      <Dialog open={showPhotoSourceDialog} onOpenChange={setShowPhotoSourceDialog}>
+        <DialogContent className="sm:max-w-xs">
+          <DialogHeader>
+            <DialogTitle>Change Profile Picture</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col gap-3 pt-2">
+            <Button
+              variant="outline"
+              className="gap-3 h-12 justify-start"
+              onClick={handleChooseCamera}
+              data-testid="button-take-photo"
+            >
+              <Camera className="w-5 h-5" />
+              Take Photo
+            </Button>
+            <Button
+              variant="outline"
+              className="gap-3 h-12 justify-start"
+              onClick={handleChooseLibrary}
+              data-testid="button-choose-library"
+            >
+              <ImageIcon className="w-5 h-5" />
+              Choose from Library
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -36,7 +36,7 @@ export function PermissionsPrompt() {
     setStep("location");
   };
 
-  const handleLocationPermission = async () => {
+  const handleLocationPermission = () => {
     if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(
         () => {
@@ -46,7 +46,8 @@ export function PermissionsPrompt() {
         () => {
           setLocationStatus("denied");
           setStep("done");
-        }
+        },
+        { timeout: 10000 }
       );
     } else {
       setLocationStatus("denied");
@@ -54,28 +55,18 @@ export function PermissionsPrompt() {
     }
   };
 
-  const handleSkipLocation = () => {
-    setLocationStatus("denied");
-    setStep("done");
-  };
-
   const handleComplete = () => {
     localStorage.setItem(PERMISSIONS_KEY, "true");
     setOpen(false);
   };
 
-  const handleSkipAll = () => {
-    localStorage.setItem(PERMISSIONS_KEY, "true");
-    setOpen(false);
-  };
-
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="sm:max-w-md" data-testid="dialog-permissions">
+    <Dialog open={open} onOpenChange={() => {}}>
+      <DialogContent className="sm:max-w-md" data-testid="dialog-permissions" onPointerDownOutside={(e) => e.preventDefault()}>
         {step === "intro" && (
           <>
             <DialogHeader>
-              <DialogTitle className="text-xl font-display">Enable App Features</DialogTitle>
+              <DialogTitle className="text-xl font-display">App Features</DialogTitle>
               <DialogDescription className="text-base">
                 To get the best experience at Olde Mill Stream, we'd like to enable a few features for you.
               </DialogDescription>
@@ -100,12 +91,9 @@ export function PermissionsPrompt() {
                 </div>
               </div>
             </div>
-            <DialogFooter className="flex gap-2 sm:gap-0">
-              <Button variant="ghost" onClick={handleSkipAll} data-testid="button-skip-permissions">
-                Maybe Later
-              </Button>
-              <Button onClick={() => setStep("notifications")} data-testid="button-enable-permissions">
-                Enable Features
+            <DialogFooter>
+              <Button onClick={() => setStep("notifications")} className="w-full" data-testid="button-enable-permissions">
+                Continue
               </Button>
             </DialogFooter>
           </>
@@ -117,17 +105,14 @@ export function PermissionsPrompt() {
               <div className="mx-auto bg-primary/10 p-4 rounded-full mb-4">
                 <Bell className="w-8 h-8 text-primary" />
               </div>
-              <DialogTitle className="text-xl font-display text-center">Enable Notifications</DialogTitle>
+              <DialogTitle className="text-xl font-display text-center">Notifications</DialogTitle>
               <DialogDescription className="text-center text-base">
                 Stay updated with resort alerts, activity reminders, and weather warnings.
               </DialogDescription>
             </DialogHeader>
             <DialogFooter className="flex-col gap-2 sm:flex-col">
               <Button onClick={handleNotificationPermission} className="w-full" data-testid="button-allow-notifications">
-                Allow Notifications
-              </Button>
-              <Button variant="ghost" onClick={() => setStep("location")} className="w-full">
-                Skip
+                Continue
               </Button>
             </DialogFooter>
           </>
@@ -139,17 +124,14 @@ export function PermissionsPrompt() {
               <div className="mx-auto bg-primary/10 p-4 rounded-full mb-4">
                 <MapPin className="w-8 h-8 text-primary" />
               </div>
-              <DialogTitle className="text-xl font-display text-center">Enable Location</DialogTitle>
+              <DialogTitle className="text-xl font-display text-center">Location</DialogTitle>
               <DialogDescription className="text-center text-base">
                 Get precise weather updates based on your current location within the resort.
               </DialogDescription>
             </DialogHeader>
             <DialogFooter className="flex-col gap-2 sm:flex-col">
               <Button onClick={handleLocationPermission} className="w-full" data-testid="button-allow-location">
-                Allow Location Access
-              </Button>
-              <Button variant="ghost" onClick={handleSkipLocation} className="w-full">
-                Skip
+                Continue
               </Button>
             </DialogFooter>
           </>
@@ -163,7 +145,7 @@ export function PermissionsPrompt() {
               </div>
               <DialogTitle className="text-xl font-display text-center">You're All Set!</DialogTitle>
               <DialogDescription className="text-center text-base">
-                {notificationStatus === "granted" && locationStatus === "granted" 
+                {notificationStatus === "granted" && locationStatus === "granted"
                   ? "You'll receive notifications and location-based weather updates."
                   : notificationStatus === "granted"
                   ? "You'll receive notifications about resort updates."
