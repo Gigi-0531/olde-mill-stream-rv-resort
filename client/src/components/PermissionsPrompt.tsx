@@ -15,8 +15,6 @@ const PERMISSIONS_KEY = "oms_permissions_requested";
 export function PermissionsPrompt() {
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<"intro" | "notifications" | "location" | "done">("intro");
-  const [notificationStatus, setNotificationStatus] = useState<"pending" | "granted" | "denied">("pending");
-  const [locationStatus, setLocationStatus] = useState<"pending" | "granted" | "denied">("pending");
 
   useEffect(() => {
     const hasRequested = localStorage.getItem(PERMISSIONS_KEY);
@@ -26,33 +24,30 @@ export function PermissionsPrompt() {
     }
   }, []);
 
-  const handleNotificationPermission = async () => {
-    if ("Notification" in window) {
-      const permission = await Notification.requestPermission();
-      setNotificationStatus(permission === "granted" ? "granted" : "denied");
-    } else {
-      setNotificationStatus("denied");
-    }
+  const handleNotificationsContinue = () => {
+    // Advance the UI immediately so the app is responsive
     setStep("location");
+    // Request permission in the background — system dialog will appear if supported
+    try {
+      if ("Notification" in window && Notification.permission === "default") {
+        Notification.requestPermission().catch(() => {});
+      }
+    } catch {}
   };
 
-  const handleLocationPermission = () => {
-    if ("geolocation" in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        () => {
-          setLocationStatus("granted");
-          setStep("done");
-        },
-        () => {
-          setLocationStatus("denied");
-          setStep("done");
-        },
-        { timeout: 10000 }
-      );
-    } else {
-      setLocationStatus("denied");
-      setStep("done");
-    }
+  const handleLocationContinue = () => {
+    // Advance the UI immediately so the app is responsive
+    setStep("done");
+    // Request location in the background — system dialog will appear if supported
+    try {
+      if ("geolocation" in navigator) {
+        navigator.geolocation.getCurrentPosition(
+          () => {},
+          () => {},
+          { timeout: 10000, maximumAge: 60000 }
+        );
+      }
+    } catch {}
   };
 
   const handleComplete = () => {
@@ -61,8 +56,13 @@ export function PermissionsPrompt() {
   };
 
   return (
-    <Dialog open={open} onOpenChange={() => {}}>
-      <DialogContent className="sm:max-w-md" data-testid="dialog-permissions" onPointerDownOutside={(e) => e.preventDefault()}>
+    <Dialog open={open} onOpenChange={() => {}} >
+      <DialogContent
+        className="sm:max-w-md"
+        data-testid="dialog-permissions"
+        onPointerDownOutside={(e) => e.preventDefault()}
+        onEscapeKeyDown={(e) => e.preventDefault()}
+      >
         {step === "intro" && (
           <>
             <DialogHeader>
@@ -92,7 +92,11 @@ export function PermissionsPrompt() {
               </div>
             </div>
             <DialogFooter>
-              <Button onClick={() => setStep("notifications")} className="w-full" data-testid="button-enable-permissions">
+              <Button
+                onClick={() => setStep("notifications")}
+                className="w-full"
+                data-testid="button-enable-permissions"
+              >
                 Continue
               </Button>
             </DialogFooter>
@@ -111,7 +115,11 @@ export function PermissionsPrompt() {
               </DialogDescription>
             </DialogHeader>
             <DialogFooter className="flex-col gap-2 sm:flex-col">
-              <Button onClick={handleNotificationPermission} className="w-full" data-testid="button-allow-notifications">
+              <Button
+                onClick={handleNotificationsContinue}
+                className="w-full"
+                data-testid="button-allow-notifications"
+              >
                 Continue
               </Button>
             </DialogFooter>
@@ -130,7 +138,11 @@ export function PermissionsPrompt() {
               </DialogDescription>
             </DialogHeader>
             <DialogFooter className="flex-col gap-2 sm:flex-col">
-              <Button onClick={handleLocationPermission} className="w-full" data-testid="button-allow-location">
+              <Button
+                onClick={handleLocationContinue}
+                className="w-full"
+                data-testid="button-allow-location"
+              >
                 Continue
               </Button>
             </DialogFooter>
@@ -145,13 +157,7 @@ export function PermissionsPrompt() {
               </div>
               <DialogTitle className="text-xl font-display text-center">You're All Set!</DialogTitle>
               <DialogDescription className="text-center text-base">
-                {notificationStatus === "granted" && locationStatus === "granted"
-                  ? "You'll receive notifications and location-based weather updates."
-                  : notificationStatus === "granted"
-                  ? "You'll receive notifications about resort updates."
-                  : locationStatus === "granted"
-                  ? "You'll get weather updates for your location."
-                  : "You can enable these features later in your device settings."}
+                Welcome to Olde Mill Stream RV Resort. You can manage notification preferences in Settings.
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
