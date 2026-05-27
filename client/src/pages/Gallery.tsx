@@ -12,7 +12,7 @@ export default function Gallery() {
   });
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-sky-50 via-background to-background dark:from-sky-950/20 dark:via-background dark:to-background">
+    <div className="min-h-screen bg-gradient-to-b from-sky-50 via-background to-background dark:from-sky-950/20 dark:via-background dark:to-background pt-16">
       <div className="bg-gradient-to-r from-[#1E3A5F] via-[#2a4a6e] to-sky-600 text-white py-10 px-4">
         <div className="max-w-7xl mx-auto flex flex-col items-center text-center gap-3">
           <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center mb-1">
@@ -39,8 +39,8 @@ export default function Gallery() {
             {photos.map((photo, index) => (
               <Card
                 key={photo.id}
-                className="overflow-hidden group border-none shadow-lg transition-shadow duration-300 hover:shadow-xl"
-                style={{ animationDelay: `${index * 60}ms`, animationFillMode: "both" }}
+                className="overflow-hidden group border-none shadow-lg transition-shadow duration-300 hover:shadow-xl animate-in fade-in slide-in-from-bottom-4"
+                style={{ animationDelay: `${index * 60}ms`, animationDuration: "500ms", animationFillMode: "both" }}
                 data-testid={`card-photo-${photo.id}`}
               >
                 <CardContent className="p-0">

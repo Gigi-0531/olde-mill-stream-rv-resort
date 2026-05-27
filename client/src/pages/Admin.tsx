@@ -80,23 +80,25 @@ function AdminContent() {
 
       <div className="max-w-7xl mx-auto p-4 md:p-8 space-y-8">
         <Tabs defaultValue="activities" className="space-y-6">
-          <TabsList className="bg-card dark:bg-card p-1 shadow-sm border">
-            <TabsTrigger value="activities" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-2">
-              <Calendar className="w-4 h-4" /> Activities
-            </TabsTrigger>
-            <TabsTrigger value="alerts" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-2">
-              <Bell className="w-4 h-4" /> Alerts
-            </TabsTrigger>
-            <TabsTrigger value="gallery" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-2">
-              <Image className="w-4 h-4" /> Gallery
-            </TabsTrigger>
-            <TabsTrigger value="directory" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-2">
-              <Users className="w-4 h-4" /> Directory
-            </TabsTrigger>
-            <TabsTrigger value="messages" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-2">
-              <MessageSquare className="w-4 h-4" /> Messages
-            </TabsTrigger>
-          </TabsList>
+          <div className="overflow-x-auto pb-1">
+            <TabsList className="bg-card dark:bg-card p-1 shadow-sm border w-max min-w-full">
+              <TabsTrigger value="activities" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-2">
+                <Calendar className="w-4 h-4" /> Activities
+              </TabsTrigger>
+              <TabsTrigger value="alerts" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-2">
+                <Bell className="w-4 h-4" /> Alerts
+              </TabsTrigger>
+              <TabsTrigger value="gallery" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-2">
+                <Image className="w-4 h-4" /> Gallery
+              </TabsTrigger>
+              <TabsTrigger value="directory" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-2">
+                <Users className="w-4 h-4" /> Directory
+              </TabsTrigger>
+              <TabsTrigger value="messages" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-2">
+                <MessageSquare className="w-4 h-4" /> Messages
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent value="activities">
             <ActivitiesManager />
