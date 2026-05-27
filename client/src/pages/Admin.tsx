@@ -767,6 +767,7 @@ function DirectoryManager() {
                   <th className="px-4 py-3 text-left text-sm font-medium">Last Name</th>
                   <th className="px-4 py-3 text-left text-sm font-medium">First Name</th>
                   <th className="px-4 py-3 text-left text-sm font-medium">Phone</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium">PIN</th>
                   <th className="px-4 py-3 text-right text-sm font-medium">Actions</th>
                 </tr>
               </thead>
@@ -777,6 +778,7 @@ function DirectoryManager() {
                     <td className="px-4 py-3 text-sm">{resident.lastName}</td>
                     <td className="px-4 py-3 text-sm">{resident.firstName || "-"}</td>
                     <td className="px-4 py-3 text-sm">{resident.phoneNumber || "-"}</td>
+                    <td className="px-4 py-3 text-sm font-mono" data-testid={`text-pin-${resident.id}`}>{resident.pin || "-"}</td>
                     <td className="px-4 py-3 text-right">
                       <Button
                         variant="ghost"
@@ -785,6 +787,20 @@ function DirectoryManager() {
                         data-testid={`button-edit-resident-${resident.id}`}
                       >
                         <Pencil className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title="Reset PIN"
+                        onClick={async () => {
+                          const res = await apiRequest("POST", `/api/residents/${resident.id}/reset-pin`);
+                          const data = await res.json();
+                          queryClient.invalidateQueries({ queryKey: ["/api/residents"] });
+                          alert(`New PIN for ${resident.lastName || "resident"}: ${data.pin}`);
+                        }}
+                        data-testid={`button-reset-pin-${resident.id}`}
+                      >
+                        <ShieldCheck className="w-4 h-4" />
                       </Button>
                       <Button
                         variant="ghost"

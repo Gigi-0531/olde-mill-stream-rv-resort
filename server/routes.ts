@@ -10,7 +10,7 @@ import ExcelJS from "exceljs";
 import { storage } from "./storage";
 import { db } from "./db";
 import { users, insertActivitySchema } from "@shared/schema";
-import { eq, ilike, sql } from "drizzle-orm";
+import { eq, ilike, sql, and, isNull } from "drizzle-orm";
 import { ObjectStorageService } from "./replit_integrations/object_storage";
 import { moderateText, moderateImage } from "./contentModeration";
 import { getVapidPublicKey, sendResortAlert } from "./pushService";
@@ -21,6 +21,10 @@ const objectStorageService = new ObjectStorageService();
 // ------------------- Utilities -------------------
 function sanitizeAlphanumeric(input: string) {
   return input.replace(/[^a-zA-Z0-9]/g, "");
+}
+
+function generatePin(): string {
+  return String(Math.floor(Math.random() * 10000)).padStart(4, "0");
 }
 
 function safeUser(user: any) {
@@ -48,9 +52,28 @@ const loginLimiter = rateLimit({
   message: { message: "Too many login attempts, please try again later." },
 });
 
+// ------------------- Startup: backfill PINs for residents missing one -------------------
+async function backfillResidentPins() {
+  try {
+    const rows = await db.select({ id: users.id }).from(users).where(
+      and(eq(users.role, "resident"), isNull(users.pin))
+    );
+    for (const row of rows) {
+      await db.update(users).set({ pin: generatePin() }).where(eq(users.id, row.id));
+    }
+    if (rows.length > 0) {
+      console.log(`[startup] Assigned PINs to ${rows.length} resident(s) who had none.`);
+    }
+  } catch (err) {
+    console.error("[startup] PIN backfill failed:", err);
+  }
+}
+
 // ------------------- Routes -------------------
 export function registerRoutes(_server: any, app: Express) {
   if (!process.env.SESSION_SECRET) throw new Error("SESSION_SECRET is required");
+
+  backfillResidentPins();
 
   const isProduction = process.env.NODE_ENV === "production";
 
@@ -72,9 +95,14 @@ export function registerRoutes(_server: any, app: Express) {
     })
   );
 
-  // -------- Register User --------
+  // -------- Register User (bootstrap only — allowed only when no admin accounts exist) --------
   app.post("/api/register", async (req: Request, res: Response) => {
     try {
+      const existingAdmin = await storage.getFirstAdmin();
+      if (existingAdmin) {
+        return res.status(403).json({ message: "Registration is not available." });
+      }
+
       const username = String(req.body.username || "").trim();
       const password = String(req.body.password || "");
       if (!username || !password) {
@@ -130,24 +158,31 @@ export function registerRoutes(_server: any, app: Express) {
       } else if (role === "resident") {
         const lotNumber = String(req.body.lotNumber || "").trim();
         const lastName = String(req.body.lastName || "").trim();
+        const pin = String(req.body.pin || "").trim();
 
-        if (!lotNumber || !lastName) {
-          return res.status(400).json({ message: "Please enter your lot number and last name." });
+        if (!lotNumber || !lastName || !pin) {
+          return res.status(400).json({ message: "Please enter your lot number, last name, and PIN." });
         }
 
-        const residents = await storage.getUsersByLotAndName(lotNumber, lastName);
+        const candidates = await storage.getUsersByLotAndName(lotNumber, lastName);
 
-        if (residents.length === 0) {
+        if (candidates.length === 0) {
           return res.status(401).json({ message: "No resident found with that lot number and last name. Please check your info and try again." });
-        } else if (residents.length === 1) {
-          const user = residents[0];
+        }
+
+        const matching = candidates.filter(r => r.pin === pin);
+
+        if (matching.length === 0) {
+          return res.status(401).json({ message: "Incorrect PIN. Please check your PIN and try again." });
+        } else if (matching.length === 1) {
+          const user = matching[0];
           req.session.userId = user.id;
           return res.json(safeUser(user));
         } else {
-          req.session.pendingProfiles = residents.map(r => r.id);
+          req.session.pendingProfiles = matching.map(r => r.id);
           return res.json({
             requiresProfileSelection: true,
-            profiles: residents.map(r => ({
+            profiles: matching.map(r => ({
               id: r.id,
               firstName: r.firstName || "Resident",
               profilePicture: r.profilePicture
@@ -294,10 +329,12 @@ export function registerRoutes(_server: any, app: Express) {
           continue;
         }
 
+        const newPin = generatePin();
         await db.insert(users).values({
           role: "resident",
           lastName: row.name,
           lotNumber: row.lotNumber,
+          pin: newPin,
         } as any);
         inserted++;
       }
@@ -567,14 +604,28 @@ export function registerRoutes(_server: any, app: Express) {
 
   app.post("/api/residents", requireAdmin, async (req: Request, res: Response) => {
     try {
+      const pin = generatePin();
       const resident = await storage.createUser({
         role: "resident",
         lotNumber: req.body.lotNumber,
         lastName: req.body.lastName,
         firstName: req.body.firstName,
         phoneNumber: req.body.phoneNumber,
+        pin,
       });
-      res.status(201).json(resident);
+      res.status(201).json({ ...resident, pin });
+    } catch (err) {
+      res.status(400).json({ message: (err as Error).message });
+    }
+  });
+
+  app.post("/api/residents/:id/reset-pin", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const id = Number(req.params.id);
+      const pin = generatePin();
+      const updated = await storage.updateResident(id, { pin });
+      if (!updated) return res.status(404).json({ message: "Resident not found" });
+      res.json({ pin });
     } catch (err) {
       res.status(400).json({ message: (err as Error).message });
     }

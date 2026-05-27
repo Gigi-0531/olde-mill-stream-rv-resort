@@ -86,7 +86,7 @@ export class DatabaseStorage implements IStorage {
     const results = await db.select().from(users).where(
       and(
         ilike(users.lotNumber, lotNumber),
-        ilike(users.lastName, `%${lastName}%`),
+        ilike(users.lastName, lastName),
         eq(users.role, 'resident')
       )
     );
@@ -107,7 +107,7 @@ export class DatabaseStorage implements IStorage {
         const altResults = await db.select().from(users).where(
           and(
             ilike(users.lotNumber, fmt),
-            ilike(users.lastName, `%${lastName}%`),
+            ilike(users.lastName, lastName),
             eq(users.role, 'resident')
           )
         );
