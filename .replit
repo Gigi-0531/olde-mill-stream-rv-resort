@@ -56,3 +56,7 @@ VAPID_PRIVATE_KEY = "0HRp2lB20amlLhH-FWqEKNyZW9qEPFwfHLXWZMt773c"
 
 [rules.formatter.fileExtensions.".ts"]
 id = "module:nodejs-20/formatter:prettier"
+
+[postMerge]
+path = "scripts/post-merge.sh"
+timeoutMs = 20000
