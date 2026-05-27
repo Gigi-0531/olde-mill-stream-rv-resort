@@ -14,7 +14,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { insertActivitySchema } from "@shared/schema";
 import { Plus, Trash2, Calendar, Bell, MapPin, Clock, Image, Loader2, Users, Pencil, Search, MessageSquare, Check, X, Upload, FileSpreadsheet, ShieldCheck } from "lucide-react";
 import { format } from "date-fns";
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import { NotificationsWidget } from "@/components/NotificationsWidget";
 import { ObjectUploader } from "@/components/ObjectUploader";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -352,6 +352,9 @@ function GalleryManager() {
 
   const [uploadedPath, setUploadedPath] = useState<string | null>(null);
   const [photoTitle, setPhotoTitle] = useState("");
+  // Store the server-assigned objectPath when a presigned URL is requested
+  // so handleUploadComplete can reference it (GCS PUT response has no body)
+  const pendingObjectPath = useRef<string | null>(null);
 
   const savePhoto = useMutation({
     mutationFn: async (data: { objectPath: string; title?: string }) => {
@@ -365,15 +368,35 @@ function GalleryManager() {
     },
   });
 
-  const handleUploadComplete = async (result: any) => {
+  const handleUploadComplete = useCallback((result: any) => {
     if (result.successful && result.successful.length > 0) {
-      const uploaded = result.successful[0];
-      const objectPath = uploaded.response?.body?.objectPath || uploaded.uploadURL?.split("?")[0];
+      const objectPath = pendingObjectPath.current;
       if (objectPath) {
         setUploadedPath(objectPath);
+        pendingObjectPath.current = null;
       }
     }
-  };
+  }, []);
+
+  const getUploadParameters = useCallback(async (file: any) => {
+    const res = await fetch("/api/uploads/request-url", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: file.name,
+        size: file.size,
+        contentType: file.type,
+      }),
+    });
+    const { uploadURL, objectPath } = await res.json();
+    // Capture the server-assigned normalized path for use after upload
+    pendingObjectPath.current = objectPath;
+    return {
+      method: "PUT" as const,
+      url: uploadURL,
+      headers: { "Content-Type": file.type || "application/octet-stream" },
+    };
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -381,24 +404,8 @@ function GalleryManager() {
         <h2 className="text-xl font-bold">Photo Gallery</h2>
         <ObjectUploader
           maxNumberOfFiles={1}
-          maxFileSize={10485760}
-          onGetUploadParameters={async (file) => {
-            const res = await fetch("/api/uploads/request-url", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                name: file.name,
-                size: file.size,
-                contentType: file.type,
-              }),
-            });
-            const { uploadURL } = await res.json();
-            return {
-              method: "PUT" as const,
-              url: uploadURL,
-              headers: { "Content-Type": file.type || "application/octet-stream" },
-            };
-          }}
+          maxFileSize={52428800}
+          onGetUploadParameters={getUploadParameters}
           onComplete={handleUploadComplete}
         >
           <Plus className="w-4 h-4 mr-2" /> Upload Photo
