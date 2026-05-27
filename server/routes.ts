@@ -10,7 +10,7 @@ import ExcelJS from "exceljs";
 import { storage } from "./storage";
 import { db } from "./db";
 import { users, insertActivitySchema } from "@shared/schema";
-import { eq, ilike, sql, and, isNull } from "drizzle-orm";
+import { eq, ilike, sql, and } from "drizzle-orm";
 import { ObjectStorageService } from "./replit_integrations/object_storage";
 import { moderateText, moderateImage } from "./contentModeration";
 import { getVapidPublicKey, sendResortAlert } from "./pushService";
@@ -31,9 +31,6 @@ function isValidObjectPath(value: unknown): value is string {
   );
 }
 
-function generatePin(): string {
-  return String(Math.floor(Math.random() * 10000)).padStart(4, "0");
-}
 
 function safeUser(user: any) {
   const { password, ...safe } = user;
@@ -60,28 +57,9 @@ const loginLimiter = rateLimit({
   message: { message: "Too many login attempts, please try again later." },
 });
 
-// ------------------- Startup: backfill PINs for residents missing one -------------------
-async function backfillResidentPins() {
-  try {
-    const rows = await db.select({ id: users.id }).from(users).where(
-      and(eq(users.role, "resident"), isNull(users.pin))
-    );
-    for (const row of rows) {
-      await db.update(users).set({ pin: generatePin() }).where(eq(users.id, row.id));
-    }
-    if (rows.length > 0) {
-      console.log(`[startup] Assigned PINs to ${rows.length} resident(s) who had none.`);
-    }
-  } catch (err) {
-    console.error("[startup] PIN backfill failed:", err);
-  }
-}
-
 // ------------------- Routes -------------------
 export function registerRoutes(_server: any, app: Express) {
   if (!process.env.SESSION_SECRET) throw new Error("SESSION_SECRET is required");
-
-  backfillResidentPins();
 
   const isProduction = process.env.NODE_ENV === "production";
 
@@ -334,12 +312,10 @@ export function registerRoutes(_server: any, app: Express) {
           continue;
         }
 
-        const newPin = generatePin();
         await db.insert(users).values({
           role: "resident",
           lastName: row.name,
           lotNumber: row.lotNumber,
-          pin: newPin,
         } as any);
         inserted++;
       }
@@ -615,28 +591,14 @@ export function registerRoutes(_server: any, app: Express) {
 
   app.post("/api/residents", requireAdmin, async (req: Request, res: Response) => {
     try {
-      const pin = generatePin();
       const resident = await storage.createUser({
         role: "resident",
         lotNumber: req.body.lotNumber,
         lastName: req.body.lastName,
         firstName: req.body.firstName,
         phoneNumber: req.body.phoneNumber,
-        pin,
       });
-      res.status(201).json({ ...resident, pin });
-    } catch (err) {
-      res.status(400).json({ message: (err as Error).message });
-    }
-  });
-
-  app.post("/api/residents/:id/reset-pin", requireAdmin, async (req: Request, res: Response) => {
-    try {
-      const id = Number(req.params.id);
-      const pin = generatePin();
-      const updated = await storage.updateResident(id, { pin });
-      if (!updated) return res.status(404).json({ message: "Resident not found" });
-      res.json({ pin });
+      res.status(201).json(resident);
     } catch (err) {
       res.status(400).json({ message: (err as Error).message });
     }

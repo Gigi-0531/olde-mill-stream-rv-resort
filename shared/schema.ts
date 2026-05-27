@@ -37,7 +37,6 @@ export const users = pgTable("users", {
   lotNumber: text("lot_number"),
   phoneNumber: text("phone_number"),
   profilePicture: text("profile_picture"), // Object storage path
-  pin: text("pin"), // 4-digit resident login PIN
 
   createdAt: timestamp("created_at", { withTimezone: false })
     .defaultNow()
@@ -203,7 +202,6 @@ export const loginSchema = z.union([
     role: z.literal("resident"),
     lotNumber: z.string().min(1),
     lastName: z.string().min(1),
-    pin: z.string().length(4),
   }),
 ]);
 
