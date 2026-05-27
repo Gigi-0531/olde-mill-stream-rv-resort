@@ -72,7 +72,7 @@ function Router() {
           </Route>
 
           <Route path="/residents">
-            <ProtectedRoute component={Residents} />
+            <ProtectedRoute component={Residents} adminOnly />
           </Route>
 
           <Route path="/settings">
