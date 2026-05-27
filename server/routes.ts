@@ -23,6 +23,14 @@ function sanitizeAlphanumeric(input: string) {
   return input.replace(/[^a-zA-Z0-9]/g, "");
 }
 
+function isValidObjectPath(value: unknown): value is string {
+  if (typeof value !== "string" || !value) return false;
+  return (
+    value.startsWith("/objects/") ||
+    value.startsWith("https://storage.googleapis.com/")
+  );
+}
+
 function generatePin(): string {
   return String(Math.floor(Math.random() * 10000)).padStart(4, "0");
 }
@@ -203,6 +211,7 @@ export function registerRoutes(_server: any, app: Express) {
   // -------- Get Current User --------
   app.get("/api/auth/me", async (req: Request & { session: any }, res: Response) => {
     try {
+      res.setHeader("Cache-Control", "no-store");
       if (!req.session.userId) {
         return res.status(401).json({ message: "Not logged in" });
       }
@@ -444,6 +453,9 @@ export function registerRoutes(_server: any, app: Express) {
 
   app.post("/api/gallery", requireAdmin, async (req: Request, res: Response) => {
     try {
+      if (!isValidObjectPath(req.body.objectPath)) {
+        return res.status(400).json({ message: "Invalid image path" });
+      }
       const photo = await storage.createGalleryPhoto({
         ...req.body,
         status: "approved",
@@ -456,6 +468,9 @@ export function registerRoutes(_server: any, app: Express) {
 
   app.post("/api/gallery/submit", requireAuth, async (req: Request & { session: any }, res: Response) => {
     try {
+      if (!isValidObjectPath(req.body.objectPath)) {
+        return res.status(400).json({ message: "Invalid image path" });
+      }
       const user = await storage.getUser(req.session.userId);
       const photo = await storage.createGalleryPhoto({
         ...req.body,
@@ -806,7 +821,9 @@ export function registerRoutes(_server: any, app: Express) {
   app.patch("/api/profile/picture", requireAuth, async (req: Request & { session: any }, res: Response) => {
     try {
       const { objectPath } = req.body;
-      if (!objectPath) return res.status(400).json({ message: "Object path required" });
+      if (!isValidObjectPath(objectPath)) {
+        return res.status(400).json({ message: "Invalid image path" });
+      }
 
       await storage.updateProfilePicture(req.session.userId, objectPath);
       res.json({ success: true });

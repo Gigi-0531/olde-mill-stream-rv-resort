@@ -1,9 +1,20 @@
-const CACHE_NAME = 'olde-mill-v1';
+const CACHE_NAME = 'olde-mill-v2';
 const urlsToCache = [
   '/',
   '/manifest.json',
   '/favicon.png'
 ];
+
+const NEVER_CACHE_PREFIXES = ['/api/'];
+
+function isCacheable(url) {
+  try {
+    const pathname = new URL(url).pathname;
+    return !NEVER_CACHE_PREFIXES.some(prefix => pathname.startsWith(prefix));
+  } catch {
+    return false;
+  }
+}
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -30,7 +41,11 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
-  
+
+  if (!isCacheable(event.request.url)) {
+    return;
+  }
+
   event.respondWith(
     fetch(event.request)
       .then((response) => {
