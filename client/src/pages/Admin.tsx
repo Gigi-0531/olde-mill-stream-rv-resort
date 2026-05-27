@@ -59,7 +59,7 @@ function AdminContent() {
               <ShieldCheck className="w-7 h-7 text-white" />
             </div>
             <div>
-              <h1 className="text-3xl font-display font-bold" data-testid="text-admin-title">Admin Dashboard</h1>
+              <h1 className="text-3xl font-display font-bold text-white" data-testid="text-admin-title">Admin Dashboard</h1>
               <p className="text-white/70">Manage park activities, alerts, and residents</p>
             </div>
           </div>

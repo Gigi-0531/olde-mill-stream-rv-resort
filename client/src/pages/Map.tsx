@@ -30,7 +30,7 @@ export default function MapPage() {
                 <Navigation className="w-7 h-7 text-white" />
               </div>
               <div>
-                <h2 className="text-xl font-display font-bold">Get Directions</h2>
+                <h2 className="text-xl font-display font-bold text-white">Get Directions</h2>
                 <p className="text-white/80 text-sm">{RESORT_ADDRESS}</p>
               </div>
             </div>

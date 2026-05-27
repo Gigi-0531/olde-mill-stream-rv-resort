@@ -53,7 +53,7 @@ export default function Help() {
           </div>
           <div>
             <h1
-              className="text-3xl font-display font-bold"
+              className="text-3xl font-display font-bold text-white"
               data-testid="heading-help"
               style={{ animation: "fadeIn 0.6s ease-out both", animationDelay: "0.2s" }}
             >

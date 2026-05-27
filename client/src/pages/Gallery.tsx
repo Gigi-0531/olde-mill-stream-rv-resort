@@ -18,7 +18,7 @@ export default function Gallery() {
           <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center mb-1">
             <Image className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-3xl font-display font-bold" data-testid="text-gallery-title">Photo Gallery</h1>
+          <h1 className="text-3xl font-display font-bold text-white" data-testid="text-gallery-title">Photo Gallery</h1>
           <p className="text-white/80 max-w-md">Photos from around Olde Mill Stream RV Resort</p>
           {photos && photos.length > 0 && (
             <Badge variant="secondary" className="mt-1 no-default-hover-elevate no-default-active-elevate">
