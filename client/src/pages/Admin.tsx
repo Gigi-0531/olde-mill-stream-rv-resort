@@ -12,7 +12,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Plus, Trash2, Calendar, Bell, MapPin, Clock, Image, Loader2, Users, Pencil, Search, MessageSquare, Check, X, Upload, FileSpreadsheet, ShieldCheck } from "lucide-react";
+import { Plus, Trash2, Calendar, Bell, MapPin, Clock, Image, Loader2, Users, Pencil, Search, MessageSquare, Check, X, Upload, FileSpreadsheet, ShieldCheck, BookUser, Phone } from "lucide-react";
 import { format } from "date-fns";
 import { useState, useRef, useCallback } from "react";
 import { NotificationsWidget } from "@/components/NotificationsWidget";
@@ -121,7 +121,12 @@ function AdminContent() {
           </TabsContent>
 
           <TabsContent value="directory">
-            <DirectoryManager />
+            <div className="space-y-10">
+              <PublicDirectoryManager />
+              <div className="border-t pt-8">
+                <DirectoryManager />
+              </div>
+            </div>
           </TabsContent>
 
           <TabsContent value="messages">
@@ -524,6 +529,174 @@ function GalleryManager() {
   );
 }
 
+function PublicDirectoryManager() {
+  const { toast } = useToast();
+  const [search, setSearch] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const { data: entries, isLoading } = useQuery<any[]>({
+    queryKey: ["/api/directory/public"],
+  });
+
+  const uploadExcel = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/admin/public-directory/upload", {
+        method: "POST",
+        body: formData,
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || "Upload failed");
+      }
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/directory/public"] });
+      toast({ title: "Directory Published", description: `${data.total} residents are now visible to residents.` });
+    },
+    onError: (err: Error) => {
+      toast({ title: "Upload Failed", description: err.message, variant: "destructive" });
+    },
+  });
+
+  const clearEntries = useMutation({
+    mutationFn: async () => {
+      await apiRequest("DELETE", "/api/admin/public-directory");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/directory/public"] });
+      toast({ title: "Directory Cleared", description: "Residents can no longer see the directory." });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to clear directory.", variant: "destructive" });
+    },
+  });
+
+  const filtered = entries?.filter((e) => {
+    if (!search) return true;
+    const q = search.toLowerCase();
+    return e.name?.toLowerCase().includes(q) || e.lotNumber?.toLowerCase().includes(q);
+  }) ?? [];
+
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+          <BookUser className="w-5 h-5 text-primary" />
+        </div>
+        <div>
+          <h2 className="text-xl font-bold">Resident-Viewable Directory</h2>
+          <p className="text-sm text-muted-foreground">Upload an Excel file (columns: Lot #, Name, Phone) — replaces the directory residents see.</p>
+        </div>
+      </div>
+
+      <Card className="border-dashed">
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div className="flex items-center gap-3">
+              <FileSpreadsheet className="w-7 h-7 text-green-600" />
+              <div>
+                <p className="font-medium text-sm">Excel Import</p>
+                <p className="text-xs text-muted-foreground">Columns: Lot # · Name · Phone (optional)</p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <input
+                type="file"
+                ref={fileInputRef}
+                accept=".xlsx,.xls"
+                className="hidden"
+                data-testid="input-public-directory-upload"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) { uploadExcel.mutate(file); e.target.value = ""; }
+                }}
+              />
+              <Button
+                variant="outline"
+                className="gap-2"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadExcel.isPending}
+                data-testid="button-upload-public-directory"
+              >
+                {uploadExcel.isPending ? <><Loader2 className="w-4 h-4 animate-spin" /> Uploading...</> : <><Upload className="w-4 h-4" /> Upload Excel</>}
+              </Button>
+              {entries && entries.length > 0 && (
+                <Button
+                  variant="destructive"
+                  className="gap-2"
+                  disabled={clearEntries.isPending}
+                  onClick={() => { if (confirm("Clear the resident-viewable directory? Residents won't see anything until you re-upload.")) clearEntries.mutate(); }}
+                  data-testid="button-clear-public-directory"
+                >
+                  {clearEntries.isPending ? <><Loader2 className="w-4 h-4 animate-spin" /> Clearing...</> : <><Trash2 className="w-4 h-4" /> Clear</>}
+                </Button>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {isLoading ? (
+        <div className="flex items-center justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
+      ) : entries && entries.length > 0 ? (
+        <>
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <p className="text-sm text-muted-foreground font-medium">{entries.length} entr{entries.length === 1 ? "y" : "ies"} published</p>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Search entries..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-9 w-56"
+                data-testid="input-search-public-directory"
+              />
+            </div>
+          </div>
+          <Card>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-muted/50">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-sm font-medium">Lot #</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium">Name</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium">Phone</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {filtered.map((e) => (
+                    <tr key={e.id} className="hover:bg-muted/30" data-testid={`row-public-dir-${e.id}`}>
+                      <td className="px-4 py-3 text-sm text-muted-foreground">{e.lotNumber || "—"}</td>
+                      <td className="px-4 py-3 text-sm font-medium">{e.name}</td>
+                      <td className="px-4 py-3 text-sm text-muted-foreground">
+                        {e.phone ? (
+                          <span className="flex items-center gap-1"><Phone className="w-3 h-3" />{e.phone}</span>
+                        ) : "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        </>
+      ) : (
+        <Card className="p-8">
+          <div className="text-center text-muted-foreground">
+            <BookUser className="w-10 h-10 mx-auto mb-3 opacity-40" />
+            <p className="font-medium">No directory published</p>
+            <p className="text-sm mt-1">Upload an Excel file to show residents a community directory.</p>
+          </div>
+        </Card>
+      )}
+    </div>
+  );
+}
+
 function DirectoryManager() {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
@@ -748,7 +921,6 @@ function DirectoryManager() {
                   <th className="px-4 py-3 text-left text-sm font-medium">Last Name</th>
                   <th className="px-4 py-3 text-left text-sm font-medium">First Name</th>
                   <th className="px-4 py-3 text-left text-sm font-medium">Phone</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium">PIN</th>
                   <th className="px-4 py-3 text-right text-sm font-medium">Actions</th>
                 </tr>
               </thead>
@@ -759,7 +931,6 @@ function DirectoryManager() {
                     <td className="px-4 py-3 text-sm">{resident.lastName}</td>
                     <td className="px-4 py-3 text-sm">{resident.firstName || "-"}</td>
                     <td className="px-4 py-3 text-sm">{resident.phoneNumber || "-"}</td>
-                    <td className="px-4 py-3 text-sm font-mono" data-testid={`text-pin-${resident.id}`}>{resident.pin || "-"}</td>
                     <td className="px-4 py-3 text-right">
                       <Button
                         variant="ghost"
@@ -768,20 +939,6 @@ function DirectoryManager() {
                         data-testid={`button-edit-resident-${resident.id}`}
                       >
                         <Pencil className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        title="Reset PIN"
-                        onClick={async () => {
-                          const res = await apiRequest("POST", `/api/residents/${resident.id}/reset-pin`);
-                          const data = await res.json();
-                          queryClient.invalidateQueries({ queryKey: ["/api/residents"] });
-                          alert(`New PIN for ${resident.lastName || "resident"}: ${data.pin}`);
-                        }}
-                        data-testid={`button-reset-pin-${resident.id}`}
-                      >
-                        <ShieldCheck className="w-4 h-4" />
                       </Button>
                       <Button
                         variant="ghost"
