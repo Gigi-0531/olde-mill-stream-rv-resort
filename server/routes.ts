@@ -344,7 +344,8 @@ export function registerRoutes(_server: any, app: Express) {
 
   app.post("/api/activities", requireAdmin, async (req: Request, res: Response) => {
     try {
-      const parsed = insertActivitySchema.parse(req.body);
+      const body = { ...req.body, date: req.body.date ? new Date(req.body.date) : undefined };
+      const parsed = insertActivitySchema.parse(body);
       const activity = await storage.createActivity(parsed);
       res.status(201).json(activity);
     } catch (err) {
