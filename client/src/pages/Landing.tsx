@@ -16,7 +16,6 @@ const residentSchema = z.object({
   role: z.literal("resident"),
   lotNumber: z.string().min(1, "Lot number is required"),
   lastName: z.string().min(2, "Last name is required"),
-  pin: z.string().length(4, "PIN must be 4 digits").regex(/^\d{4}$/, "PIN must be 4 digits"),
 });
 
 const adminSchema = z.object({
@@ -173,14 +172,14 @@ export default function Landing() {
 function ResidentLogin({ onBack, onSubmit, isLoading, error }: { onBack: () => void, onSubmit: any, isLoading: boolean, error: Error | null }) {
   const form = useForm({
     resolver: zodResolver(residentSchema),
-    defaultValues: { role: "resident" as const, lotNumber: "", lastName: "", pin: "" },
+    defaultValues: { role: "resident" as const, lotNumber: "", lastName: "" },
   });
 
   return (
     <div className="space-y-6">
       <div className="text-center">
         <h2 className="text-xl font-bold font-display text-primary">Resident Login</h2>
-        <p className="text-sm text-muted-foreground">Enter your lot info and PIN to access the portal</p>
+        <p className="text-sm text-muted-foreground">Enter your lot number and last name to continue</p>
       </div>
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md text-sm" data-testid="text-login-error">
@@ -210,26 +209,6 @@ function ResidentLogin({ onBack, onSubmit, isLoading, error }: { onBack: () => v
                 <FormLabel>Last Name</FormLabel>
                 <FormControl>
                   <Input placeholder="" {...field} data-testid="input-last-name" />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="pin"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>PIN</FormLabel>
-                <FormControl>
-                  <Input
-                    type="password"
-                    inputMode="numeric"
-                    maxLength={4}
-                    placeholder="4-digit PIN"
-                    {...field}
-                    data-testid="input-resident-pin"
-                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>

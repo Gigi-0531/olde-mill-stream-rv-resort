@@ -166,10 +166,8 @@ export function registerRoutes(_server: any, app: Express) {
       } else if (role === "resident") {
         const lotNumber = String(req.body.lotNumber || "").trim();
         const lastName = String(req.body.lastName || "").trim();
-        const pin = String(req.body.pin || "").trim();
-
-        if (!lotNumber || !lastName || !pin) {
-          return res.status(400).json({ message: "Please enter your lot number, last name, and PIN." });
+        if (!lotNumber || !lastName) {
+          return res.status(400).json({ message: "Please enter your lot number and last name." });
         }
 
         const candidates = await storage.getUsersByLotAndName(lotNumber, lastName);
@@ -178,11 +176,9 @@ export function registerRoutes(_server: any, app: Express) {
           return res.status(401).json({ message: "No resident found with that lot number and last name. Please check your info and try again." });
         }
 
-        const matching = candidates.filter(r => r.pin === pin);
+        const matching = candidates;
 
-        if (matching.length === 0) {
-          return res.status(401).json({ message: "Incorrect PIN. Please check your PIN and try again." });
-        } else if (matching.length === 1) {
+        if (matching.length === 1) {
           const user = matching[0];
           req.session.userId = user.id;
           return res.json(safeUser(user));
