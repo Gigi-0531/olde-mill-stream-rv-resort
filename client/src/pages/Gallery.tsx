@@ -21,7 +21,7 @@ export default function Gallery() {
           <h1 className="text-3xl font-display font-bold text-white" data-testid="text-gallery-title">Photo Gallery</h1>
           <p className="text-white/80 max-w-md">Photos from around Olde Mill Stream RV Resort</p>
           {photos && photos.length > 0 && (
-            <Badge variant="secondary" className="mt-1 no-default-hover-elevate no-default-active-elevate">
+            <Badge variant="secondary" className="mt-1 no-default-hover-elevate no-default-active-elevate bg-white/20 text-white border-white/30 backdrop-blur-sm">
               <Camera className="w-3 h-3 mr-1" />
               {photos.length} photo{photos.length !== 1 ? "s" : ""}
             </Badge>
@@ -56,11 +56,6 @@ export default function Gallery() {
                       )}
                     </div>
                   </div>
-                  {photo.title && (
-                    <div className="p-3">
-                      <p className="text-sm font-medium line-clamp-2">{photo.title}</p>
-                    </div>
-                  )}
                 </CardContent>
               </Card>
             ))}

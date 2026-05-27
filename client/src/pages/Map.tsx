@@ -12,15 +12,17 @@ export default function MapPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-sky-50 via-background to-amber-50/30 dark:from-sky-950/20 dark:via-background dark:to-amber-950/20 p-4 md:p-8 pt-20">
-      <div className="max-w-6xl mx-auto space-y-6">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-sky-500 to-[#1E3A5F] mb-4 shadow-lg">
+    <div className="min-h-screen bg-gradient-to-b from-sky-50 via-background to-background dark:from-sky-950/20 dark:via-background dark:to-background pt-16">
+      <div className="bg-gradient-to-r from-[#1E3A5F] via-[#2a4a6e] to-sky-600 text-white py-10 px-4 mb-8">
+        <div className="max-w-6xl mx-auto flex flex-col items-center text-center gap-3">
+          <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center mb-1">
             <MapPin className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-3xl md:text-4xl font-display font-bold bg-gradient-to-r from-[#1E3A5F] to-sky-600 bg-clip-text text-transparent">Resort Map</h1>
-          <p className="text-muted-foreground mt-2">Find your way around Olde Mill Stream RV Resort</p>
+          <h1 className="text-3xl md:text-4xl font-display font-bold text-white">Resort Map</h1>
+          <p className="text-white/80 max-w-md">Find your way around Olde Mill Stream RV Resort</p>
         </div>
+      </div>
+      <div className="max-w-6xl mx-auto space-y-6 px-4 md:px-8 pb-12">
 
         {/* Get Directions Card */}
         <Card className="p-6 bg-gradient-to-br from-[#2a4a6e] to-[#1E3A5F] text-white border-none shadow-xl">

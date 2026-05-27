@@ -25,12 +25,12 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-background pb-20 pt-16">
       <PermissionsPrompt />
-      <div className="bg-[#4a7ab0] pb-32 pt-10 px-4 md:px-8">
+      <div className="bg-gradient-to-r from-[#1E3A5F] via-[#2a4a6e] to-sky-600 pb-32 pt-10 px-4 md:px-8">
         <div className="max-w-7xl mx-auto">
           <h1 className="text-3xl md:text-4xl font-display text-white mb-2">
             Welcome home {user?.lastName || 'Guest'} Family!
           </h1>
-          <p className="text-primary-foreground/80 text-lg">
+          <p className="text-white/75 text-lg">
             Lot {user?.lotNumber} • {new Date().toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
           </p>
         </div>
