@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "j87Vgz0Dmn1JMOFlPWkNZ"
+uri = "file://client/src/assets/logo.jpg"
+type = "image"
+title = "Olde Mill Stream RV Resort Logo"
