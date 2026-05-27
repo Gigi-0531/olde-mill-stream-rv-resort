@@ -106,6 +106,18 @@ export const messages = pgTable("messages", {
 });
 
 /* ======================================================
+   PUBLIC DIRECTORY
+====================================================== */
+
+export const directoryEntries = pgTable("directory_entries", {
+  id: serial("id").primaryKey(),
+  lotNumber: text("lot_number"),
+  name: text("name").notNull(),
+  phone: text("phone"),
+  createdAt: timestamp("created_at", { withTimezone: false }).defaultNow().notNull(),
+});
+
+/* ======================================================
    PUSH SUBSCRIPTIONS
 ====================================================== */
 
@@ -185,6 +197,8 @@ export type InsertMessage = z.infer<typeof insertMessageSchema>;
 
 export type PushSubscription = typeof pushSubscriptions.$inferSelect;
 export type InsertPushSubscription = z.infer<typeof insertPushSubscriptionSchema>;
+
+export type DirectoryEntry = typeof directoryEntries.$inferSelect;
 
 /* ======================================================
    AUTH / LOGIN INPUT (SAFE UNION)

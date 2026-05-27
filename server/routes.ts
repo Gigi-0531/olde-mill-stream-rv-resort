@@ -331,6 +331,59 @@ export function registerRoutes(_server: any, app: Express) {
     }
   });
 
+  // -------- Public Directory (resident-viewable) --------
+  app.get("/api/directory/public", requireAuth, async (_req: Request, res: Response) => {
+    try {
+      const entries = await storage.getDirectoryEntries();
+      res.json(entries);
+    } catch (err) {
+      console.error("Public directory error:", err);
+      res.status(500).json({ message: "Failed to load directory" });
+    }
+  });
+
+  app.post("/api/admin/public-directory/upload", requireAdmin, upload.single("file"), async (req: Request, res: Response) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.load(req.file.buffer);
+      const ws = workbook.worksheets[0];
+      if (!ws) {
+        return res.status(400).json({ message: "No worksheet found in file" });
+      }
+      const entries: { lotNumber?: string; name: string; phone?: string }[] = [];
+      ws.eachRow({ includeEmpty: false }, (row: any, rowNumber: number) => {
+        if (rowNumber === 1) return;
+        const lotNumber = String(row.values[1] || "").trim() || undefined;
+        const name = String(row.values[2] || "").trim();
+        const phone = String(row.values[3] || "").trim() || undefined;
+        if (name) {
+          entries.push({ lotNumber, name, phone });
+        }
+      });
+      if (entries.length === 0) {
+        return res.status(400).json({ message: "No data found in file" });
+      }
+      await storage.replaceDirectoryEntries(entries);
+      res.json({ message: `Directory updated with ${entries.length} entries.`, total: entries.length });
+    } catch (err) {
+      console.error("Public directory upload error:", err);
+      res.status(500).json({ message: "Failed to process file" });
+    }
+  });
+
+  app.delete("/api/admin/public-directory", requireAdmin, async (_req: Request, res: Response) => {
+    try {
+      await storage.clearDirectoryEntries();
+      res.json({ message: "Directory cleared." });
+    } catch (err) {
+      console.error("Public directory clear error:", err);
+      res.status(500).json({ message: "Failed to clear directory" });
+    }
+  });
+
   // -------- Activities CRUD --------
   app.get("/api/activities", async (_req: Request, res: Response) => {
     try {

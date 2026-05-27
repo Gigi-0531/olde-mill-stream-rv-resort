@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertActivitySchema } from "@shared/schema";
+import { z } from "zod";
 import { Plus, Trash2, Calendar, Bell, MapPin, Clock, Image, Loader2, Users, Pencil, Search, MessageSquare, Check, X, Upload, FileSpreadsheet, ShieldCheck } from "lucide-react";
 import { format } from "date-fns";
 import { useState, useRef, useCallback } from "react";
@@ -133,6 +133,13 @@ function AdminContent() {
   );
 }
 
+const activityFormSchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  description: z.string().optional().nullable(),
+  location: z.string().optional().nullable(),
+  date: z.string().min(1, "Date and time are required"),
+});
+
 function ActivitiesManager() {
   const { data: activities, isLoading } = useActivities();
   const createActivity = useCreateActivity();
@@ -140,22 +147,21 @@ function ActivitiesManager() {
   const [isOpen, setIsOpen] = useState(false);
 
   const form = useForm({
-    resolver: zodResolver(insertActivitySchema),
+    resolver: zodResolver(activityFormSchema),
     defaultValues: {
       title: "",
       description: "",
       location: "",
-      date: new Date(), // This needs careful handling with date inputs
+      date: "",
     },
   });
 
-  const onSubmit = (data: any) => {
-    // Convert Date object to ISO string for API
+  const onSubmit = (data: z.infer<typeof activityFormSchema>) => {
     const payload = {
       ...data,
-      date: data.date instanceof Date ? data.date.toISOString() : data.date,
+      date: new Date(data.date).toISOString(),
     };
-    createActivity.mutate(payload, {
+    createActivity.mutate(payload as any, {
       onSuccess: () => {
         setIsOpen(false);
         form.reset();
@@ -197,39 +203,14 @@ function ActivitiesManager() {
                     control={form.control}
                     name="date"
                     render={({ field }) => {
-                      const formatDateForInput = (date: Date | string | undefined) => {
-                        if (!date) return '';
-                        try {
-                          const d = new Date(date);
-                          if (isNaN(d.getTime())) return '';
-                          // Format in EST so the picker shows the correct local time
-                          const estStr = d.toLocaleString("en-US", {
-                            timeZone: "America/New_York",
-                            year: "numeric", month: "2-digit", day: "2-digit",
-                            hour: "2-digit", minute: "2-digit", hour12: false,
-                          });
-                          // estStr is like "06/01/2024, 14:00"
-                          const [datePart, timePart] = estStr.split(", ");
-                          const [month, day, year] = datePart.split("/");
-                          const safeTime = timePart === "24:00" ? "00:00" : timePart;
-                          return `${year}-${month}-${day}T${safeTime}`;
-                        } catch {
-                          return '';
-                        }
-                      };
                       return (
                         <FormItem>
                           <FormLabel>Date & Time (EST)</FormLabel>
                           <FormControl>
-                            <Input 
-                              type="datetime-local" 
-                              value={formatDateForInput(field.value)}
-                              onChange={(e) => {
-                                const val = e.target.value;
-                                if (val) {
-                                  field.onChange(new Date(val));
-                                }
-                              }}
+                            <Input
+                              type="datetime-local"
+                              value={field.value || ""}
+                              onChange={(e) => field.onChange(e.target.value)}
                             />
                           </FormControl>
                           <FormMessage />

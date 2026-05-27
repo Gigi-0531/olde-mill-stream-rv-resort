@@ -1,12 +1,13 @@
 import { db } from "./db";
 import {
-  users, activities, notifications, galleryPhotos, messages, pushSubscriptions,
+  users, activities, notifications, galleryPhotos, messages, pushSubscriptions, directoryEntries,
   type User, type InsertUser,
   type Activity, type InsertActivity,
   type Notification, type InsertNotification,
   type GalleryPhoto, type InsertGalleryPhoto,
   type Message, type InsertMessage,
-  type PushSubscription, type InsertPushSubscription
+  type PushSubscription, type InsertPushSubscription,
+  type DirectoryEntry,
 } from "@shared/schema";
 import { eq, ilike, or, and, desc, isNull } from "drizzle-orm";
 
@@ -59,6 +60,11 @@ export interface IStorage {
   savePushSubscription(subscription: InsertPushSubscription): Promise<PushSubscription>;
   updatePushPreferences(userId: number, weatherEnabled: boolean, alertsEnabled: boolean): Promise<void>;
   deletePushSubscription(userId: number): Promise<void>;
+
+  // Public Directory
+  getDirectoryEntries(): Promise<DirectoryEntry[]>;
+  replaceDirectoryEntries(entries: { lotNumber?: string; name: string; phone?: string }[]): Promise<void>;
+  clearDirectoryEntries(): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -313,6 +319,21 @@ export class DatabaseStorage implements IStorage {
 
   async deletePushSubscription(userId: number): Promise<void> {
     await db.delete(pushSubscriptions).where(eq(pushSubscriptions.userId, userId));
+  }
+
+  async getDirectoryEntries(): Promise<DirectoryEntry[]> {
+    return db.select().from(directoryEntries).orderBy(directoryEntries.lotNumber, directoryEntries.name);
+  }
+
+  async replaceDirectoryEntries(entries: { lotNumber?: string; name: string; phone?: string }[]): Promise<void> {
+    await db.delete(directoryEntries);
+    if (entries.length > 0) {
+      await db.insert(directoryEntries).values(entries);
+    }
+  }
+
+  async clearDirectoryEntries(): Promise<void> {
+    await db.delete(directoryEntries);
   }
 }
 
