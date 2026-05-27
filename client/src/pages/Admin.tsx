@@ -22,6 +22,11 @@ import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import type { GalleryPhoto } from "@shared/schema";
 
+function toEST(date: Date | string): Date {
+  const d = new Date(date);
+  return new Date(d.toLocaleString("en-US", { timeZone: "America/New_York" }));
+}
+
 export default function Admin() {
   const { user } = useAuth();
   
@@ -197,14 +202,24 @@ function ActivitiesManager() {
                         try {
                           const d = new Date(date);
                           if (isNaN(d.getTime())) return '';
-                          return d.toISOString().slice(0, 16);
+                          // Format in EST so the picker shows the correct local time
+                          const estStr = d.toLocaleString("en-US", {
+                            timeZone: "America/New_York",
+                            year: "numeric", month: "2-digit", day: "2-digit",
+                            hour: "2-digit", minute: "2-digit", hour12: false,
+                          });
+                          // estStr is like "06/01/2024, 14:00"
+                          const [datePart, timePart] = estStr.split(", ");
+                          const [month, day, year] = datePart.split("/");
+                          const safeTime = timePart === "24:00" ? "00:00" : timePart;
+                          return `${year}-${month}-${day}T${safeTime}`;
                         } catch {
                           return '';
                         }
                       };
                       return (
                         <FormItem>
-                          <FormLabel>Date & Time</FormLabel>
+                          <FormLabel>Date & Time (EST)</FormLabel>
                           <FormControl>
                             <Input 
                               type="datetime-local" 
@@ -268,13 +283,13 @@ function ActivitiesManager() {
             <Card key={activity.id} className="flex flex-row items-center justify-between p-4">
               <div className="flex gap-4 items-center">
                 <div className="bg-primary/10 w-16 h-16 rounded-lg flex flex-col items-center justify-center text-primary font-bold">
-                  <span className="text-xs uppercase">{format(new Date(activity.date), 'MMM')}</span>
-                  <span className="text-xl">{format(new Date(activity.date), 'd')}</span>
+                  <span className="text-xs uppercase">{format(toEST(activity.date), 'MMM')}</span>
+                  <span className="text-xl">{format(toEST(activity.date), 'd')}</span>
                 </div>
                 <div>
                   <h4 className="font-bold">{activity.title}</h4>
                   <p className="text-sm text-muted-foreground flex items-center gap-2">
-                    <Clock className="w-3 h-3" /> {format(new Date(activity.date), 'h:mm a')}
+                    <Clock className="w-3 h-3" /> {format(toEST(activity.date), 'h:mm a')} EST
                     <MapPin className="w-3 h-3 ml-2" /> {activity.location}
                   </p>
                 </div>

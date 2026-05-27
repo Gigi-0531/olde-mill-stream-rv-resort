@@ -4,6 +4,11 @@ import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { Calendar as CalendarIcon, MapPin, Clock, Sparkles } from "lucide-react";
 
+function toEST(date: Date | string): Date {
+  const d = new Date(date);
+  return new Date(d.toLocaleString("en-US", { timeZone: "America/New_York" }));
+}
+
 export default function Activities() {
   const { data: activities, isLoading } = useActivities();
 
@@ -65,13 +70,13 @@ export default function Activities() {
                   <div className="flex flex-col md:flex-row">
                     <div className="bg-gradient-to-br from-[#1E3A5F] to-sky-600 text-white p-6 flex flex-col items-center justify-center min-w-[120px] text-center rounded-md md:rounded-r-none">
                       <span className="text-sm font-bold uppercase tracking-wider opacity-80">
-                        {format(new Date(activity.date), 'MMM')}
+                        {format(toEST(activity.date), 'MMM')}
                       </span>
                       <span className="text-4xl font-display font-bold">
-                        {format(new Date(activity.date), 'd')}
+                        {format(toEST(activity.date), 'd')}
                       </span>
                       <span className="text-sm opacity-80">
-                        {format(new Date(activity.date), 'EEEE')}
+                        {format(toEST(activity.date), 'EEEE')}
                       </span>
                     </div>
                     <CardContent className="p-6 flex-1">
@@ -81,7 +86,7 @@ export default function Activities() {
                       <div className="flex flex-wrap gap-4 text-sm text-muted-foreground mb-4">
                         <div className="flex items-center gap-1">
                           <Clock className="w-4 h-4" />
-                          {format(new Date(activity.date), 'h:mm a')}
+                          {format(toEST(activity.date), 'h:mm a')} EST
                         </div>
                         <div className="flex items-center gap-1">
                           <MapPin className="w-4 h-4" />
