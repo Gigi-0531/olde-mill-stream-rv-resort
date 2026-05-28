@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "318911258810",
+    "project_id": "gigi-digital-llc",
+    "storage_bucket": "gigi-digital-llc.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:318911258810:android:f238eafd292dbb95d2a283",
+        "android_client_info": {
+          "package_name": "co.median.android.eeeoqdw"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC9GiPNodDUtnx-AqJCr2r1-GhvFK2cIx0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
