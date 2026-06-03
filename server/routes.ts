@@ -796,6 +796,19 @@ export function registerRoutes(_server: any, app: Express) {
     }
   });
 
+  // Register a native iOS APNs device token (called from Swift app after login)
+  app.post("/api/push/register-apns", requireAuth, async (req: Request & { session: any }, res: Response) => {
+    try {
+      const token = String(req.body.token || "").trim();
+      if (!token) return res.status(400).json({ message: "token is required" });
+      await storage.saveApnsToken(token, req.session.userId);
+      res.json({ success: true });
+    } catch (err) {
+      console.error("APNs token registration error:", err);
+      res.status(500).json({ message: "Failed to register APNs token" });
+    }
+  });
+
   // -------- Help / Contact --------
   app.post("/api/help", requireAuth, async (req: Request & { session: any }, res: Response) => {
     try {

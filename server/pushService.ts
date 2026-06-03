@@ -1,5 +1,8 @@
 import webpush from 'web-push';
+import apn from 'apn';
 import { storage } from './storage';
+
+// ── WebPush / VAPID ──────────────────────────────────────────────────────────
 
 const vapidPublicKey = process.env.VAPID_PUBLIC_KEY;
 const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY;
@@ -12,6 +15,59 @@ if (vapidPublicKey && vapidPrivateKey) {
   );
 }
 
+// ── APNs ─────────────────────────────────────────────────────────────────────
+
+const apnsKeyId = process.env.APNS_KEY_ID;
+const apnsTeamId = process.env.APNS_TEAM_ID;
+const apnsBundleId = process.env.APNS_BUNDLE_ID;
+const apnsKeyP8 = process.env.APNS_KEY_P8;
+
+let apnsProvider: apn.Provider | null = null;
+
+if (apnsKeyId && apnsTeamId && apnsKeyP8) {
+  try {
+    apnsProvider = new apn.Provider({
+      token: {
+        key: Buffer.from(apnsKeyP8.replace(/\\n/g, '\n')),
+        keyId: apnsKeyId,
+        teamId: apnsTeamId,
+      },
+      production: process.env.NODE_ENV === 'production',
+    });
+    console.log('APNs provider initialized');
+  } catch (err) {
+    console.error('APNs provider failed to initialize:', err);
+  }
+}
+
+export async function sendApnsAlert(title: string, body: string): Promise<number> {
+  if (!apnsProvider || !apnsBundleId) return 0;
+
+  const tokens = await storage.getAllApnsTokens();
+  if (!tokens.length) return 0;
+
+  const note = new apn.Notification();
+  note.expiry = Math.floor(Date.now() / 1000) + 3600;
+  note.badge = 1;
+  note.sound = 'default';
+  note.alert = { title, body };
+  note.topic = apnsBundleId;
+
+  const deviceTokens = tokens.map(t => t.token);
+  const result = await apnsProvider.send(note, deviceTokens);
+
+  for (const failed of result.failed) {
+    const reason = (failed as any).response?.reason;
+    if (reason === 'BadDeviceToken' || reason === 'Unregistered') {
+      await storage.deleteApnsToken(failed.device);
+    }
+  }
+
+  return result.sent.length;
+}
+
+// ── Shared payload type ───────────────────────────────────────────────────────
+
 interface PushPayload {
   title: string;
   body: string;
@@ -20,6 +76,8 @@ interface PushPayload {
   type?: 'weather' | 'alert' | 'general';
 }
 
+// ── Per-user WebPush ──────────────────────────────────────────────────────────
+
 export async function sendPushToUser(userId: number, payload: PushPayload): Promise<boolean> {
   try {
     const subscription = await storage.getPushSubscription(userId);
@@ -27,10 +85,7 @@ export async function sendPushToUser(userId: number, payload: PushPayload): Prom
 
     const pushSubscription = {
       endpoint: subscription.endpoint,
-      keys: {
-        p256dh: subscription.p256dh,
-        auth: subscription.auth,
-      },
+      keys: { p256dh: subscription.p256dh, auth: subscription.auth },
     };
 
     await webpush.sendNotification(pushSubscription, JSON.stringify(payload));
@@ -44,6 +99,8 @@ export async function sendPushToUser(userId: number, payload: PushPayload): Prom
   }
 }
 
+// ── Broadcast WebPush to weather subscribers ──────────────────────────────────
+
 export async function sendWeatherAlert(title: string, body: string): Promise<number> {
   const subscriptions = await storage.getAllPushSubscriptions('weather');
   let successCount = 0;
@@ -51,19 +108,11 @@ export async function sendWeatherAlert(title: string, body: string): Promise<num
   for (const sub of subscriptions) {
     const pushSubscription = {
       endpoint: sub.endpoint,
-      keys: {
-        p256dh: sub.p256dh,
-        auth: sub.auth,
-      },
+      keys: { p256dh: sub.p256dh, auth: sub.auth },
     };
-
     try {
       await webpush.sendNotification(pushSubscription, JSON.stringify({
-        title,
-        body,
-        tag: 'weather',
-        url: '/',
-        type: 'weather',
+        title, body, tag: 'weather', url: '/', type: 'weather',
       }));
       successCount++;
     } catch (error: any) {
@@ -76,26 +125,21 @@ export async function sendWeatherAlert(title: string, body: string): Promise<num
   return successCount;
 }
 
+// ── Broadcast resort alert to WebPush + APNs ──────────────────────────────────
+
 export async function sendResortAlert(title: string, body: string): Promise<number> {
   const subscriptions = await storage.getAllPushSubscriptions('alerts');
   let successCount = 0;
 
+  // WebPush
   for (const sub of subscriptions) {
     const pushSubscription = {
       endpoint: sub.endpoint,
-      keys: {
-        p256dh: sub.p256dh,
-        auth: sub.auth,
-      },
+      keys: { p256dh: sub.p256dh, auth: sub.auth },
     };
-
     try {
       await webpush.sendNotification(pushSubscription, JSON.stringify({
-        title,
-        body,
-        tag: 'resort-alert',
-        url: '/',
-        type: 'alert',
+        title, body, tag: 'resort-alert', url: '/', type: 'alert',
       }));
       successCount++;
     } catch (error: any) {
@@ -104,6 +148,10 @@ export async function sendResortAlert(title: string, body: string): Promise<numb
       }
     }
   }
+
+  // APNs (native iOS)
+  const apnsSent = await sendApnsAlert(title, body);
+  successCount += apnsSent;
 
   return successCount;
 }

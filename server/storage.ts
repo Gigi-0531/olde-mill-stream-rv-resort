@@ -1,6 +1,6 @@
 import { db } from "./db";
 import {
-  users, activities, notifications, galleryPhotos, messages, pushSubscriptions, directoryEntries,
+  users, activities, notifications, galleryPhotos, messages, pushSubscriptions, directoryEntries, apnsTokens,
   type User, type InsertUser,
   type Activity, type InsertActivity,
   type Notification, type InsertNotification,
@@ -8,6 +8,7 @@ import {
   type Message, type InsertMessage,
   type PushSubscription, type InsertPushSubscription,
   type DirectoryEntry,
+  type ApnsToken,
 } from "@shared/schema";
 import { eq, ilike, or, and, desc, isNull } from "drizzle-orm";
 
@@ -65,6 +66,11 @@ export interface IStorage {
   getDirectoryEntries(): Promise<DirectoryEntry[]>;
   replaceDirectoryEntries(entries: { lotNumber?: string; name: string; phone?: string }[]): Promise<void>;
   clearDirectoryEntries(): Promise<void>;
+
+  // APNs Tokens
+  saveApnsToken(token: string, userId?: number): Promise<void>;
+  getAllApnsTokens(): Promise<ApnsToken[]>;
+  deleteApnsToken(token: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -334,6 +340,20 @@ export class DatabaseStorage implements IStorage {
 
   async clearDirectoryEntries(): Promise<void> {
     await db.delete(directoryEntries);
+  }
+
+  async saveApnsToken(token: string, userId?: number): Promise<void> {
+    await db.insert(apnsTokens)
+      .values({ token, userId })
+      .onConflictDoUpdate({ target: apnsTokens.token, set: { userId } });
+  }
+
+  async getAllApnsTokens(): Promise<ApnsToken[]> {
+    return db.select().from(apnsTokens);
+  }
+
+  async deleteApnsToken(token: string): Promise<void> {
+    await db.delete(apnsTokens).where(eq(apnsTokens.token, token));
   }
 }
 

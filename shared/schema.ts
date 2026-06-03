@@ -135,6 +135,19 @@ export const pushSubscriptions = pgTable("push_subscriptions", {
 });
 
 /* ======================================================
+   APNS TOKENS
+====================================================== */
+
+export const apnsTokens = pgTable("apns_tokens", {
+  id: serial("id").primaryKey(),
+  token: text("token").notNull().unique(),
+  userId: integer("user_id"),
+  createdAt: timestamp("created_at", { withTimezone: false }).defaultNow().notNull(),
+});
+
+export type ApnsToken = typeof apnsTokens.$inferSelect;
+
+/* ======================================================
    INSERT SCHEMAS (ZOD)
 ====================================================== */
 
