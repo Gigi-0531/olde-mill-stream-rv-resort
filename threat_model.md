@@ -18,7 +18,7 @@ The production deployment is assumed to run with `NODE_ENV=production` and TLS t
 ## Trust Boundaries
 
 - **Browser to Express API** — all client input crosses into `server/routes.ts`; the browser is untrusted and every sensitive route must enforce authentication and authorization server-side.
-- **Unauthenticated to authenticated users** — public content such as activities, notifications, gallery, weather, and health checks is separate from resident-only endpoints such as the directory, messages, push preferences, and profile updates.
+- **Unauthenticated to authenticated users** — public content such as activities, notifications, gallery, weather, and health checks is separate from resident-only endpoints such as the directory, messages, push preferences, profile updates, and image moderation.
 - **Authenticated resident to admin** — admin-only actions include directory upload, resident management, activity/notification management, message moderation, and gallery moderation. This boundary must be enforced on the server, not just in the React router.
 - **Express API to PostgreSQL** — the API has direct read/write access to the full application dataset. Broken access control or injection in the API layer directly impacts stored resident data.
 - **Express API to third-party services** — the server calls external weather, moderation, push, and storage services using backend-held credentials; user-controlled data must not turn those integrations into SSRF, data-leak, or privilege-bypass paths.
@@ -27,9 +27,9 @@ The production deployment is assumed to run with `NODE_ENV=production` and TLS t
 ## Scan Anchors
 
 - **Production entry points:** `server/index.ts`, `server/routes.ts`, `server/storage.ts`, `server/db.ts`, `shared/schema.ts`, `client/src/App.tsx`.
-- **Highest-risk areas:** auth/session setup and login flows in `server/routes.ts`; role-protected CRUD routes; message state changes in `server/storage.ts`; resident directory exposure; upload/object-path handling.
+- **Highest-risk areas:** auth/session setup and login flows in `server/routes.ts`; role-protected CRUD routes; message state changes in `server/storage.ts`; resident directory exposure; upload/object-path handling; external-service-triggering routes such as `/api/weather` and `/api/moderate/image`.
 - **Public surfaces:** `/health`, `/api/activities`, `/api/notifications`, `/api/gallery`, `/api/weather`, login/logout endpoints.
-- **Authenticated resident surfaces:** `/api/directory`, `/api/messages/*`, `/api/users`, `/api/push/*`, `/api/help`, `/api/profile/picture`, gallery submission.
+- **Authenticated resident surfaces:** `/api/directory`, `/api/messages/*`, `/api/users`, `/api/push/*`, `/api/help`, `/api/profile/picture`, `/api/moderate/image`, gallery submission.
 - **Admin surfaces:** `/api/admin/directory/upload`, `/api/residents*`, `/api/activities` mutating routes, `/api/notifications` mutating routes, gallery moderation, pending messages.
 - **Usually ignore unless proven reachable in production:** `server/replit_integrations/chat/**`, `server/replit_integrations/audio/**`, `server/replit_integrations/image/**`, and sample object-storage routes unless they are explicitly registered from the main server.
 
