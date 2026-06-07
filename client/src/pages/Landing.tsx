@@ -24,46 +24,14 @@ const adminSchema = z.object({
   password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
-const pinSchema = z.object({
-  pin: z.string().min(4, "PIN must be at least 4 digits").max(6, "PIN must be at most 6 digits").regex(/^\d+$/, "PIN must be digits only"),
-});
-
 export default function Landing() {
-  const { user, login, isLoggingIn, loginError, pendingProfiles, selectProfile, isSelectingProfile, clearPendingProfiles, requiresPin, verifyPin, isVerifyingPin, pinError, clearPinState } = useAuth();
+  const { user, login, isLoggingIn, loginError, pendingProfiles, selectProfile, isSelectingProfile, clearPendingProfiles } = useAuth();
   const [mode, setMode] = useState<'select' | 'resident' | 'admin'>('select');
 
-  // If already logged in, redirect
   if (user) {
     return <Redirect to={user.role === 'admin' ? '/admin' : '/dashboard'} />;
   }
 
-  // PIN entry screen
-  if (requiresPin) {
-    return (
-      <div className="min-h-screen bg-[#E6F3F7] flex flex-col items-center justify-center p-4">
-        <div className="w-full max-w-md space-y-4">
-          <div className="text-center space-y-2">
-            <div className="relative w-40 h-40 mx-auto bg-[#E6F3F7] rounded-lg">
-              <img src={logoImg} alt="Olde Mill Stream" className="w-full h-full object-contain mix-blend-multiply" />
-            </div>
-          </div>
-
-          <Card className="border-none shadow-2xl bg-white/95 backdrop-blur-sm">
-            <CardContent className="p-8">
-              <PinEntry
-                onBack={() => { clearPinState(); setMode('resident'); }}
-                onSubmit={({ pin }) => verifyPin(pin)}
-                isLoading={isVerifyingPin}
-                error={pinError}
-              />
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    );
-  }
-
-  // Profile selection screen
   if (pendingProfiles && pendingProfiles.length > 0) {
     return (
       <div className="min-h-screen bg-[#E6F3F7] flex flex-col items-center justify-center p-4">
@@ -81,7 +49,7 @@ export default function Landing() {
                   <h2 className="text-xl font-bold text-primary" data-testid="text-select-profile">Who's logging in?</h2>
                   <p className="text-sm text-muted-foreground">Select your profile to continue</p>
                 </div>
-                
+
                 <div className="space-y-3">
                   {pendingProfiles.map((profile) => (
                     <Button
@@ -125,9 +93,8 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen bg-[#E6F3F7] flex flex-col items-center justify-center p-4 relative overflow-hidden">
-      {/* Corner Ribbon - 40th Anniversary */}
       <div className="absolute top-0 left-0 z-50 overflow-hidden w-40 h-40">
-        <div 
+        <div
           className="absolute top-6 -left-14 w-60 bg-gradient-to-r from-amber-600 via-yellow-400 to-amber-600 text-center py-3.5 shadow-xl transform -rotate-45"
           style={{ boxShadow: '0 4px 15px rgba(0,0,0,0.4)' }}
         >
@@ -135,15 +102,13 @@ export default function Landing() {
           <span className="block text-black text-xs font-semibold tracking-wide">1986-2026</span>
         </div>
       </div>
-      
-      
+
       <div className="w-full max-w-md space-y-4 animate-in fade-in zoom-in duration-500">
         <div className="text-center space-y-2">
           <div className="relative w-56 h-56 mx-auto bg-[#E6F3F7] rounded-lg">
-             <img src={logoImg} alt="Olde Mill Stream" className="w-full h-full object-contain mix-blend-multiply" />
+            <img src={logoImg} alt="Olde Mill Stream" className="w-full h-full object-contain mix-blend-multiply" />
           </div>
-          
-          
+
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold text-[#2a4a6e] uppercase" style={{ fontFamily: "'Libre Baskerville', serif" }}>Olde Mill Stream<br />RV Resort</h1>
             <p className="text-muted-foreground text-sm mt-1">1000 N. Central Ave Umatilla, FL 32784</p>
@@ -157,16 +122,16 @@ export default function Landing() {
               <div className="space-y-4">
                 <p className="text-center text-lg font-semibold text-foreground">Welcome Home!</p>
                 <p className="text-center text-muted-foreground mb-6">Please select your login type to continue.</p>
-                <Button 
-                  onClick={() => setMode('resident')} 
+                <Button
+                  onClick={() => setMode('resident')}
                   className="w-full h-14 text-lg gap-3 bg-[#1E3A5F] hover:bg-[#152a45]"
                   data-testid="button-resident-login"
                 >
                   <User className="w-5 h-5" /> Resident Portal
                 </Button>
-                <Button 
-                  onClick={() => setMode('admin')} 
-                  variant="outline" 
+                <Button
+                  onClick={() => setMode('admin')}
+                  variant="outline"
                   className="w-full h-14 text-lg gap-3 border-[#1E3A5F] text-[#1E3A5F] hover:bg-[#1E3A5F]/5"
                   data-testid="button-admin-login"
                 >
@@ -176,18 +141,18 @@ export default function Landing() {
             )}
 
             {mode === 'resident' && (
-              <ResidentLogin 
-                onBack={() => setMode('select')} 
-                onSubmit={login} 
+              <ResidentLogin
+                onBack={() => setMode('select')}
+                onSubmit={login}
                 isLoading={isLoggingIn}
                 error={loginError}
               />
             )}
 
             {mode === 'admin' && (
-              <AdminLogin 
-                onBack={() => setMode('select')} 
-                onSubmit={login} 
+              <AdminLogin
+                onBack={() => setMode('select')}
+                onSubmit={login}
                 isLoading={isLoggingIn}
                 error={loginError}
               />
@@ -247,58 +212,6 @@ function ResidentLogin({ onBack, onSubmit, isLoading, error }: { onBack: () => v
           <div className="pt-2 flex gap-3">
             <Button type="button" variant="ghost" onClick={onBack} className="flex-1">Back</Button>
             <Button type="submit" className="flex-1" disabled={isLoading} data-testid="button-resident-submit">
-              {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Next
-            </Button>
-          </div>
-        </form>
-      </Form>
-    </div>
-  );
-}
-
-function PinEntry({ onBack, onSubmit, isLoading, error }: { onBack: () => void, onSubmit: (data: { pin: string }) => void, isLoading: boolean, error: Error | null }) {
-  const form = useForm({
-    resolver: zodResolver(pinSchema),
-    defaultValues: { pin: "" },
-  });
-
-  return (
-    <div className="space-y-6">
-      <div className="text-center">
-        <h2 className="text-xl font-bold font-display text-primary">Enter Your PIN</h2>
-        <p className="text-sm text-muted-foreground">Enter the 4–6 digit PIN set up by the park office</p>
-      </div>
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md text-sm" data-testid="text-pin-error">
-          {error.message}
-        </div>
-      )}
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-          <FormField
-            control={form.control}
-            name="pin"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>PIN</FormLabel>
-                <FormControl>
-                  <Input
-                    type="password"
-                    inputMode="numeric"
-                    placeholder="••••"
-                    maxLength={6}
-                    {...field}
-                    data-testid="input-pin"
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <div className="pt-2 flex gap-3">
-            <Button type="button" variant="ghost" onClick={onBack} className="flex-1" data-testid="button-pin-back">Back</Button>
-            <Button type="submit" className="flex-1" disabled={isLoading} data-testid="button-pin-submit">
               {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               Login
             </Button>

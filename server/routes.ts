@@ -95,15 +95,6 @@ const ALLOWED_MODERATION_MIME_TYPES = new Set([
 // Maximum base64 payload size (~4 MB decoded ≈ ~5.4 MB base64)
 const MAX_BASE64_IMAGE_BYTES = 5_500_000;
 
-const pinLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 10,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { message: "Too many PIN attempts, please start over." },
-});
-
-const MAX_PIN_ATTEMPTS = 5;
 
 // ------------------- Routes -------------------
 export function registerRoutes(_server: any, app: Express) {
@@ -204,12 +195,10 @@ export function registerRoutes(_server: any, app: Express) {
 
         if (candidates.length === 1) {
           const user = candidates[0];
-          req.session.pendingPinUserId = user.id;
-          delete req.session.pendingProfiles;
-          return res.json({ requiresPin: true });
+          req.session.userId = user.id;
+          return res.json(safeUser(user));
         } else {
           req.session.pendingProfiles = candidates.map(r => r.id);
-          delete req.session.pendingPinUserId;
           return res.json({
             requiresProfileSelection: true,
             profiles: candidates.map(r => ({
@@ -259,64 +248,11 @@ export function registerRoutes(_server: any, app: Express) {
       const user = await storage.getUser(profileId);
       if (!user) return res.status(404).json({ message: "Profile not found" });
 
-      req.session.pendingPinUserId = user.id;
+      req.session.userId = user.id;
       delete req.session.pendingProfiles;
-      res.json({ requiresPin: true });
+      res.json(safeUser(user));
     } catch {
       res.status(400).json({ message: "Invalid request" });
-    }
-  });
-
-  // -------- Verify resident PIN (second factor) --------
-  app.post("/api/auth/verify-pin", pinLimiter, async (req: Request & { session: any }, res: Response) => {
-    try {
-      const pendingUserId: number | undefined = req.session.pendingPinUserId;
-      if (!pendingUserId) {
-        return res.status(401).json({ message: "No pending login. Please start over." });
-      }
-
-      const pin = String(req.body.pin || "").trim();
-      if (!pin) {
-        return res.status(400).json({ message: "Please enter your PIN." });
-      }
-
-      const attempts: number = (req.session.pinAttempts || 0) + 1;
-      req.session.pinAttempts = attempts;
-
-      if (attempts > MAX_PIN_ATTEMPTS) {
-        delete req.session.pendingPinUserId;
-        delete req.session.pinAttempts;
-        return res.status(429).json({ message: "Too many incorrect attempts. Please start over." });
-      }
-
-      const user = await storage.getUser(pendingUserId);
-      if (!user) {
-        delete req.session.pendingPinUserId;
-        delete req.session.pinAttempts;
-        return res.status(401).json({ message: "Account not found. Please start over." });
-      }
-
-      if (!user.pin) {
-        return res.status(401).json({ message: "Your account does not have a PIN set. Please contact the park office to have your PIN configured." });
-      }
-
-      const match = await bcrypt.compare(pin, user.pin);
-      if (!match) {
-        if (attempts >= MAX_PIN_ATTEMPTS) {
-          delete req.session.pendingPinUserId;
-          delete req.session.pinAttempts;
-          return res.status(429).json({ message: "Too many incorrect attempts. Please start over." });
-        }
-        return res.status(401).json({ message: "Incorrect PIN. Please try again." });
-      }
-
-      req.session.userId = user.id;
-      delete req.session.pendingPinUserId;
-      delete req.session.pinAttempts;
-      return res.json(safeUser(user));
-    } catch (err) {
-      console.error("Verify PIN error:", err);
-      res.status(500).json({ message: "Something went wrong. Please try again." });
     }
   });
 
@@ -831,21 +767,6 @@ export function registerRoutes(_server: any, app: Express) {
     }
   });
 
-  // -------- Admin: Set resident PIN --------
-  app.post("/api/residents/:id/pin", requireAdmin, async (req: Request, res: Response) => {
-    try {
-      const id = Number(req.params.id);
-      const pin = String(req.body.pin || "").trim();
-      if (!pin || !/^\d{4,6}$/.test(pin)) {
-        return res.status(400).json({ message: "PIN must be 4–6 digits." });
-      }
-      const hashed = await bcrypt.hash(pin, 10);
-      await storage.setResidentPin(id, hashed);
-      res.json({ message: "PIN updated." });
-    } catch (err) {
-      res.status(404).json({ message: "Resident not found" });
-    }
-  });
 
   // -------- Weather --------
   app.get("/api/weather", weatherLimiter, async (_req: Request, res: Response) => {

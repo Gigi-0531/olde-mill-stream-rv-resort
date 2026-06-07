@@ -33,7 +33,6 @@ type User = {
 
 type LoginResponse = {
   requiresProfileSelection?: boolean;
-  requiresPin?: boolean;
   profiles?: ProfileOption[];
   id?: number;
   role?: string;
@@ -50,11 +49,6 @@ type AuthContextType = {
   selectProfile: (profileId: number) => void;
   isSelectingProfile: boolean;
   clearPendingProfiles: () => void;
-  requiresPin: boolean;
-  verifyPin: (pin: string) => void;
-  isVerifyingPin: boolean;
-  pinError: Error | null;
-  clearPinState: () => void;
 };
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -79,7 +73,6 @@ function setStoredUser(user: User | null) {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [, setLocation] = useLocation();
   const [pendingProfiles, setPendingProfiles] = useState<ProfileOption[] | null>(null);
-  const [requiresPin, setRequiresPin] = useState(false);
   const [user, setUser] = useState<User | null>(getStoredUser);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -123,14 +116,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     onSuccess: (data) => {
       if (data.requiresProfileSelection && data.profiles) {
         setPendingProfiles(data.profiles);
-        setRequiresPin(false);
-      } else if (data.requiresPin) {
-        setRequiresPin(true);
       } else {
         setUser(data as User);
         const externalId = (data as any).username;
         if (externalId) medianOnesignalLogin(externalId);
-        if (data.role === 'admin') {
+        if ((data as any).role === 'admin') {
           setLocation('/admin');
         } else {
           setLocation('/dashboard');
@@ -151,48 +141,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!res.ok) {
         throw new Error((await res.json()).message || "Profile selection failed");
       }
-      return await res.json() as LoginResponse;
+      return await res.json() as User;
     },
     onSuccess: (data) => {
       setPendingProfiles(null);
-      if (data.requiresPin) {
-        setRequiresPin(true);
-      } else {
-        setUser(data as User);
-        setLocation('/dashboard');
-      }
-    },
-  });
-
-  const verifyPinMutation = useMutation({
-    mutationFn: async (pin: string) => {
-      const res = await fetch("/api/auth/verify-pin", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pin }),
-        credentials: 'include',
-      });
-
-      const body = await res.json();
-      if (!res.ok) {
-        const err = new Error(body.message || "Incorrect PIN") as Error & { status?: number };
-        err.status = res.status;
-        throw err;
-      }
-      return body as User;
-    },
-    onSuccess: (userData) => {
-      setPendingProfiles(null);
-      setRequiresPin(false);
-      setUser(userData as User);
-      const externalId = (userData as any).username;
-      if (externalId) medianOnesignalLogin(externalId);
+      setUser(data as User);
       setLocation('/dashboard');
-    },
-    onError: (err: Error & { status?: number }) => {
-      if (err.status === 429) {
-        setRequiresPin(false);
-      }
     },
   });
 
@@ -206,7 +160,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     onSuccess: () => {
       medianOnesignalLogout();
       setUser(null);
-      setRequiresPin(false);
       setPendingProfiles(null);
       setLocation('/');
     },
@@ -222,12 +175,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     pendingProfiles,
     selectProfile: selectProfileMutation.mutate,
     isSelectingProfile: selectProfileMutation.isPending,
-    clearPendingProfiles: () => { setPendingProfiles(null); setRequiresPin(false); },
-    requiresPin,
-    verifyPin: verifyPinMutation.mutate,
-    isVerifyingPin: verifyPinMutation.isPending,
-    pinError: verifyPinMutation.error,
-    clearPinState: () => { setRequiresPin(false); verifyPinMutation.reset(); },
+    clearPendingProfiles: () => setPendingProfiles(null),
   };
 
   return (

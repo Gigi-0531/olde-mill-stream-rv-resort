@@ -92,10 +92,10 @@ export default function Settings() {
     try {
       const permission = await Notification.requestPermission();
       if (permission !== "granted") {
-        toast({ 
-          title: "Permission denied", 
+        toast({
+          title: "Permission denied",
           description: "Please enable notifications in your browser settings",
-          variant: "destructive" 
+          variant: "destructive",
         });
         setIsSubscribing(false);
         return;
@@ -128,10 +128,10 @@ export default function Settings() {
     } catch (error) {
       console.error("Failed to subscribe:", error);
       setNotificationsEnabled(false);
-      toast({ 
-        title: "Failed to enable notifications", 
+      toast({
+        title: "Failed to enable notifications",
         description: "Please try again",
-        variant: "destructive" 
+        variant: "destructive",
       });
     }
     setIsSubscribing(false);
@@ -143,18 +143,18 @@ export default function Settings() {
 
   const handleToggleWeather = (enabled: boolean) => {
     if (subscription) {
-      updatePreferences.mutate({ 
-        weatherEnabled: enabled, 
-        alertsEnabled: subscription.alertsEnabled 
+      updatePreferences.mutate({
+        weatherEnabled: enabled,
+        alertsEnabled: subscription.alertsEnabled,
       });
     }
   };
 
   const handleToggleAlerts = (enabled: boolean) => {
     if (subscription) {
-      updatePreferences.mutate({ 
-        weatherEnabled: subscription.weatherEnabled, 
-        alertsEnabled: enabled 
+      updatePreferences.mutate({
+        weatherEnabled: subscription.weatherEnabled,
+        alertsEnabled: enabled,
       });
     }
   };
@@ -179,58 +179,84 @@ export default function Settings() {
   };
 
   return (
-    <div className="min-h-screen bg-background pb-20 pt-16">
-      <div className="bg-[#4a7ab0] py-8 px-4 md:px-8">
-        <div className="max-w-2xl mx-auto">
-          <h1 className="text-2xl md:text-3xl font-display text-white flex items-center gap-2">
-            <SettingsIcon className="w-7 h-7" />
-            Settings
-          </h1>
-          <p className="text-white/80 mt-1">Manage your profile and notification preferences</p>
+    <div className="min-h-screen bg-gradient-to-b from-sky-50 via-background to-background dark:from-sky-950/20 dark:via-background dark:to-background pb-20 pt-16">
+      <div className="bg-gradient-to-r from-[#1E3A5F] via-[#2a4a6e] to-sky-600 text-white py-12 px-4 md:px-8">
+        <div className="max-w-2xl mx-auto flex flex-col items-center text-center gap-4">
+          <div className="w-16 h-16 rounded-full bg-white/15 backdrop-blur-sm flex items-center justify-center border border-white/20">
+            <SettingsIcon className="w-8 h-8 text-white" />
+          </div>
+          <div>
+            <h1 className="text-3xl font-display font-bold text-white" data-testid="text-settings-title">
+              Settings
+            </h1>
+            <p className="text-white/80 mt-2 text-lg">
+              Manage your profile and notification preferences
+            </p>
+          </div>
         </div>
       </div>
 
-      <div className="max-w-2xl mx-auto px-4 md:px-8 py-6 space-y-6">
-        <Card>
+      <div className="max-w-2xl mx-auto px-4 md:px-8 py-8 space-y-6">
+        <Card
+          className="border-none shadow-lg animate-in fade-in slide-in-from-bottom-4 duration-500"
+          style={{ animationDelay: "0ms", animationFillMode: "both" }}
+        >
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <User className="w-5 h-5" />
+              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                <User className="w-4 h-4 text-primary" />
+              </div>
               Profile
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-6">
-              <Avatar className="w-20 h-20 border-4 border-border">
-                <AvatarFallback className="text-2xl bg-gradient-to-br from-blue-400 to-blue-600 text-white">
+              <Avatar className="w-20 h-20 border-4 border-border shadow-md">
+                {user?.profilePicture ? (
+                  <AvatarImage src={user.profilePicture} />
+                ) : null}
+                <AvatarFallback className="text-2xl bg-gradient-to-br from-[#1E3A5F] to-sky-600 text-white font-bold">
                   {getInitials()}
                 </AvatarFallback>
               </Avatar>
               <div>
-                <p className="font-medium text-lg">
+                <p className="font-semibold text-lg" data-testid="text-profile-name">
                   {user?.firstName ? `${user.firstName} ${user.lastName}` : user?.lastName}
                 </p>
-                <p className="text-sm text-muted-foreground">Lot {user?.lotNumber}</p>
+                <p className="text-sm text-muted-foreground" data-testid="text-profile-lot">
+                  Lot {user?.lotNumber}
+                </p>
+                {user?.username && (
+                  <p className="text-xs text-muted-foreground mt-0.5" data-testid="text-profile-email">
+                    {user.username}
+                  </p>
+                )}
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card
+          className="border-none shadow-lg animate-in fade-in slide-in-from-bottom-4 duration-500"
+          style={{ animationDelay: "80ms", animationFillMode: "both" }}
+        >
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Bell className="w-5 h-5" />
+              <div className="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                <Bell className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+              </div>
               Push Notifications
             </CardTitle>
             <CardDescription>
-              Receive notifications on your lock screen for important updates
+              Receive notifications on your device for weather alerts and resort updates
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             {user?.username && (
-              <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border">
+              <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50 border">
                 <div>
                   <p className="text-sm font-medium">Send Test Notification</p>
-                  <p className="text-xs text-muted-foreground">Sends a test push to {user.username}</p>
+                  <p className="text-xs text-muted-foreground">Verify push is working on your device</p>
                 </div>
                 <Button
                   size="sm"
@@ -247,19 +273,23 @@ export default function Settings() {
                 </Button>
               </div>
             )}
+
             {!("Notification" in window) || !("serviceWorker" in navigator) ? (
-              <div className="text-muted-foreground text-center py-4">
-                <p>Push notifications are not supported in your browser.</p>
-                <p className="text-sm mt-2">Try using Chrome, Safari, or Firefox on a mobile device.</p>
+              <div className="text-muted-foreground text-center py-6 bg-muted/30 rounded-lg">
+                <Bell className="w-10 h-10 mx-auto mb-3 opacity-40" />
+                <p className="font-medium">Push notifications not supported</p>
+                <p className="text-sm mt-1">Try Chrome, Safari, or Firefox on a mobile device.</p>
               </div>
             ) : !notificationsEnabled ? (
-              <div className="text-center py-4">
-                <p className="text-muted-foreground mb-4">
-                  Enable notifications to receive weather updates and resort alerts directly on your device.
+              <div className="text-center py-6 bg-gradient-to-br from-sky-50 to-blue-50 dark:from-sky-950/30 dark:to-blue-950/30 rounded-lg border border-sky-100 dark:border-sky-900/30">
+                <Bell className="w-12 h-12 mx-auto mb-3 text-sky-400 dark:text-sky-500" />
+                <p className="text-muted-foreground mb-4 text-sm max-w-xs mx-auto">
+                  Enable notifications to receive weather alerts and resort announcements directly on your device.
                 </p>
-                <Button 
-                  onClick={handleEnableNotifications} 
+                <Button
+                  onClick={handleEnableNotifications}
                   disabled={isSubscribing}
+                  className="bg-[#1E3A5F] hover:bg-[#152a45]"
                   data-testid="button-enable-notifications"
                 >
                   {isSubscribing ? (
@@ -276,12 +306,14 @@ export default function Settings() {
                 </Button>
               </div>
             ) : (
-              <div className="space-y-6">
-                <div className="flex items-center justify-between">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-4 rounded-lg border hover:bg-muted/20 transition-colors">
                   <div className="flex items-center gap-3">
-                    <Cloud className="w-5 h-5 text-blue-500" />
+                    <div className="w-9 h-9 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                      <Cloud className="w-4 h-4 text-blue-500" />
+                    </div>
                     <div>
-                      <Label className="text-base">Weather Alerts</Label>
+                      <Label className="text-base font-medium">Weather Alerts</Label>
                       <p className="text-sm text-muted-foreground">
                         Severe weather warnings for Umatilla area
                       </p>
@@ -295,11 +327,13 @@ export default function Settings() {
                   />
                 </div>
 
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between p-4 rounded-lg border hover:bg-muted/20 transition-colors">
                   <div className="flex items-center gap-3">
-                    <AlertTriangle className="w-5 h-5 text-amber-500" />
+                    <div className="w-9 h-9 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                      <AlertTriangle className="w-4 h-4 text-amber-500" />
+                    </div>
                     <div>
-                      <Label className="text-base">Resort Alerts</Label>
+                      <Label className="text-base font-medium">Resort Alerts</Label>
                       <p className="text-sm text-muted-foreground">
                         Important park announcements and updates
                       </p>
@@ -313,13 +347,17 @@ export default function Settings() {
                   />
                 </div>
 
-                <div className="pt-4 border-t">
-                  <Button 
-                    variant="outline" 
+                <div className="pt-2">
+                  <Button
+                    variant="outline"
                     onClick={handleDisableNotifications}
                     disabled={unsubscribe.isPending}
+                    className="text-destructive border-destructive/30 hover:bg-destructive/5"
                     data-testid="button-disable-notifications"
                   >
+                    {unsubscribe.isPending ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : null}
                     Disable All Notifications
                   </Button>
                 </div>
@@ -328,7 +366,6 @@ export default function Settings() {
           </CardContent>
         </Card>
       </div>
-
     </div>
   );
 }
