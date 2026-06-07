@@ -197,40 +197,103 @@ export function getVapidPublicKey(): string {
 
 // ── Scheduled notifications (daily weather) ───────────────────────────────────
 
-async function fetchWeatherSummary(): Promise<string> {
+// Severe weather condition IDs from OpenWeather API
+// https://openweathermap.org/weather-conditions
+const SEVERE_WEATHER_IDS = new Set([
+  // Thunderstorm
+  200, 201, 202, 210, 211, 212, 221, 230, 231, 232,
+  // Heavy rain / extreme rain
+  502, 503, 504, 511,
+  // Heavy snow / sleet
+  602, 611, 612, 613, 622,
+  // Atmosphere extremes (tornado, squall)
+  781, 771,
+]);
+
+interface WeatherData {
+  temp: number;
+  tempMax: number;
+  tempMin: number;
+  condition: string;
+  conditionId: number;
+  description: string;
+  windSpeed: number;
+}
+
+async function fetchCurrentWeather(): Promise<WeatherData | null> {
   const apiKey = process.env.OPENWEATHER_API_KEY;
-  if (!apiKey) return 'Check the app for today\'s weather in Umatilla!';
+  if (!apiKey) return null;
   try {
     const res = await fetch(
       `https://api.openweathermap.org/data/2.5/weather?q=Umatilla,FL,US&units=imperial&appid=${apiKey}`
     );
     const data = await res.json() as any;
-    const temp = Math.round(data.main.temp);
-    const condition = data.weather[0].main;
-    const hi = Math.round(data.main.temp_max);
-    const lo = Math.round(data.main.temp_min);
-    return `${temp}°F and ${condition} — High ${hi}°, Low ${lo}°. Have a great day at Olde Mill Stream! ☀️`;
+    return {
+      temp: Math.round(data.main.temp),
+      tempMax: Math.round(data.main.temp_max),
+      tempMin: Math.round(data.main.temp_min),
+      condition: data.weather[0].main,
+      conditionId: data.weather[0].id,
+      description: data.weather[0].description,
+      windSpeed: Math.round(data.wind?.speed ?? 0),
+    };
   } catch {
-    return 'Check the app for today\'s weather in Umatilla!';
+    return null;
   }
 }
 
+async function checkAndSendSevereWeatherAlert(weather: WeatherData) {
+  if (!SEVERE_WEATHER_IDS.has(weather.conditionId)) return;
+
+  const desc = weather.description.charAt(0).toUpperCase() + weather.description.slice(1);
+  const body = `⚠️ ${desc} expected in Umatilla — winds up to ${weather.windSpeed} mph. Please take precautions and stay safe.`;
+  await sendResortAlert('🚨 Severe Weather Warning', body);
+  console.log(`[Scheduler] Severe weather alert sent (condition ID ${weather.conditionId})`);
+}
+
 export function startScheduledNotifications() {
-  // Lazy import node-cron so the rest of the module loads even without the package
   import('node-cron').then(({ default: cron }) => {
-    // Daily weather push at 8:00 AM Eastern Time
+    const tz = { timezone: 'America/New_York' };
+
+    // 8:00 AM — Good morning weather push
     cron.schedule('0 8 * * *', async () => {
       try {
-        const summary = await fetchWeatherSummary();
-        await sendResortAlert('🌤️ Good Morning, Olde Mill Stream!', summary);
-        console.log('[Scheduler] Daily weather push sent');
+        const w = await fetchCurrentWeather();
+        const body = w
+          ? `${w.temp}°F and ${w.condition} — High ${w.tempMax}°, Low ${w.tempMin}°. Have a great day at Olde Mill Stream! ☀️`
+          : 'Check the app for today\'s weather in Umatilla!';
+        await sendResortAlert('🌤️ Good Morning, Olde Mill Stream!', body);
+        if (w) await checkAndSendSevereWeatherAlert(w);
+        console.log('[Scheduler] 8 AM weather push sent');
       } catch (err) {
-        console.error('[Scheduler] Daily weather push failed:', err);
+        console.error('[Scheduler] 8 AM weather push failed:', err);
       }
-    }, { timezone: 'America/New_York' });
+    }, tz);
 
-    console.log('[Scheduler] Daily weather push scheduled for 8:00 AM ET');
+    // 12:00 PM — Midday weather update
+    cron.schedule('0 12 * * *', async () => {
+      try {
+        const w = await fetchCurrentWeather();
+        if (!w) return;
+        const body = `${w.temp}°F and ${w.condition} right now in Umatilla. High today ${w.tempMax}°F.`;
+        await sendResortAlert('☀️ Midday Weather Update', body);
+        await checkAndSendSevereWeatherAlert(w);
+        console.log('[Scheduler] Noon weather push sent');
+      } catch (err) {
+        console.error('[Scheduler] Noon weather push failed:', err);
+      }
+    }, tz);
+
+    // Every 30 minutes — severe weather watch (silent unless conditions are severe)
+    cron.schedule('*/30 * * * *', async () => {
+      try {
+        const w = await fetchCurrentWeather();
+        if (w) await checkAndSendSevereWeatherAlert(w);
+      } catch {}
+    }, tz);
+
+    console.log('[Scheduler] Notifications scheduled: 8 AM weather, noon weather, 30-min severe weather watch');
   }).catch(() => {
-    console.warn('[Scheduler] node-cron not available — daily weather push disabled');
+    console.warn('[Scheduler] node-cron not available — scheduled notifications disabled');
   });
 }
