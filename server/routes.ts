@@ -13,7 +13,32 @@ import { users, insertActivitySchema } from "@shared/schema";
 import { eq, ilike, sql, and } from "drizzle-orm";
 import { ObjectStorageService } from "./replit_integrations/object_storage";
 import { moderateText, moderateImage } from "./contentModeration";
-import { getVapidPublicKey, sendResortAlert } from "./pushService";
+import { getVapidPublicKey, sendOneSignalNotification } from "./pushService";
+
+// 👇 ADD THIS RIGHT HERE
+const ONESIGNAL_API_KEY = process.env.ONESIGNAL_API_KEY!;
+const ONESIGNAL_APP_ID = process.env.ONESIGNAL_APP_ID;
+
+async function sendOneSignalNotification(content: string) {
+  if (!ONESIGNAL_API_KEY || !ONESIGNAL_APP_ID) {
+    throw new Error("Missing OneSignal environment variables");
+  }
+
+  await fetch("https://onesignal.com/api/v1/notifications", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Basic ${ONESIGNAL_API_KEY}`,
+    },
+    body: JSON.stringify({
+      app_id: ONESIGNAL_APP_ID,
+      included_segments: ["All"],
+      contents: {
+        en: content,
+      },
+    }),
+  });
+}
 
 const MemoryStore = createMemoryStore(session);
 const objectStorageService = new ObjectStorageService();
@@ -431,7 +456,7 @@ export function registerRoutes(_server: any, app: Express) {
     try {
       const notification = await storage.createNotification(req.body);
       try {
-        await sendResortAlert("Resort Alert", notification.content);
+        await sendOneSignalNotification("Resort Alert", notification.content);
       } catch {}
       res.status(201).json(notification);
     } catch (err) {
