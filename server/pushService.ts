@@ -194,3 +194,43 @@ export async function sendResortAlert(title: string, body: string): Promise<numb
 export function getVapidPublicKey(): string {
   return vapidPublicKey || '';
 }
+
+// ── Scheduled notifications (daily weather) ───────────────────────────────────
+
+async function fetchWeatherSummary(): Promise<string> {
+  const apiKey = process.env.OPENWEATHER_API_KEY;
+  if (!apiKey) return 'Check the app for today\'s weather in Umatilla!';
+  try {
+    const res = await fetch(
+      `https://api.openweathermap.org/data/2.5/weather?q=Umatilla,FL,US&units=imperial&appid=${apiKey}`
+    );
+    const data = await res.json() as any;
+    const temp = Math.round(data.main.temp);
+    const condition = data.weather[0].main;
+    const hi = Math.round(data.main.temp_max);
+    const lo = Math.round(data.main.temp_min);
+    return `${temp}°F and ${condition} — High ${hi}°, Low ${lo}°. Have a great day at Olde Mill Stream! ☀️`;
+  } catch {
+    return 'Check the app for today\'s weather in Umatilla!';
+  }
+}
+
+export function startScheduledNotifications() {
+  // Lazy import node-cron so the rest of the module loads even without the package
+  import('node-cron').then(({ default: cron }) => {
+    // Daily weather push at 8:00 AM Eastern Time
+    cron.schedule('0 8 * * *', async () => {
+      try {
+        const summary = await fetchWeatherSummary();
+        await sendResortAlert('🌤️ Good Morning, Olde Mill Stream!', summary);
+        console.log('[Scheduler] Daily weather push sent');
+      } catch (err) {
+        console.error('[Scheduler] Daily weather push failed:', err);
+      }
+    }, { timezone: 'America/New_York' });
+
+    console.log('[Scheduler] Daily weather push scheduled for 8:00 AM ET');
+  }).catch(() => {
+    console.warn('[Scheduler] node-cron not available — daily weather push disabled');
+  });
+}

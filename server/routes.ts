@@ -683,6 +683,24 @@ export function registerRoutes(_server: any, app: Express) {
         content,
         approved: isAdmin,
       });
+
+      // Notify admin when a resident submits a post for approval
+      if (!isAdmin) {
+        try {
+          const admin = await storage.getFirstAdmin();
+          if (admin?.username) {
+            const senderName = user.firstName
+              ? `${user.firstName} ${user.lastName}`
+              : `Lot ${user.lotNumber}`;
+            await sendPushToUser(
+              admin.username,
+              "📋 New Community Post",
+              `${senderName} posted a message pending your approval.`
+            );
+          }
+        } catch {}
+      }
+
       res.status(201).json(msg);
     } catch (err) {
       console.error("Message error:", err);
@@ -693,6 +711,15 @@ export function registerRoutes(_server: any, app: Express) {
   app.patch("/api/messages/:id/approve", requireAdmin, async (req: Request, res: Response) => {
     try {
       await storage.approveMessage(Number(req.params.id));
+
+      // Broadcast to all residents when a community post goes live
+      try {
+        await sendResortAlert(
+          "📋 New Community Post",
+          "A new message has been posted to the Community Board. Open the app to read it!"
+        );
+      } catch {}
+
       res.json({ success: true });
     } catch (err) {
       res.status(500).json({ message: "Failed to approve message" });
