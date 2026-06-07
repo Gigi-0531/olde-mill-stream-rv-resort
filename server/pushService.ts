@@ -125,13 +125,44 @@ export async function sendWeatherAlert(title: string, body: string): Promise<num
   return successCount;
 }
 
-// ── Broadcast resort alert to WebPush + APNs ──────────────────────────────────
+// ── OneSignal REST API ────────────────────────────────────────────────────────
+
+const oneSignalAppId = process.env.ONESIGNAL_APP_ID;
+const oneSignalRestKey = process.env.ONESIGNAL_REST_API_KEY;
+
+async function sendOneSignalAlert(title: string, body: string): Promise<number> {
+  if (!oneSignalAppId || !oneSignalRestKey) return 0;
+  try {
+    const res = await fetch('https://onesignal.com/api/v1/notifications', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Basic ${oneSignalRestKey}`,
+      },
+      body: JSON.stringify({
+        app_id: oneSignalAppId,
+        included_segments: ['All'],
+        headings: { en: title },
+        contents: { en: body },
+        url: '/',
+      }),
+    });
+    const data = await res.json() as { recipients?: number; errors?: any };
+    if (data.errors) console.error('OneSignal error:', data.errors);
+    return data.recipients ?? 0;
+  } catch (err) {
+    console.error('OneSignal send failed:', err);
+    return 0;
+  }
+}
+
+// ── Broadcast resort alert to WebPush + OneSignal + APNs ─────────────────────
 
 export async function sendResortAlert(title: string, body: string): Promise<number> {
   const subscriptions = await storage.getAllPushSubscriptions('alerts');
   let successCount = 0;
 
-  // WebPush
+  // WebPush (browser subscribers)
   for (const sub of subscriptions) {
     const pushSubscription = {
       endpoint: sub.endpoint,
@@ -149,7 +180,11 @@ export async function sendResortAlert(title: string, body: string): Promise<numb
     }
   }
 
-  // APNs (native iOS)
+  // OneSignal (handles iOS + Android via Median)
+  const oneSignalSent = await sendOneSignalAlert(title, body);
+  successCount += oneSignalSent;
+
+  // Raw APNs fallback (if configured independently of OneSignal)
   const apnsSent = await sendApnsAlert(title, body);
   successCount += apnsSent;
 
