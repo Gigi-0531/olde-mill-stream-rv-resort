@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Bell, Cloud, AlertTriangle, Loader2, Settings as SettingsIcon, User } from "lucide-react";
+import { Bell, BellRing, Cloud, AlertTriangle, Loader2, Settings as SettingsIcon, User } from "lucide-react";
 
 interface PushSubscriptionData {
   id: number;
@@ -58,6 +58,27 @@ export default function Settings() {
       queryClient.invalidateQueries({ queryKey: ["/api/push/subscription"] });
       setNotificationsEnabled(false);
       toast({ title: "Notifications disabled" });
+    },
+  });
+
+  const testNotification = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/send-push-notification", {
+        userEmail: user!.username,
+        title: "Test Notification",
+        message: "Push notifications are working!",
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || "Failed to send");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Test notification sent!", description: "Check your device for the notification." });
+    },
+    onError: (err: Error) => {
+      toast({ title: "Failed to send notification", description: err.message, variant: "destructive" });
     },
   });
 
@@ -205,6 +226,27 @@ export default function Settings() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
+            {user?.username && (
+              <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border">
+                <div>
+                  <p className="text-sm font-medium">Send Test Notification</p>
+                  <p className="text-xs text-muted-foreground">Sends a test push to {user.username}</p>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => testNotification.mutate()}
+                  disabled={testNotification.isPending}
+                  data-testid="button-test-notification"
+                >
+                  {testNotification.isPending ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <><BellRing className="w-4 h-4 mr-1" /> Test</>
+                  )}
+                </Button>
+              </div>
+            )}
             {!("Notification" in window) || !("serviceWorker" in navigator) ? (
               <div className="text-muted-foreground text-center py-4">
                 <p>Push notifications are not supported in your browser.</p>
