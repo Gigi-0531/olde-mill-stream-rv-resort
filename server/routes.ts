@@ -78,12 +78,17 @@ function isValidObjectPath(value: unknown): value is string {
 
 
 function safeUser(user: any) {
-  const { password, ...safe } = user;
+  const { password, pin, ...safe } = user;
   return safe;
 }
 
-function requireAuth(req: Request & { session: any }, res: Response, next: NextFunction) {
+async function requireAuth(req: Request & { session: any }, res: Response, next: NextFunction) {
   if (!req.session.userId) return res.status(401).json({ message: "Please log in" });
+  const user = await storage.getUser(req.session.userId);
+  if (!user) {
+    req.session.destroy(() => {});
+    return res.status(401).json({ message: "Please log in" });
+  }
   next();
 }
 
@@ -96,7 +101,7 @@ async function requireAdmin(req: Request & { session: any }, res: Response, next
 
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 100,
+  max: 10,
   standardHeaders: true,
   legacyHeaders: false,
   message: { message: "Too many login attempts, please try again later." },
@@ -134,6 +139,16 @@ const ALLOWED_MODERATION_MIME_TYPES = new Set([
 ]);
 // Maximum base64 payload size (~4 MB decoded ≈ ~5.4 MB base64)
 const MAX_BASE64_IMAGE_BYTES = 5_500_000;
+
+const pinLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Too many PIN attempts, please start over." },
+});
+
+const MAX_PIN_ATTEMPTS = 5;
 
 // ------------------- Routes -------------------
 export function registerRoutes(_server: any, app: Express) {
@@ -232,17 +247,17 @@ export function registerRoutes(_server: any, app: Express) {
           return res.status(401).json({ message: "No resident found with that lot number and last name. Please check your info and try again." });
         }
 
-        const matching = candidates;
-
-        if (matching.length === 1) {
-          const user = matching[0];
-          req.session.userId = user.id;
-          return res.json(safeUser(user));
+        if (candidates.length === 1) {
+          const user = candidates[0];
+          req.session.pendingPinUserId = user.id;
+          delete req.session.pendingProfiles;
+          return res.json({ requiresPin: true });
         } else {
-          req.session.pendingProfiles = matching.map(r => r.id);
+          req.session.pendingProfiles = candidates.map(r => r.id);
+          delete req.session.pendingPinUserId;
           return res.json({
             requiresProfileSelection: true,
-            profiles: matching.map(r => ({
+            profiles: candidates.map(r => ({
               id: r.id,
               firstName: r.firstName || "Resident",
               profilePicture: r.profilePicture
@@ -289,11 +304,64 @@ export function registerRoutes(_server: any, app: Express) {
       const user = await storage.getUser(profileId);
       if (!user) return res.status(404).json({ message: "Profile not found" });
 
-      req.session.userId = user.id;
+      req.session.pendingPinUserId = user.id;
       delete req.session.pendingProfiles;
-      res.json(safeUser(user));
+      res.json({ requiresPin: true });
     } catch {
       res.status(400).json({ message: "Invalid request" });
+    }
+  });
+
+  // -------- Verify resident PIN (second factor) --------
+  app.post("/api/auth/verify-pin", pinLimiter, async (req: Request & { session: any }, res: Response) => {
+    try {
+      const pendingUserId: number | undefined = req.session.pendingPinUserId;
+      if (!pendingUserId) {
+        return res.status(401).json({ message: "No pending login. Please start over." });
+      }
+
+      const pin = String(req.body.pin || "").trim();
+      if (!pin) {
+        return res.status(400).json({ message: "Please enter your PIN." });
+      }
+
+      const attempts: number = (req.session.pinAttempts || 0) + 1;
+      req.session.pinAttempts = attempts;
+
+      if (attempts > MAX_PIN_ATTEMPTS) {
+        delete req.session.pendingPinUserId;
+        delete req.session.pinAttempts;
+        return res.status(429).json({ message: "Too many incorrect attempts. Please start over." });
+      }
+
+      const user = await storage.getUser(pendingUserId);
+      if (!user) {
+        delete req.session.pendingPinUserId;
+        delete req.session.pinAttempts;
+        return res.status(401).json({ message: "Account not found. Please start over." });
+      }
+
+      if (!user.pin) {
+        return res.status(401).json({ message: "Your account does not have a PIN set. Please contact the park office to have your PIN configured." });
+      }
+
+      const match = await bcrypt.compare(pin, user.pin);
+      if (!match) {
+        if (attempts >= MAX_PIN_ATTEMPTS) {
+          delete req.session.pendingPinUserId;
+          delete req.session.pinAttempts;
+          return res.status(429).json({ message: "Too many incorrect attempts. Please start over." });
+        }
+        return res.status(401).json({ message: "Incorrect PIN. Please try again." });
+      }
+
+      req.session.userId = user.id;
+      delete req.session.pendingPinUserId;
+      delete req.session.pinAttempts;
+      return res.json(safeUser(user));
+    } catch (err) {
+      console.error("Verify PIN error:", err);
+      res.status(500).json({ message: "Something went wrong. Please try again." });
     }
   });
 
@@ -304,8 +372,8 @@ export function registerRoutes(_server: any, app: Express) {
     });
   });
 
-  // -------- Directory: Get all residents with contact info --------
-  app.get("/api/directory", requireAuth, async (req: Request & { session: any }, res: Response) => {
+  // -------- Directory: Get all residents with contact info (admin only) --------
+  app.get("/api/directory", requireAdmin, async (req: Request & { session: any }, res: Response) => {
     try {
       const residents = await db.select().from(users).where(eq(users.role, "resident"));
       const safeResidents = residents.map(r => ({
@@ -767,7 +835,7 @@ export function registerRoutes(_server: any, app: Express) {
   app.get("/api/residents", requireAdmin, async (_req: Request, res: Response) => {
     try {
       const residents = await storage.getResidents();
-      res.json(residents);
+      res.json(residents.map(safeUser));
     } catch (err) {
       res.status(500).json({ message: "Failed to fetch residents" });
     }
@@ -782,7 +850,7 @@ export function registerRoutes(_server: any, app: Express) {
         firstName: req.body.firstName,
         phoneNumber: req.body.phoneNumber,
       });
-      res.status(201).json(resident);
+      res.status(201).json(safeUser(resident));
     } catch (err) {
       res.status(400).json({ message: (err as Error).message });
     }
@@ -792,7 +860,7 @@ export function registerRoutes(_server: any, app: Express) {
     try {
       const updated = await storage.updateResident(Number(req.params.id), req.body);
       if (!updated) return res.status(404).json({ message: "Resident not found" });
-      res.json(updated);
+      res.json(safeUser(updated));
     } catch (err) {
       res.status(400).json({ message: (err as Error).message });
     }
@@ -814,6 +882,22 @@ export function registerRoutes(_server: any, app: Express) {
     } catch (err) {
       console.error("Delete all residents error:", err);
       res.status(500).json({ message: "Failed to delete residents" });
+    }
+  });
+
+  // -------- Admin: Set resident PIN --------
+  app.post("/api/residents/:id/pin", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const id = Number(req.params.id);
+      const pin = String(req.body.pin || "").trim();
+      if (!pin || !/^\d{4,6}$/.test(pin)) {
+        return res.status(400).json({ message: "PIN must be 4–6 digits." });
+      }
+      const hashed = await bcrypt.hash(pin, 10);
+      await storage.setResidentPin(id, hashed);
+      res.json({ message: "PIN updated." });
+    } catch (err) {
+      res.status(404).json({ message: "Resident not found" });
     }
   });
 

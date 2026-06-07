@@ -12,7 +12,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Plus, Trash2, Calendar, Bell, MapPin, Clock, Image, Loader2, Users, Pencil, Search, MessageSquare, Check, X, Upload, FileSpreadsheet, ShieldCheck, BookUser, Phone } from "lucide-react";
+import { Plus, Trash2, Calendar, Bell, MapPin, Clock, Image, Loader2, Users, Pencil, Search, MessageSquare, Check, X, Upload, FileSpreadsheet, ShieldCheck, BookUser, Phone, KeyRound } from "lucide-react";
 import { format } from "date-fns";
 import { useState, useRef, useCallback } from "react";
 import { NotificationsWidget } from "@/components/NotificationsWidget";
@@ -702,6 +702,7 @@ function DirectoryManager() {
   const [searchTerm, setSearchTerm] = useState("");
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editingResident, setEditingResident] = useState<any | null>(null);
+  const [settingPinResident, setSettingPinResident] = useState<any | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: residents, isLoading } = useQuery<any[]>({
@@ -794,6 +795,20 @@ function DirectoryManager() {
     },
     onError: () => {
       toast({ title: "Error", description: "Failed to delete residents.", variant: "destructive" });
+    },
+  });
+
+  const setPin = useMutation({
+    mutationFn: async ({ id, pin }: { id: number; pin: string }) => {
+      const res = await apiRequest("POST", `/api/residents/${id}/pin`, { pin });
+      return res.json();
+    },
+    onSuccess: () => {
+      setSettingPinResident(null);
+      toast({ title: "PIN updated", description: "The resident's PIN has been set." });
+    },
+    onError: (err: Error) => {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
     },
   });
 
@@ -935,6 +950,15 @@ function DirectoryManager() {
                       <Button
                         variant="ghost"
                         size="icon"
+                        title="Set PIN"
+                        onClick={() => setSettingPinResident(resident)}
+                        data-testid={`button-set-pin-${resident.id}`}
+                      >
+                        <KeyRound className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         onClick={() => setEditingResident(resident)}
                         data-testid={`button-edit-resident-${resident.id}`}
                       >
@@ -981,6 +1005,21 @@ function DirectoryManager() {
               defaultValues={editingResident}
               onSubmit={(data) => updateResident.mutate({ id: editingResident.id, data })}
               isLoading={updateResident.isPending}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!settingPinResident} onOpenChange={(open) => !open && setSettingPinResident(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Set Resident PIN</DialogTitle>
+          </DialogHeader>
+          {settingPinResident && (
+            <PinForm
+              residentName={`${settingPinResident.firstName || ""} ${settingPinResident.lastName || ""}`.trim() || "Resident"}
+              onSubmit={(pin) => setPin.mutate({ id: settingPinResident.id, pin })}
+              isLoading={setPin.isPending}
             />
           )}
         </DialogContent>
@@ -1059,6 +1098,72 @@ function ResidentForm({
       </div>
       <Button type="submit" className="w-full" disabled={isLoading}>
         {isLoading ? "Saving..." : defaultValues ? "Update Resident" : "Add Resident"}
+      </Button>
+    </form>
+  );
+}
+
+function PinForm({
+  residentName,
+  onSubmit,
+  isLoading,
+}: {
+  residentName: string;
+  onSubmit: (pin: string) => void;
+  isLoading: boolean;
+}) {
+  const [pin, setPin] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [error, setError] = useState("");
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    if (!/^\d{4,6}$/.test(pin)) {
+      setError("PIN must be 4–6 digits.");
+      return;
+    }
+    if (pin !== confirm) {
+      setError("PINs do not match.");
+      return;
+    }
+    onSubmit(pin);
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <p className="text-sm text-muted-foreground">
+        Set a 4–6 digit PIN for <strong>{residentName}</strong>. They will use this PIN along with their lot number and last name to log in.
+      </p>
+      {error && (
+        <p className="text-sm text-destructive">{error}</p>
+      )}
+      <div>
+        <label className="text-sm font-medium">New PIN</label>
+        <Input
+          type="password"
+          inputMode="numeric"
+          maxLength={6}
+          value={pin}
+          onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
+          placeholder="4–6 digits"
+          data-testid="input-new-pin"
+        />
+      </div>
+      <div>
+        <label className="text-sm font-medium">Confirm PIN</label>
+        <Input
+          type="password"
+          inputMode="numeric"
+          maxLength={6}
+          value={confirm}
+          onChange={(e) => setConfirm(e.target.value.replace(/\D/g, ""))}
+          placeholder="Re-enter PIN"
+          data-testid="input-confirm-pin"
+        />
+      </div>
+      <Button type="submit" className="w-full" disabled={isLoading}>
+        {isLoading ? "Saving..." : "Set PIN"}
       </Button>
     </form>
   );

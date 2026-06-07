@@ -38,6 +38,7 @@ export const users = pgTable("users", {
   lotNumber: text("lot_number"),
   phoneNumber: text("phone_number"),
   profilePicture: text("profile_picture"), // Object storage path
+  pin: text("pin"), // bcrypt-hashed 4-6 digit PIN for resident login (null = not set)
 
   // Push notifications
   onesignalExternalUserId: text("onesignal_external_user_id"),

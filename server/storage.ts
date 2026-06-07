@@ -26,6 +26,7 @@ export interface IStorage {
   deleteResident(id: number): Promise<void>;
   deleteAllResidents(): Promise<number>;
   updateProfilePicture(userId: number, objectPath: string): Promise<void>;
+  setResidentPin(userId: number, hashedPin: string): Promise<void>;
 
   // Activities
   getActivities(): Promise<Activity[]>;
@@ -243,6 +244,12 @@ export class DatabaseStorage implements IStorage {
 
   async updateProfilePicture(userId: number, objectPath: string): Promise<void> {
     await db.update(users).set({ profilePicture: objectPath }).where(eq(users.id, userId));
+  }
+
+  async setResidentPin(userId: number, hashedPin: string): Promise<void> {
+    await db.update(users).set({ pin: hashedPin }).where(
+      and(eq(users.id, userId), eq(users.role, 'resident'))
+    );
   }
 
   async getCommunityMessages(includeUnapproved: boolean = false): Promise<Message[]> {
