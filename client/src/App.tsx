@@ -7,6 +7,7 @@ import { Navbar } from "@/components/layout/Navbar";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { queryClient } from "@/lib/queryClient";
+import { useMedianBridge } from "@/hooks/use-median-bridge";
 
 import Landing from "@/pages/Landing";
 import Dashboard from "@/pages/Dashboard";
@@ -41,6 +42,13 @@ function ProtectedRoute({
   }
 
   return <Component />;
+}
+
+/** Silently wires Median JS Bridge push token registration for logged-in users */
+function MedianBridgeInitializer() {
+  const { user } = useAuth();
+  useMedianBridge();
+  return null;
 }
 
 function Router() {
@@ -105,6 +113,7 @@ export default function App() {
       <AuthProvider>
         <TooltipProvider>
           <Toaster />
+          <MedianBridgeInitializer />
           <Router />
           <InstallPrompt />
         </TooltipProvider>

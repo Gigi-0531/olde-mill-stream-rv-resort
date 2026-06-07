@@ -29,7 +29,10 @@ export function PermissionsPrompt() {
     setStep("location");
     // Request permission in the background — system dialog will appear if supported
     try {
-      if ("Notification" in window && Notification.permission === "default") {
+      // Median JS Bridge: trigger native push permission dialog
+      if (window.median?.push?.requestPermission) {
+        window.median.push.requestPermission({ callback: "medianPushTokenRegister" });
+      } else if ("Notification" in window && Notification.permission === "default") {
         Notification.requestPermission().catch(() => {});
       }
     } catch {}
