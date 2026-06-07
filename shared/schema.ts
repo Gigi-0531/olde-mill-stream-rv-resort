@@ -6,6 +6,7 @@ import {
   boolean,
   timestamp,
   pgEnum,
+  index,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -38,10 +39,15 @@ export const users = pgTable("users", {
   phoneNumber: text("phone_number"),
   profilePicture: text("profile_picture"), // Object storage path
 
+  // Push notifications
+  onesignalExternalUserId: text("onesignal_external_user_id"),
+
   createdAt: timestamp("created_at", { withTimezone: false })
     .defaultNow()
     .notNull(),
-});
+}, (table) => [
+  index("users_onesignal_external_user_id_idx").on(table.onesignalExternalUserId),
+]);
 
 /* ======================================================
    ACTIVITIES
