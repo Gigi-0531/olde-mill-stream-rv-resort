@@ -158,7 +158,7 @@ async function sendOneSignalAlert(title: string, body: string): Promise<number> 
 
 // ── Broadcast resort alert to WebPush + OneSignal + APNs ─────────────────────
 
-export async function sendOneSignalNotification(title: string, body: string): Promise<number> {
+export async function sendResortAlert(title: string, body: string): Promise<number> {
   const subscriptions = await storage.getAllPushSubscriptions('alerts');
   let successCount = 0;
 

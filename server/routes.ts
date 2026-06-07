@@ -13,7 +13,7 @@ import { users, insertActivitySchema } from "@shared/schema";
 import { eq, ilike, sql, and } from "drizzle-orm";
 import { ObjectStorageService } from "./replit_integrations/object_storage";
 import { moderateText, moderateImage } from "./contentModeration";
-import { getVapidPublicKey, sendOneSignalNotification } from "./pushService";
+import { getVapidPublicKey, sendResortAlert as sendOneSignalNotification } from "./pushService";
 
 // 👇 ADD THIS RIGHT HERE
 const ONESIGNAL_API_KEY = process.env.ONESIGNAL_API_KEY!;
