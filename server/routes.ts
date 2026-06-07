@@ -13,17 +13,14 @@ import { users, insertActivitySchema } from "@shared/schema";
 import { eq, ilike, sql, and } from "drizzle-orm";
 import { ObjectStorageService } from "./replit_integrations/object_storage";
 import { moderateText, moderateImage } from "./contentModeration";
-import { getVapidPublicKey, sendResortAlert as sendOneSignalNotification } from "./pushService";
+import { getVapidPublicKey, sendResortAlert } from "./pushService";
 
-// 👇 ADD THIS RIGHT HERE
 const ONESIGNAL_API_KEY = process.env.ONESIGNAL_API_KEY!;
 const ONESIGNAL_APP_ID = process.env.ONESIGNAL_APP_ID;
 
-async function sendOneSignalNotification(content: string) {
-  if (!ONESIGNAL_API_KEY || !ONESIGNAL_APP_ID) {
-    throw new Error("Missing OneSignal environment variables");
-  }
-
+/** Broadcast to all OneSignal subscribers (used when posting a resort-wide alert) */
+async function broadcastOneSignalAlert(content: string) {
+  if (!ONESIGNAL_API_KEY || !ONESIGNAL_APP_ID) return;
   await fetch("https://onesignal.com/api/v1/notifications", {
     method: "POST",
     headers: {
@@ -33,11 +30,34 @@ async function sendOneSignalNotification(content: string) {
     body: JSON.stringify({
       app_id: ONESIGNAL_APP_ID,
       included_segments: ["All"],
-      contents: {
-        en: content,
-      },
+      contents: { en: content },
     }),
   });
+}
+
+/** Send a notification to a specific user identified by their external ID (email) */
+async function sendPushToUser(userEmail: string, title: string, message: string) {
+  if (!ONESIGNAL_API_KEY || !ONESIGNAL_APP_ID) {
+    throw new Error("Missing ONESIGNAL_API_KEY or ONESIGNAL_APP_ID");
+  }
+  const res = await fetch("https://onesignal.com/api/v1/notifications", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Basic ${ONESIGNAL_API_KEY}`,
+    },
+    body: JSON.stringify({
+      app_id: ONESIGNAL_APP_ID,
+      include_external_user_ids: [userEmail],
+      contents: { en: message },
+      headings: { en: title },
+    }),
+  });
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`OneSignal error ${res.status}: ${body}`);
+  }
+  return res.json();
 }
 
 const MemoryStore = createMemoryStore(session);
@@ -467,11 +487,11 @@ export function registerRoutes(_server: any, app: Express) {
     try {
       const notification = await storage.createNotification(req.body);
 
-      // OneSignal push notification
+      // Broadcast resort-wide push notification
       try {
-        await sendOneSignalNotification(notification.content);
+        await broadcastOneSignalAlert(notification.content);
       } catch (err) {
-        console.error("OneSignal send error:", err);
+        console.error("OneSignal broadcast error:", err);
       }
 
       res.status(201).json(notification);
@@ -904,6 +924,21 @@ export function registerRoutes(_server: any, app: Express) {
       res.json({ success: true });
     } catch (err) {
       res.status(500).json({ message: "Failed to update profile picture" });
+    }
+  });
+
+  // -------- Targeted push notification --------
+  app.post("/api/send-push-notification", requireAdmin, async (req: Request, res: Response) => {
+    const { userEmail, title, message } = req.body;
+    if (!userEmail || !title || !message) {
+      return res.status(400).json({ message: "userEmail, title, and message are required" });
+    }
+    try {
+      const result = await sendPushToUser(userEmail, title, message);
+      res.json({ success: true, result });
+    } catch (err) {
+      console.error("Send push notification error:", err);
+      res.status(500).json({ message: (err as Error).message });
     }
   });
 }
