@@ -452,16 +452,41 @@ export function registerRoutes(_server: any, app: Express) {
     }
   });
 
+  // -------- Notifications CRUD --------
+  app.get("/api/notifications", async (_req: Request, res: Response) => {
+    try {
+      const notifs = await storage.getNotifications();
+      res.json(notifs);
+    } catch (err) {
+      console.error("Notifications error:", err);
+      res.status(500).json({ message: "Failed to fetch notifications" });
+    }
+  });
+
   app.post("/api/notifications", requireAdmin, async (req: Request, res: Response) => {
     try {
       const notification = await storage.createNotification(req.body);
+
+      // OneSignal push notification
       try {
-        await sendOneSignalNotification("Resort Alert", notification.content);
-      } catch {}
+        await sendOneSignalNotification(notification.content);
+      } catch (err) {
+        console.error("OneSignal send error:", err);
+      }
+
       res.status(201).json(notification);
     } catch (err) {
       console.error("Create notification error:", err);
       res.status(400).json({ message: (err as Error).message });
+    }
+  });
+
+  app.delete("/api/notifications/:id", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      await storage.deleteNotification(Number(req.params.id));
+      res.status(204).send();
+    } catch (err) {
+      res.status(404).json({ message: "Notification not found" });
     }
   });
 

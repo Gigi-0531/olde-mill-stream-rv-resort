@@ -2,6 +2,17 @@ import { createContext, useContext, useState, useEffect, type ReactNode } from "
 import { useMutation } from "@tanstack/react-query";
 import { api, type LoginRequest } from "@shared/routes";
 import { useLocation } from "wouter";
+import Median from "@/lib/median";
+
+function medianOnesignalLogin(externalId: string) {
+  if (typeof (window as any).median === "undefined") return;
+  Median.onesignal.login(externalId).catch(() => {});
+}
+
+function medianOnesignalLogout() {
+  if (typeof (window as any).median === "undefined") return;
+  Median.onesignal.logout().catch(() => {});
+}
 
 type ProfileOption = {
   id: number;
@@ -107,6 +118,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setPendingProfiles(data.profiles);
       } else {
         setUser(data as User);
+        const externalId = (data as any).username;
+        if (externalId) medianOnesignalLogin(externalId);
         if (data.role === 'admin') {
           setLocation('/admin');
         } else {
@@ -133,6 +146,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     onSuccess: (userData) => {
       setPendingProfiles(null);
       setUser(userData as User);
+      const externalId = (userData as any).username;
+      if (externalId) medianOnesignalLogin(externalId);
       setLocation('/dashboard');
     },
   });
@@ -145,6 +160,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
     },
     onSuccess: () => {
+      medianOnesignalLogout();
       setUser(null);
       setLocation('/');
     },
