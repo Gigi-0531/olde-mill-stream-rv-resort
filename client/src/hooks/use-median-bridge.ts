@@ -1,62 +1,62 @@
 import { useEffect } from "react";
+import Median, { isMedianApp } from "@/lib/median";
 import { apiRequest } from "@/lib/queryClient";
 
-declare global {
-  interface Window {
-    median?: {
-      push?: {
-        requestPermission?: (opts?: { callback?: string }) => void;
-      };
-    };
-    // Median calls this global function with push token data
-    medianPushTokenRegister?: (data: { token?: string; granted?: boolean }) => void;
-    // Older GoNative / Median callback
-    gonative_firebase_devicetoken?: (data: { token?: string }) => void;
-    // Sometimes set as a plain variable
-    median_push_token?: string;
-  }
-}
-
-async function registerApnsToken(token: string) {
+async function registerToken(token: string) {
   try {
     await apiRequest("POST", "/api/push/register-apns", { token });
-    console.log("[Median] APNs token registered");
+    console.log("[Median] push token registered");
   } catch (err) {
-    console.warn("[Median] Failed to register APNs token:", err);
+    console.warn("[Median] failed to register push token:", err);
   }
 }
 
 /**
- * Hook that detects Median's JS Bridge and registers the native push token
- * with our server whenever it becomes available.
- *
- * Safe to call outside Median — it no-ops in a plain browser.
+ * Initializes the Median JS Bridge push flow.
+ * - Registers for OneSignal push via the bridge
+ * - Captures the OneSignal player/push token and saves it to our server
+ * - No-ops silently when running in a plain browser
  */
 export function useMedianBridge() {
   useEffect(() => {
-    // 1. If token is already available as a global variable, register it now
-    if (window.median_push_token) {
-      registerApnsToken(window.median_push_token);
-    }
+    if (!isMedianApp) return;
 
-    // 2. Expose global callback that Median will invoke with the token
-    window.medianPushTokenRegister = (data) => {
-      if (data?.token) registerApnsToken(data.token);
-    };
+    // Register for OneSignal push and capture the token
+    Median.onesignal
+      .register({})
+      .then((info: any) => {
+        const token = info?.oneSignalUserId || info?.userId || info?.token;
+        if (token) registerToken(token);
+      })
+      .catch(() => {
+        // Older Median versions — fall back to info()
+        Median.onesignal
+          .info({})
+          .then((info: any) => {
+            const token = info?.oneSignalUserId || info?.userId || info?.token;
+            if (token) registerToken(token);
+          })
+          .catch(() => {});
+      });
 
-    // 3. Legacy GoNative / older Median callback
-    window.gonative_firebase_devicetoken = (data) => {
-      if (data?.token) registerApnsToken(data.token);
-    };
-
-    // 4. If the Median JS bridge object is present, request push permission
-    //    This triggers the native iOS/Android push permission dialog if not yet shown
-    if (window.median?.push?.requestPermission) {
-      window.median.push.requestPermission({ callback: "medianPushTokenRegister" });
-    }
-
-    return () => {
-      // Leave callbacks in place — they're harmless and may fire later
-    };
+    // Listen for push notifications opened while app is in background
+    Median.onesignal.pushOpened.addListener((data: any) => {
+      console.log("[Median] push opened:", data);
+      // Navigate to the right page if url is provided
+      if (data?.additionalData?.url) {
+        window.location.href = data.additionalData.url;
+      }
+    });
   }, []);
+}
+
+/**
+ * Trigger a haptic feedback pulse. No-ops in browser.
+ * @param style 'light' | 'medium' | 'heavy' | 'success' | 'warning' | 'error'
+ */
+export function haptic(style: "light" | "medium" | "heavy" | "success" | "warning" | "error" = "medium") {
+  if (!isMedianApp) return;
+  try {
+    Median.haptics.trigger({ style });
+  } catch {}
 }

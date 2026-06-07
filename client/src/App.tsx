@@ -46,7 +46,6 @@ function ProtectedRoute({
 
 /** Silently wires Median JS Bridge push token registration for logged-in users */
 function MedianBridgeInitializer() {
-  const { user } = useAuth();
   useMedianBridge();
   return null;
 }

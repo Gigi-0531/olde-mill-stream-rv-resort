@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import Median, { isMedianApp } from "@/lib/median";
 import {
   Dialog,
   DialogContent,
@@ -29,9 +30,9 @@ export function PermissionsPrompt() {
     setStep("location");
     // Request permission in the background — system dialog will appear if supported
     try {
-      // Median JS Bridge: trigger native push permission dialog
-      if (window.median?.push?.requestPermission) {
-        window.median.push.requestPermission({ callback: "medianPushTokenRegister" });
+      if (isMedianApp) {
+        // Median JS Bridge: register for OneSignal push natively
+        Median.onesignal.register({}).catch(() => {});
       } else if ("Notification" in window && Notification.permission === "default") {
         Notification.requestPermission().catch(() => {});
       }
