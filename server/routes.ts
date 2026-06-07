@@ -13,52 +13,7 @@ import { users, insertActivitySchema } from "@shared/schema";
 import { eq, ilike, sql, and } from "drizzle-orm";
 import { ObjectStorageService } from "./replit_integrations/object_storage";
 import { moderateText, moderateImage } from "./contentModeration";
-import { getVapidPublicKey, sendResortAlert } from "./pushService";
-
-const ONESIGNAL_API_KEY = process.env.ONESIGNAL_API_KEY!;
-const ONESIGNAL_APP_ID = process.env.ONESIGNAL_APP_ID;
-
-/** Broadcast to all OneSignal subscribers (used when posting a resort-wide alert) */
-async function broadcastOneSignalAlert(content: string) {
-  if (!ONESIGNAL_API_KEY || !ONESIGNAL_APP_ID) return;
-  await fetch("https://onesignal.com/api/v1/notifications", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Basic ${ONESIGNAL_API_KEY}`,
-    },
-    body: JSON.stringify({
-      app_id: ONESIGNAL_APP_ID,
-      included_segments: ["All"],
-      contents: { en: content },
-    }),
-  });
-}
-
-/** Send a notification to a specific user identified by their external ID (email) */
-async function sendPushToUser(userEmail: string, title: string, message: string) {
-  if (!ONESIGNAL_API_KEY || !ONESIGNAL_APP_ID) {
-    throw new Error("Missing ONESIGNAL_API_KEY or ONESIGNAL_APP_ID");
-  }
-  const res = await fetch("https://onesignal.com/api/v1/notifications", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Basic ${ONESIGNAL_API_KEY}`,
-    },
-    body: JSON.stringify({
-      app_id: ONESIGNAL_APP_ID,
-      include_external_user_ids: [userEmail],
-      contents: { en: message },
-      headings: { en: title },
-    }),
-  });
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`OneSignal error ${res.status}: ${body}`);
-  }
-  return res.json();
-}
+import { getVapidPublicKey, sendResortAlert, sendOneSignalToUser } from "./pushService";
 
 const MemoryStore = createMemoryStore(session);
 const objectStorageService = new ObjectStorageService();
@@ -590,24 +545,15 @@ export function registerRoutes(_server: any, app: Express) {
 
       // Broadcast resort-wide push notification
       try {
-        await broadcastOneSignalAlert(notification.content);
+        await sendResortAlert("📢 Resort Alert", notification.content);
       } catch (err) {
-        console.error("OneSignal broadcast error:", err);
+        console.error("Resort alert broadcast error:", err);
       }
 
       res.status(201).json(notification);
     } catch (err) {
       console.error("Create notification error:", err);
       res.status(400).json({ message: (err as Error).message });
-    }
-  });
-
-  app.delete("/api/notifications/:id", requireAdmin, async (req: Request, res: Response) => {
-    try {
-      await storage.deleteNotification(Number(req.params.id));
-      res.status(204).send();
-    } catch (err) {
-      res.status(404).json({ message: "Notification not found" });
     }
   });
 
@@ -760,7 +706,7 @@ export function registerRoutes(_server: any, app: Express) {
             const senderName = user.firstName
               ? `${user.firstName} ${user.lastName}`
               : `Lot ${user.lotNumber}`;
-            await sendPushToUser(
+            await sendOneSignalToUser(
               admin.username,
               "📋 New Community Post",
               `${senderName} posted a message pending your approval.`
@@ -1099,7 +1045,7 @@ export function registerRoutes(_server: any, app: Express) {
       return res.status(400).json({ message: "userEmail, title, and message are required" });
     }
     try {
-      const result = await sendPushToUser(userEmail, title, message);
+      const result = await sendOneSignalToUser(userEmail, title, message);
       res.json({ success: true, result });
     } catch (err) {
       console.error("Send push notification error:", err);

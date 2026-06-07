@@ -156,6 +156,34 @@ async function sendOneSignalAlert(title: string, body: string): Promise<number> 
   }
 }
 
+// ── OneSignal: notify a single user by external ID ───────────────────────────
+
+export async function sendOneSignalToUser(externalUserId: string, title: string, body: string): Promise<boolean> {
+  if (!oneSignalAppId || !oneSignalRestKey) return false;
+  try {
+    const res = await fetch('https://onesignal.com/api/v1/notifications', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Basic ${oneSignalRestKey}`,
+      },
+      body: JSON.stringify({
+        app_id: oneSignalAppId,
+        include_external_user_ids: [externalUserId],
+        headings: { en: title },
+        contents: { en: body },
+        url: '/admin',
+      }),
+    });
+    const data = await res.json() as { recipients?: number; errors?: any };
+    if (data.errors) console.error('OneSignal user push error:', data.errors);
+    return (data.recipients ?? 0) > 0;
+  } catch (err) {
+    console.error('OneSignal user push failed:', err);
+    return false;
+  }
+}
+
 // ── Broadcast resort alert to WebPush + OneSignal + APNs ─────────────────────
 
 export async function sendResortAlert(title: string, body: string): Promise<number> {
@@ -255,35 +283,6 @@ export function startScheduledNotifications() {
   import('node-cron').then(({ default: cron }) => {
     const tz = { timezone: 'America/New_York' };
 
-    // 8:00 AM — Good morning weather push
-    cron.schedule('0 8 * * *', async () => {
-      try {
-        const w = await fetchCurrentWeather();
-        const body = w
-          ? `${w.temp}°F and ${w.condition} — High ${w.tempMax}°, Low ${w.tempMin}°. Have a great day at Olde Mill Stream! ☀️`
-          : 'Check the app for today\'s weather in Umatilla!';
-        await sendResortAlert('🌤️ Good Morning, Olde Mill Stream!', body);
-        if (w) await checkAndSendSevereWeatherAlert(w);
-        console.log('[Scheduler] 8 AM weather push sent');
-      } catch (err) {
-        console.error('[Scheduler] 8 AM weather push failed:', err);
-      }
-    }, tz);
-
-    // 12:00 PM — Midday weather update
-    cron.schedule('0 12 * * *', async () => {
-      try {
-        const w = await fetchCurrentWeather();
-        if (!w) return;
-        const body = `${w.temp}°F and ${w.condition} right now in Umatilla. High today ${w.tempMax}°F.`;
-        await sendResortAlert('☀️ Midday Weather Update', body);
-        await checkAndSendSevereWeatherAlert(w);
-        console.log('[Scheduler] Noon weather push sent');
-      } catch (err) {
-        console.error('[Scheduler] Noon weather push failed:', err);
-      }
-    }, tz);
-
     // Every 30 minutes — severe weather watch (silent unless conditions are severe)
     cron.schedule('*/30 * * * *', async () => {
       try {
@@ -292,8 +291,8 @@ export function startScheduledNotifications() {
       } catch {}
     }, tz);
 
-    console.log('[Scheduler] Notifications scheduled: 8 AM weather, noon weather, 30-min severe weather watch');
+    console.log('[Scheduler] Severe weather watch active (checks every 30 min)');
   }).catch(() => {
-    console.warn('[Scheduler] node-cron not available — scheduled notifications disabled');
+    console.warn('[Scheduler] node-cron not available — severe weather watch disabled');
   });
 }
