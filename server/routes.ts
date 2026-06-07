@@ -102,6 +102,39 @@ const loginLimiter = rateLimit({
   message: { message: "Too many login attempts, please try again later." },
 });
 
+// Rate limiter for the public weather endpoint (per IP)
+const weatherLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000, // 10 minutes
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Too many weather requests, please try again later." },
+});
+
+// Rate limiter for the image moderation endpoint (per IP / session)
+const moderationLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 15,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Too many moderation requests, please try again later." },
+});
+
+// Cached weather response to avoid hammering the upstream API
+let weatherCache: { data: unknown; expiresAt: number } | null = null;
+const WEATHER_CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
+
+// Allowed MIME types for image moderation
+const ALLOWED_MODERATION_MIME_TYPES = new Set([
+  "image/jpeg",
+  "image/jpg",
+  "image/png",
+  "image/gif",
+  "image/webp",
+]);
+// Maximum base64 payload size (~4 MB decoded ≈ ~5.4 MB base64)
+const MAX_BASE64_IMAGE_BYTES = 5_500_000;
+
 // ------------------- Routes -------------------
 export function registerRoutes(_server: any, app: Express) {
   if (!process.env.SESSION_SECRET) throw new Error("SESSION_SECRET is required");
@@ -758,7 +791,7 @@ export function registerRoutes(_server: any, app: Express) {
   });
 
   // -------- Weather --------
-  app.get("/api/weather", async (_req: Request, res: Response) => {
+  app.get("/api/weather", weatherLimiter, async (_req: Request, res: Response) => {
     try {
       const apiKey = process.env.OPENWEATHER_API_KEY;
       if (!apiKey) {
@@ -772,6 +805,12 @@ export function registerRoutes(_server: any, app: Express) {
             { day: "Thu", temp: 73, condition: "Rain" },
           ],
         });
+      }
+
+      // Serve cached response if still fresh
+      const now = Date.now();
+      if (weatherCache && weatherCache.expiresAt > now) {
+        return res.json(weatherCache.data);
       }
 
       const response = await fetch(
@@ -793,12 +832,15 @@ export function registerRoutes(_server: any, app: Express) {
           condition: item.weather[0].main,
         }));
 
-      res.json({
+      const weatherPayload = {
         temp: Math.round(current.main.temp),
         condition: current.weather[0].main,
         location: "Umatilla, FL",
         forecast: forecastDays,
-      });
+      };
+
+      weatherCache = { data: weatherPayload, expiresAt: Date.now() + WEATHER_CACHE_TTL_MS };
+      res.json(weatherPayload);
     } catch (err) {
       console.error("Weather error:", err);
       res.json({
@@ -901,11 +943,23 @@ export function registerRoutes(_server: any, app: Express) {
   });
 
   // -------- Content Moderation --------
-  app.post("/api/moderate/image", requireAuth, async (req: Request, res: Response) => {
+  app.post("/api/moderate/image", requireAuth, moderationLimiter, async (req: Request, res: Response) => {
     try {
       const { image, mimeType } = req.body;
-      if (!image) return res.status(400).json({ message: "Image data required" });
-      const result = await moderateImage(image, mimeType || "image/jpeg");
+      if (!image || typeof image !== "string") {
+        return res.status(400).json({ message: "Image data required" });
+      }
+
+      const resolvedMime = typeof mimeType === "string" ? mimeType : "image/jpeg";
+      if (!ALLOWED_MODERATION_MIME_TYPES.has(resolvedMime)) {
+        return res.status(400).json({ message: "Unsupported image type" });
+      }
+
+      if (image.length > MAX_BASE64_IMAGE_BYTES) {
+        return res.status(413).json({ message: "Image too large" });
+      }
+
+      const result = await moderateImage(image, resolvedMime);
       res.json(result);
     } catch (err) {
       res.json({ isAllowed: true });
