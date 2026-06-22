@@ -4,9 +4,9 @@ import { api, type LoginRequest } from "@shared/routes";
 import { useLocation } from "wouter";
 import Median from "@/lib/median";
 
-function medianOnesignalLogin(externalId: string) {
+function medianOnesignalLogin(externalId: string | number) {
   if (typeof (window as any).median === "undefined") return;
-  Median.onesignal.login(externalId).catch(() => {});
+  Median.onesignal.login(String(externalId)).catch(() => {});
 }
 
 function medianOnesignalLogout() {
@@ -118,7 +118,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setPendingProfiles(data.profiles);
       } else {
         setUser(data as User);
-        const externalId = (data as any).username;
+        const externalId = (data as any).id;
         if (externalId) medianOnesignalLogin(externalId);
         if ((data as any).role === 'admin') {
           setLocation('/admin');

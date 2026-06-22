@@ -184,7 +184,7 @@ export async function sendOneSignalToUser(externalUserId: string, title: string,
   }
 }
 
-// ── Broadcast resort alert to WebPush + OneSignal + APNs ─────────────────────
+// ── Broadcast resort alert to WebPush + OneSignal ────────────────────────────
 
 export async function sendResortAlert(title: string, body: string): Promise<number> {
   const subscriptions = await storage.getAllPushSubscriptions('alerts');
@@ -208,13 +208,9 @@ export async function sendResortAlert(title: string, body: string): Promise<numb
     }
   }
 
-  // OneSignal (handles iOS + Android via Median)
+  // OneSignal — delivers to all iOS + Android subscribers via Median native SDK
   const oneSignalSent = await sendOneSignalAlert(title, body);
   successCount += oneSignalSent;
-
-  // Raw APNs fallback (if configured independently of OneSignal)
-  const apnsSent = await sendApnsAlert(title, body);
-  successCount += apnsSent;
 
   return successCount;
 }

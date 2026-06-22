@@ -1,50 +1,36 @@
 import { useEffect } from "react";
 import Median, { isMedianApp } from "@/lib/median";
-import { apiRequest } from "@/lib/queryClient";
-
-async function registerToken(token: string) {
-  try {
-    await apiRequest("POST", "/api/push/register-apns", { token });
-    console.log("[Median] push token registered");
-  } catch (err) {
-    console.warn("[Median] failed to register push token:", err);
-  }
-}
 
 /**
- * Initializes the Median JS Bridge push flow.
- * - Registers for OneSignal push via the bridge
- * - Captures the OneSignal player/push token and saves it to our server
+ * Initializes the Median JS Bridge.
+ * - Registers for OneSignal push via the bridge (Median handles subscriber creation in OneSignal)
+ * - Listens for push notifications opened while app is backgrounded
  * - No-ops silently when running in a plain browser
  */
 export function useMedianBridge() {
   useEffect(() => {
     if (!isMedianApp) return;
 
-    // Register for OneSignal push and capture the token
+    // Trigger OneSignal registration through the Median bridge.
+    // Median's native SDK handles subscriber creation in OneSignal automatically —
+    // no need to store or forward any token from our side.
     Median.onesignal
       .register({})
-      .then((info: any) => {
-        const token = info?.oneSignalUserId || info?.userId || info?.token;
-        if (token) registerToken(token);
-      })
       .catch(() => {
-        // Older Median versions — fall back to info()
-        Median.onesignal
-          .info({})
-          .then((info: any) => {
-            const token = info?.oneSignalUserId || info?.userId || info?.token;
-            if (token) registerToken(token);
-          })
-          .catch(() => {});
+        // Older Median versions — fall back to info() just to wake the SDK
+        Median.onesignal.info({}).catch(() => {});
       });
 
-    // Listen for push notifications opened while app is in background
+    // Navigate to the relevant page when a push notification is tapped
     Median.onesignal.pushOpened.addListener((data: any) => {
-      console.log("[Median] push opened:", data);
-      // Navigate to the right page if url is provided
-      if (data?.additionalData?.url) {
-        window.location.href = data.additionalData.url;
+      const url = data?.additionalData?.url || data?.launchURL;
+      if (url) {
+        try {
+          const path = new URL(url).pathname;
+          window.location.href = path;
+        } catch {
+          window.location.href = url;
+        }
       }
     });
   }, []);

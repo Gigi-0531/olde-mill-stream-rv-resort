@@ -464,17 +464,6 @@ export function registerRoutes(_server: any, app: Express) {
     }
   });
 
-  // -------- Notifications CRUD --------
-  app.get("/api/notifications", async (_req: Request, res: Response) => {
-    try {
-      const notifs = await storage.getNotifications();
-      res.json(notifs);
-    } catch (err) {
-      console.error("Notifications error:", err);
-      res.status(500).json({ message: "Failed to fetch notifications" });
-    }
-  });
-
   app.post("/api/notifications", requireAdmin, async (req: Request, res: Response) => {
     try {
       const notification = await storage.createNotification(req.body);
