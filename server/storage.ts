@@ -10,7 +10,7 @@ import {
   type DirectoryEntry,
   type ApnsToken,
 } from "@shared/schema";
-import { eq, ilike, or, and, desc, isNull } from "drizzle-orm";
+import { eq, ilike, or, and, desc, isNull, inArray } from "drizzle-orm";
 
 export interface IStorage {
   // Users
@@ -72,6 +72,9 @@ export interface IStorage {
   saveApnsToken(token: string, userId?: number): Promise<void>;
   getAllApnsTokens(): Promise<ApnsToken[]>;
   deleteApnsToken(token: string): Promise<void>;
+
+  // Resident helpers
+  getAllResidentUserIds(): Promise<number[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -308,13 +311,20 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAllPushSubscriptions(type?: 'weather' | 'alerts'): Promise<PushSubscription[]> {
+    const residentIds = await this.getAllResidentUserIds();
+    const base = db.select().from(pushSubscriptions);
     if (type === 'weather') {
-      return db.select().from(pushSubscriptions).where(eq(pushSubscriptions.weatherEnabled, true));
+      return base.where(and(eq(pushSubscriptions.weatherEnabled, true), inArray(pushSubscriptions.userId, residentIds.length ? residentIds : [-1])));
     }
     if (type === 'alerts') {
-      return db.select().from(pushSubscriptions).where(eq(pushSubscriptions.alertsEnabled, true));
+      return base.where(and(eq(pushSubscriptions.alertsEnabled, true), inArray(pushSubscriptions.userId, residentIds.length ? residentIds : [-1])));
     }
-    return db.select().from(pushSubscriptions);
+    return base.where(inArray(pushSubscriptions.userId, residentIds.length ? residentIds : [-1]));
+  }
+
+  async getAllResidentUserIds(): Promise<number[]> {
+    const rows = await db.select({ id: users.id }).from(users).where(eq(users.role, 'resident'));
+    return rows.map(r => r.id);
   }
 
   async savePushSubscription(subscription: InsertPushSubscription): Promise<PushSubscription> {

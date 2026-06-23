@@ -133,6 +133,11 @@ export const oneSignalRestKey = process.env.ONESIGNAL_REST_API_KEY;
 async function sendOneSignalAlert(title: string, body: string): Promise<number> {
   if (!oneSignalAppId || !oneSignalRestKey) return 0;
   try {
+    // Only send to residents — fetch their numeric IDs and target by external user ID
+    const residentIds = await storage.getAllResidentUserIds();
+    if (!residentIds.length) return 0;
+    const externalUserIds = residentIds.map(id => String(id));
+
     const res = await fetch('https://onesignal.com/api/v1/notifications', {
       method: 'POST',
       headers: {
@@ -141,7 +146,7 @@ async function sendOneSignalAlert(title: string, body: string): Promise<number> 
       },
       body: JSON.stringify({
         app_id: oneSignalAppId,
-        included_segments: ['All'],
+        include_external_user_ids: externalUserIds,
         headings: { en: title },
         contents: { en: body },
         url: '/',
