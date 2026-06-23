@@ -2,7 +2,7 @@
 
 **Celebrating 40 Years: 1986–2026**
 
-A full-stack Progressive Web App (PWA) for Olde Mill Stream RV Resort in Umatilla, Florida. Gives park residents a single place to check activities, view resort alerts, browse the photo gallery, see the resort map, message management, and receive push notifications — all optimized for mobile use.
+A full-stack mobile app for Olde Mill Stream RV Resort, a 55+ community in Umatilla, Florida. Built as a native iOS and Android app via Median.co, it gives residents a single place to check activities, view resort alerts, browse the photo gallery, see the resort map, message management, and receive push notifications.
 
 ---
 
@@ -38,8 +38,8 @@ A full-stack Progressive Web App (PWA) for Olde Mill Stream RV Resort in Umatill
 | Database | PostgreSQL (Neon), Drizzle ORM |
 | Auth | Session-based (express-session + bcrypt) |
 | File Storage | Google Cloud Storage (via Replit sidecar) |
+| Mobile App | Median.co (native iOS & Android wrapper) |
 | Push Notifications | OneSignal REST API + Median.co native bridge |
-| PWA | Service Worker, Web App Manifest |
 
 ---
 
@@ -53,12 +53,12 @@ A full-stack Progressive Web App (PWA) for Olde Mill Stream RV Resort in Umatill
 │   │   ├── contexts/        # Auth context
 │   │   ├── hooks/           # React Query hooks + Median bridge
 │   │   └── lib/             # API client, query client
-│   └── public/              # Static assets + service worker
+│   └── public/              # Static assets
 ├── server/                  # Express backend
 │   ├── routes.ts            # All API endpoints
 │   ├── storage.ts           # Database access layer (IStorage)
 │   ├── db.ts                # Drizzle + PostgreSQL connection
-│   ├── pushService.ts       # WebPush + OneSignal delivery
+│   ├── pushService.ts       # OneSignal push delivery
 │   └── index.ts             # Server entry point
 └── shared/
     ├── schema.ts            # Drizzle schema + Zod types (shared FE/BE)
@@ -92,11 +92,10 @@ Role-based access control is enforced server-side on all sensitive routes.
 
 ## Push Notifications
 
-Push notifications are delivered via **OneSignal** through the **Median.co** native app wrapper:
+Push notifications are delivered via **OneSignal** through the **Median.co** native app:
 
 - When an admin creates an alert, `sendResortAlert()` fires immediately
 - OneSignal broadcasts to all subscribed iOS and Android devices
-- Browser users are served via Web Push (VAPID)
 
 For iOS delivery, APNs credentials must be configured in the OneSignal dashboard. See the OneSignal docs for setup instructions.
 
@@ -115,7 +114,7 @@ The dev server starts on port 5000. Set `DATABASE_URL` and `SESSION_SECRET` in y
 
 ## Resort Info
 
-**Olde Mill Stream RV Resort**
+**Olde Mill Stream RV Resort** — 55+ Community
 1000 N. Central Ave, Umatilla, FL 32784
 📞 352.669.3141
 ✉️ omsmanagement86@gmail.com
