@@ -285,8 +285,8 @@ export function registerRoutes(_server: any, app: Express) {
     }
   });
 
-  // -------- Directory: Get last updated timestamp --------
-  app.get("/api/directory/updated", requireAuth, async (_req: Request, res: Response) => {
+  // -------- Directory: Get last updated timestamp (admin only) --------
+  app.get("/api/directory/updated", requireAdmin, async (_req: Request, res: Response) => {
     try {
       const result = await db.execute(
         sql`SELECT value FROM app_settings WHERE key = 'directory_updated_at'`
@@ -368,8 +368,8 @@ export function registerRoutes(_server: any, app: Express) {
     }
   });
 
-  // -------- Public Directory (resident-viewable) --------
-  app.get("/api/directory/public", requireAuth, async (_req: Request, res: Response) => {
+  // -------- Public Directory (admin only) --------
+  app.get("/api/directory/public", requireAdmin, async (_req: Request, res: Response) => {
     try {
       const entries = await storage.getDirectoryEntries();
       res.json(entries);

@@ -13,7 +13,6 @@ import {
   Settings,
   HelpCircle,
   Users,
-  BookUser,
   LucideIcon
 } from "lucide-react";
 import { useState, useRef, useEffect, useCallback } from "react";
@@ -112,7 +111,6 @@ export function Navbar() {
                   {renderNavLink(baseRoute, Home, "Home")}
                   {!isAdmin && renderNavLink("/map", MapIcon, "Park Map")}
                   {!isAdmin && renderNavLink("/activities", Calendar, "Activities")}
-                  {!isAdmin && renderNavLink("/directory", BookUser, "Directory")}
                   {!isAdmin && renderNavLink("/gallery", Image, "Gallery")}
                   {!isAdmin && renderNavLink("/messages", MessageCircle, "Community Board")}
                   {!isAdmin && renderNavLink("/help", HelpCircle, "Get Help")}

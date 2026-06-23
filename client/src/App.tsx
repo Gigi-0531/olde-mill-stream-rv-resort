@@ -19,7 +19,6 @@ import Settings from "@/pages/Settings";
 import Help from "@/pages/Help";
 import Admin from "@/pages/Admin";
 import Residents from "@/pages/Residents";
-import Directory from "@/pages/Directory";
 import NotFound from "@/pages/not-found";
 
 function ProtectedRoute({
@@ -81,10 +80,6 @@ function Router() {
 
           <Route path="/residents">
             <ProtectedRoute component={Residents} adminOnly />
-          </Route>
-
-          <Route path="/directory">
-            <ProtectedRoute component={Directory} />
           </Route>
 
           <Route path="/settings">
