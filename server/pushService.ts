@@ -127,8 +127,8 @@ export async function sendWeatherAlert(title: string, body: string): Promise<num
 
 // ── OneSignal REST API ────────────────────────────────────────────────────────
 
-const oneSignalAppId = process.env.ONESIGNAL_APP_ID;
-const oneSignalRestKey = process.env.ONESIGNAL_REST_API_KEY;
+export const oneSignalAppId = process.env.ONESIGNAL_APP_ID;
+export const oneSignalRestKey = process.env.ONESIGNAL_REST_API_KEY;
 
 async function sendOneSignalAlert(title: string, body: string): Promise<number> {
   if (!oneSignalAppId || !oneSignalRestKey) return 0;

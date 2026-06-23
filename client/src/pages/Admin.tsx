@@ -12,7 +12,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Plus, Trash2, Calendar, Bell, MapPin, Clock, Image, Loader2, Users, Pencil, Search, MessageSquare, Check, X, Upload, FileSpreadsheet, ShieldCheck, BookUser, Phone } from "lucide-react";
+import { Plus, Trash2, Calendar, Bell, MapPin, Clock, Image, Loader2, Users, Pencil, Search, MessageSquare, Check, X, Upload, FileSpreadsheet, ShieldCheck, BookUser, Phone, Smartphone, RefreshCw, Send, Radio, Target, AlertCircle, CheckCircle2, WifiOff } from "lucide-react";
 import { format } from "date-fns";
 import { useState, useRef, useCallback } from "react";
 import { NotificationsWidget } from "@/components/NotificationsWidget";
@@ -102,6 +102,9 @@ function AdminContent() {
               <TabsTrigger value="messages" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-2">
                 <MessageSquare className="w-4 h-4" /> Messages
               </TabsTrigger>
+              <TabsTrigger value="push-tests" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-2" data-testid="tab-push-tests">
+                <Smartphone className="w-4 h-4" /> Push Tests
+              </TabsTrigger>
             </TabsList>
           </div>
 
@@ -131,6 +134,10 @@ function AdminContent() {
 
           <TabsContent value="messages">
             <MessageModeration />
+          </TabsContent>
+
+          <TabsContent value="push-tests">
+            <PushTestManager />
           </TabsContent>
         </Tabs>
       </div>
@@ -1178,6 +1185,278 @@ function MessageModeration() {
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── Push Notification Test Suite ────────────────────────────────────────────
+
+interface TestResult {
+  id: string;
+  label: string;
+  ok: boolean;
+  recipients?: number;
+  notificationId?: string;
+  error?: string;
+  ts: string;
+}
+
+function StatusIndicator({ ok, label }: { ok: boolean; label: string }) {
+  return (
+    <div className="flex items-center gap-2">
+      {ok
+        ? <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+        : <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />}
+      <span className={ok ? "text-emerald-700 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}>
+        {label}
+      </span>
+    </div>
+  );
+}
+
+function PushTestManager() {
+  const [log, setLog] = useState<TestResult[]>([]);
+  const [targetedId, setTargetedId] = useState("");
+  const { toast } = useToast();
+
+  const statusQuery = useQuery<any>({
+    queryKey: ["/api/push/test/status"],
+    staleTime: 30_000,
+  });
+
+  const recentQuery = useQuery<any>({
+    queryKey: ["/api/push/test/recent"],
+    staleTime: 30_000,
+  });
+
+  function addLog(entry: Omit<TestResult, "ts">) {
+    setLog(prev => [{ ...entry, ts: new Date().toLocaleTimeString() }, ...prev].slice(0, 20));
+  }
+
+  const broadcastMutation = useMutation({
+    mutationFn: () => apiRequest("POST", "/api/push/test/broadcast").then(r => r.json()),
+    onSuccess: (data) => {
+      addLog({ id: crypto.randomUUID(), label: "Broadcast to All", ok: data.ok, recipients: data.recipients, notificationId: data.id, error: data.errors ? JSON.stringify(data.errors) : undefined });
+      recentQuery.refetch();
+      toast({ title: data.ok ? "Broadcast sent!" : "Broadcast failed", description: data.ok ? `Delivered to ${data.recipients} device(s)` : JSON.stringify(data.errors), variant: data.ok ? "default" : "destructive" });
+    },
+    onError: () => addLog({ id: crypto.randomUUID(), label: "Broadcast to All", ok: false, error: "Network error" }),
+  });
+
+  const androidMutation = useMutation({
+    mutationFn: () => apiRequest("POST", "/api/push/test/android").then(r => r.json()),
+    onSuccess: (data) => {
+      addLog({ id: crypto.randomUUID(), label: "Android Only", ok: data.ok, recipients: data.recipients, notificationId: data.id, error: data.errors ? JSON.stringify(data.errors) : undefined });
+      recentQuery.refetch();
+      toast({ title: data.ok ? "Android test sent!" : "Android test failed", description: data.ok ? `Delivered to ${data.recipients} Android device(s)` : JSON.stringify(data.errors), variant: data.ok ? "default" : "destructive" });
+    },
+    onError: () => addLog({ id: crypto.randomUUID(), label: "Android Only", ok: false, error: "Network error" }),
+  });
+
+  const targetedMutation = useMutation({
+    mutationFn: (externalId: string) => apiRequest("POST", "/api/push/test/targeted", { externalId }).then(r => r.json()),
+    onSuccess: (data) => {
+      addLog({ id: crypto.randomUUID(), label: `Targeted (${targetedId})`, ok: data.ok, recipients: data.recipients, notificationId: data.id, error: data.errors ? JSON.stringify(data.errors) : undefined });
+      recentQuery.refetch();
+      toast({ title: data.ok ? "Targeted test sent!" : "Targeted test failed", description: data.ok ? `Delivered to ${data.recipients} device(s)` : JSON.stringify(data.errors), variant: data.ok ? "default" : "destructive" });
+    },
+    onError: () => addLog({ id: crypto.randomUUID(), label: `Targeted (${targetedId})`, ok: false, error: "Network error" }),
+  });
+
+  const status = statusQuery.data;
+  const isLoading = statusQuery.isLoading;
+
+  return (
+    <div className="space-y-6 max-w-3xl">
+      <div>
+        <h2 className="text-xl font-bold mb-1" data-testid="heading-push-tests">Push Notification Test Suite</h2>
+        <p className="text-muted-foreground text-sm">Diagnose and test OneSignal push delivery to Android and iOS devices.</p>
+      </div>
+
+      {/* ── Config & Health Card ── */}
+      <Card data-testid="card-push-status">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Radio className="w-4 h-4 text-primary" /> OneSignal Status
+            </CardTitle>
+            <Button size="sm" variant="ghost" onClick={() => { statusQuery.refetch(); recentQuery.refetch(); }} disabled={isLoading} data-testid="button-refresh-status">
+              <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {isLoading ? (
+            <div className="space-y-2">
+              {[1,2,3].map(i => <div key={i} className="h-5 bg-muted rounded animate-pulse" />)}
+            </div>
+          ) : status ? (
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <StatusIndicator ok={status.config?.appIdSet} label={status.config?.appIdSet ? `App ID set (${status.config.appId})` : "App ID missing"} />
+                <StatusIndicator ok={status.config?.restKeySet} label={status.config?.restKeySet ? "REST API key set" : "REST API key missing"} />
+                {status.app && (
+                  <>
+                    <StatusIndicator ok={true} label={`${status.app.players ?? 0} total subscribers`} />
+                    <StatusIndicator ok={(status.app.messageable_players ?? 0) > 0} label={`${status.app.messageable_players ?? 0} reachable now`} />
+                    <StatusIndicator ok={!!status.app.fcm_configured} label={status.app.fcm_configured ? "Android (FCM) configured" : "Android (FCM) not configured"} />
+                    <StatusIndicator ok={!!status.app.apns_configured} label={status.app.apns_configured ? "iOS (APNs) configured" : "iOS (APNs) not configured"} />
+                  </>
+                )}
+                {!status.ok && status.error && (
+                  <div className="col-span-2 flex items-center gap-2 text-red-600 text-sm">
+                    <WifiOff className="w-4 h-4 flex-shrink-0" />
+                    {status.error}
+                  </div>
+                )}
+              </div>
+              {status.app?.name && (
+                <p className="text-xs text-muted-foreground pt-1">App: <span className="font-medium">{status.app.name}</span></p>
+              )}
+            </>
+          ) : (
+            <p className="text-sm text-muted-foreground">Could not fetch status.</p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* ── Test Buttons ── */}
+      <Card data-testid="card-push-actions">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Send className="w-4 h-4 text-primary" /> Send Test Notifications
+          </CardTitle>
+          <CardDescription>All tests send a clearly-labelled test message — safe to run any time.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Button
+              onClick={() => broadcastMutation.mutate()}
+              disabled={broadcastMutation.isPending || androidMutation.isPending || targetedMutation.isPending}
+              className="gap-2 w-full"
+              data-testid="button-test-broadcast"
+            >
+              {broadcastMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Radio className="w-4 h-4" />}
+              Broadcast to All Devices
+            </Button>
+
+            <Button
+              onClick={() => androidMutation.mutate()}
+              disabled={broadcastMutation.isPending || androidMutation.isPending || targetedMutation.isPending}
+              variant="outline"
+              className="gap-2 w-full border-emerald-500/40 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/20"
+              data-testid="button-test-android"
+            >
+              {androidMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Smartphone className="w-4 h-4" />}
+              Android Only
+            </Button>
+          </div>
+
+          <div className="border-t pt-4">
+            <p className="text-sm font-medium mb-2 flex items-center gap-1">
+              <Target className="w-4 h-4 text-primary" /> Targeted — send to one specific device
+            </p>
+            <p className="text-xs text-muted-foreground mb-3">
+              Enter the resident's numeric user ID (visible in the directory). The Median app links each device to that ID at login.
+            </p>
+            <div className="flex gap-2">
+              <Input
+                placeholder="User ID (e.g. 42)"
+                value={targetedId}
+                onChange={e => setTargetedId(e.target.value)}
+                className="max-w-[180px]"
+                data-testid="input-targeted-user-id"
+              />
+              <Button
+                onClick={() => { if (targetedId.trim()) targetedMutation.mutate(targetedId.trim()); }}
+                disabled={!targetedId.trim() || broadcastMutation.isPending || androidMutation.isPending || targetedMutation.isPending}
+                variant="outline"
+                className="gap-2"
+                data-testid="button-test-targeted"
+              >
+                {targetedMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                Send
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ── Live Test Log ── */}
+      {log.length > 0 && (
+        <Card data-testid="card-push-log">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base">Session Test Log</CardTitle>
+              <Button size="sm" variant="ghost" onClick={() => setLog([])} data-testid="button-clear-log">Clear</Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {log.map(entry => (
+                <div key={entry.id} className={`flex items-start justify-between text-sm rounded-md px-3 py-2 ${entry.ok ? "bg-emerald-50 dark:bg-emerald-950/20" : "bg-red-50 dark:bg-red-950/20"}`} data-testid={`log-entry-${entry.id}`}>
+                  <div className="flex items-start gap-2 flex-1 min-w-0">
+                    {entry.ok
+                      ? <CheckCircle2 className="w-4 h-4 text-emerald-500 mt-0.5 flex-shrink-0" />
+                      : <AlertCircle className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />}
+                    <div className="min-w-0">
+                      <p className="font-medium truncate">{entry.label}</p>
+                      {entry.ok
+                        ? <p className="text-xs text-muted-foreground">{entry.recipients} recipient(s) · ID: {entry.notificationId?.slice(0, 8)}…</p>
+                        : <p className="text-xs text-red-600 dark:text-red-400 truncate">{entry.error}</p>}
+                    </div>
+                  </div>
+                  <span className="text-xs text-muted-foreground ml-3 flex-shrink-0">{entry.ts}</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* ── Recent Notifications from OneSignal ── */}
+      <Card data-testid="card-recent-notifications">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base">Recent Deliveries (OneSignal)</CardTitle>
+            <Button size="sm" variant="ghost" onClick={() => recentQuery.refetch()} disabled={recentQuery.isFetching} data-testid="button-refresh-recent">
+              <RefreshCw className={`w-4 h-4 ${recentQuery.isFetching ? "animate-spin" : ""}`} />
+            </Button>
+          </div>
+          <CardDescription>Last 10 notifications actually sent via OneSignal — confirms real delivery stats.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {recentQuery.isLoading ? (
+            <div className="space-y-2">{[1,2,3].map(i => <div key={i} className="h-12 bg-muted rounded animate-pulse" />)}</div>
+          ) : recentQuery.data?.notifications?.length > 0 ? (
+            <div className="space-y-2 max-h-80 overflow-y-auto">
+              {recentQuery.data.notifications.map((n: any) => (
+                <div key={n.id} className="border rounded-md px-3 py-2 text-sm" data-testid={`notification-history-${n.id}`}>
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="font-medium truncate flex-1">{n.heading ?? "(no heading)"}</p>
+                    <div className="flex gap-3 flex-shrink-0 text-xs">
+                      <span className="text-emerald-600 font-medium">✓ {n.successful ?? 0}</span>
+                      {(n.failed ?? 0) > 0 && <span className="text-red-500">✗ {n.failed}</span>}
+                      {(n.errored ?? 0) > 0 && <span className="text-amber-500">⚠ {n.errored}</span>}
+                    </div>
+                  </div>
+                  <p className="text-muted-foreground truncate text-xs mt-0.5">{n.body}</p>
+                  {n.queued_at && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {new Date(n.queued_at * 1000).toLocaleString()}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-6 text-muted-foreground text-sm">
+              <Bell className="w-8 h-8 mx-auto mb-2 opacity-30" />
+              No notifications sent yet via OneSignal.
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

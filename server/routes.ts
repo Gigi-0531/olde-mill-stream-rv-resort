@@ -962,4 +962,153 @@ export function registerRoutes(_server: any, app: Express) {
       res.status(500).json({ message: (err as Error).message });
     }
   });
+
+  // -------- Push Notification Test Suite --------
+
+  // GET /api/push/test/status — OneSignal app health + subscriber counts
+  app.get("/api/push/test/status", requireAdmin, async (_req: Request, res: Response) => {
+    const { oneSignalAppId, oneSignalRestKey } = await import("./pushService");
+
+    const cfg = {
+      appIdSet: !!oneSignalAppId,
+      restKeySet: !!oneSignalRestKey,
+      appId: oneSignalAppId ? oneSignalAppId.slice(0, 8) + "…" : null,
+    };
+
+    if (!oneSignalAppId || !oneSignalRestKey) {
+      return res.json({ ok: false, config: cfg, error: "OneSignal credentials not configured" });
+    }
+
+    try {
+      const r = await fetch(`https://onesignal.com/api/v1/apps/${oneSignalAppId}`, {
+        headers: { Authorization: `Basic ${oneSignalRestKey}` },
+      });
+      const app = await r.json() as any;
+      res.json({
+        ok: r.ok,
+        config: cfg,
+        app: {
+          name: app.name,
+          players: app.players,
+          messageable_players: app.messageable_players,
+          apns_configured: !!app.apns_env,
+          fcm_configured: !!app.gcm_key || app.additional_data_is_root_payload != null,
+          updated_at: app.updated_at,
+        },
+        raw_status: r.status,
+      });
+    } catch (err) {
+      res.status(500).json({ ok: false, config: cfg, error: (err as Error).message });
+    }
+  });
+
+  // POST /api/push/test/broadcast — send a test notification to ALL subscribers
+  app.post("/api/push/test/broadcast", requireAdmin, async (_req: Request, res: Response) => {
+    const { oneSignalAppId, oneSignalRestKey } = await import("./pushService");
+    if (!oneSignalAppId || !oneSignalRestKey) {
+      return res.status(400).json({ ok: false, error: "OneSignal credentials not configured" });
+    }
+    try {
+      const r = await fetch("https://onesignal.com/api/v1/notifications", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Basic ${oneSignalRestKey}` },
+        body: JSON.stringify({
+          app_id: oneSignalAppId,
+          included_segments: ["All"],
+          headings: { en: "🔔 Push Test — Olde Mill Stream" },
+          contents: { en: "This is a test notification from the admin panel. If you see this, push is working!" },
+          url: "/",
+        }),
+      });
+      const data = await r.json() as any;
+      console.log("[PushTest] Broadcast result:", data);
+      res.json({ ok: !data.errors, recipients: data.recipients ?? 0, id: data.id, errors: data.errors ?? null });
+    } catch (err) {
+      res.status(500).json({ ok: false, error: (err as Error).message });
+    }
+  });
+
+  // POST /api/push/test/android — Android-only test using fcm_big_picture filter
+  app.post("/api/push/test/android", requireAdmin, async (_req: Request, res: Response) => {
+    const { oneSignalAppId, oneSignalRestKey } = await import("./pushService");
+    if (!oneSignalAppId || !oneSignalRestKey) {
+      return res.status(400).json({ ok: false, error: "OneSignal credentials not configured" });
+    }
+    try {
+      const r = await fetch("https://onesignal.com/api/v1/notifications", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Basic ${oneSignalRestKey}` },
+        body: JSON.stringify({
+          app_id: oneSignalAppId,
+          filters: [{ field: "device_type", relation: "=", value: "1" }], // 1 = Android
+          headings: { en: "🤖 Android Push Test" },
+          contents: { en: "Android-specific test from Olde Mill Stream admin. Push is working on your device!" },
+          url: "/",
+          android_accent_color: "1E3A5F",
+          android_visibility: 1,
+        }),
+      });
+      const data = await r.json() as any;
+      console.log("[PushTest] Android-only result:", data);
+      res.json({ ok: !data.errors, recipients: data.recipients ?? 0, id: data.id, errors: data.errors ?? null });
+    } catch (err) {
+      res.status(500).json({ ok: false, error: (err as Error).message });
+    }
+  });
+
+  // POST /api/push/test/targeted — send to a specific OneSignal external user ID
+  app.post("/api/push/test/targeted", requireAdmin, async (req: Request, res: Response) => {
+    const { oneSignalAppId, oneSignalRestKey } = await import("./pushService");
+    const { externalId } = req.body;
+    if (!externalId) return res.status(400).json({ ok: false, error: "externalId is required" });
+    if (!oneSignalAppId || !oneSignalRestKey) {
+      return res.status(400).json({ ok: false, error: "OneSignal credentials not configured" });
+    }
+    try {
+      const r = await fetch("https://onesignal.com/api/v1/notifications", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Basic ${oneSignalRestKey}` },
+        body: JSON.stringify({
+          app_id: oneSignalAppId,
+          include_external_user_ids: [String(externalId)],
+          headings: { en: "🎯 Targeted Push Test" },
+          contents: { en: `This test was sent specifically to user ${externalId}. It works!` },
+          url: "/",
+        }),
+      });
+      const data = await r.json() as any;
+      console.log("[PushTest] Targeted result:", data);
+      res.json({ ok: !data.errors, recipients: data.recipients ?? 0, id: data.id, errors: data.errors ?? null });
+    } catch (err) {
+      res.status(500).json({ ok: false, error: (err as Error).message });
+    }
+  });
+
+  // GET /api/push/test/recent — last 5 notifications sent via OneSignal
+  app.get("/api/push/test/recent", requireAdmin, async (_req: Request, res: Response) => {
+    const { oneSignalAppId, oneSignalRestKey } = await import("./pushService");
+    if (!oneSignalAppId || !oneSignalRestKey) {
+      return res.json({ notifications: [] });
+    }
+    try {
+      const r = await fetch(`https://onesignal.com/api/v1/notifications?app_id=${oneSignalAppId}&limit=10&kind=1`, {
+        headers: { Authorization: `Basic ${oneSignalRestKey}` },
+      });
+      const data = await r.json() as any;
+      const notifications = (data.notifications ?? []).map((n: any) => ({
+        id: n.id,
+        heading: n.headings?.en,
+        body: n.contents?.en,
+        successful: n.successful,
+        failed: n.failed,
+        errored: n.errored,
+        converted: n.converted,
+        queued_at: n.queued_at,
+        completed_at: n.completed_at,
+      }));
+      res.json({ notifications });
+    } catch (err) {
+      res.status(500).json({ notifications: [], error: (err as Error).message });
+    }
+  });
 }
