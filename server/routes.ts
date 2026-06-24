@@ -966,7 +966,7 @@ export function registerRoutes(_server: any, app: Express) {
           players: app.players,
           messageable_players: app.messageable_players,
           apns_configured: !!app.apns_env,
-          fcm_configured: !!app.gcm_key,
+          fcm_configured: !!app.gcm_key || !!app.fcm_v1_service_account_json,
           updated_at: app.updated_at,
         },
         raw_status: r.status,
