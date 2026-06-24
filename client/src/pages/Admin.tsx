@@ -1236,8 +1236,8 @@ function PushTestManager() {
   function friendlyError(errors: any): string {
     const raw = Array.isArray(errors) ? errors[0] : String(errors);
     if (!raw) return "Unknown error";
-    if (raw.toLowerCase().includes("not subscribed")) return "No devices subscribed yet — residents need to open the Median app first to register.";
-    if (raw.toLowerCase().includes("no subscribers")) return "No subscribers found. Make sure the Median app is installed on at least one device.";
+    if (raw.toLowerCase().includes("not subscribed")) return "No devices registered yet — residents need to open the app and allow notifications.";
+    if (raw.toLowerCase().includes("no subscribers")) return "No subscribers found — residents need to open the app and allow notifications.";
     return raw;
   }
 
@@ -1245,7 +1245,7 @@ function PushTestManager() {
     mutationFn: () => apiRequest("POST", "/api/push/test/broadcast").then(r => r.json()),
     onSuccess: (data) => {
       const noSubscribers = !data.errors && (data.recipients ?? 0) === 0;
-      const errMsg = data.errors ? friendlyError(data.errors) : noSubscribers ? "No subscribed devices yet — residents need to open the Median app first." : undefined;
+      const errMsg = data.errors ? friendlyError(data.errors) : noSubscribers ? "No registered devices yet — residents need to open the app and allow notifications." : undefined;
       const ok = !data.errors && !noSubscribers;
       addLog({ id: crypto.randomUUID(), label: "Broadcast to All", ok, recipients: data.recipients, notificationId: data.id, error: errMsg });
       recentQuery.refetch();
@@ -1271,7 +1271,7 @@ function PushTestManager() {
     mutationFn: (externalId: string) => apiRequest("POST", "/api/push/test/targeted", { externalId }).then(r => r.json()),
     onSuccess: (data) => {
       const noSubscribers = !data.errors && (data.recipients ?? 0) === 0;
-      const errMsg = data.errors ? friendlyError(data.errors) : noSubscribers ? `User ${targetedId} has not opened the Median app yet — no device linked.` : undefined;
+      const errMsg = data.errors ? friendlyError(data.errors) : noSubscribers ? `No device linked to user ${targetedId} yet — they need to open the app and allow notifications.` : undefined;
       const ok = !data.errors && !noSubscribers;
       addLog({ id: crypto.randomUUID(), label: `Targeted (${targetedId})`, ok, recipients: data.recipients, notificationId: data.id, error: errMsg });
       recentQuery.refetch();
