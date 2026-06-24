@@ -103,7 +103,7 @@ function AdminContent() {
                 <MessageSquare className="w-4 h-4" /> Messages
               </TabsTrigger>
               <TabsTrigger value="push-tests" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-2" data-testid="tab-push-tests">
-                <Smartphone className="w-4 h-4" /> Push Tests
+                <Smartphone className="w-4 h-4" /> Notifications
               </TabsTrigger>
             </TabsList>
           </div>
@@ -1189,7 +1189,7 @@ function MessageModeration() {
   );
 }
 
-// ─── Push Notification Test Suite ────────────────────────────────────────────
+// ─── Notification Suite ───────────────────────────────────────────────────────
 
 interface TestResult {
   id: string;
@@ -1248,7 +1248,7 @@ function PushTestManager() {
     onSuccess: (data) => {
       addLog({ id: crypto.randomUUID(), label: "Android Only", ok: data.ok, recipients: data.recipients, notificationId: data.id, error: data.errors ? JSON.stringify(data.errors) : undefined });
       recentQuery.refetch();
-      toast({ title: data.ok ? "Android test sent!" : "Android test failed", description: data.ok ? `Delivered to ${data.recipients} Android device(s)` : JSON.stringify(data.errors), variant: data.ok ? "default" : "destructive" });
+      toast({ title: data.ok ? "Android notification sent!" : "Android notification failed", description: data.ok ? `Delivered to ${data.recipients} Android device(s)` : JSON.stringify(data.errors), variant: data.ok ? "default" : "destructive" });
     },
     onError: () => addLog({ id: crypto.randomUUID(), label: "Android Only", ok: false, error: "Network error" }),
   });
@@ -1258,7 +1258,7 @@ function PushTestManager() {
     onSuccess: (data) => {
       addLog({ id: crypto.randomUUID(), label: `Targeted (${targetedId})`, ok: data.ok, recipients: data.recipients, notificationId: data.id, error: data.errors ? JSON.stringify(data.errors) : undefined });
       recentQuery.refetch();
-      toast({ title: data.ok ? "Targeted test sent!" : "Targeted test failed", description: data.ok ? `Delivered to ${data.recipients} device(s)` : JSON.stringify(data.errors), variant: data.ok ? "default" : "destructive" });
+      toast({ title: data.ok ? "Targeted notification sent!" : "Targeted notification failed", description: data.ok ? `Delivered to ${data.recipients} device(s)` : JSON.stringify(data.errors), variant: data.ok ? "default" : "destructive" });
     },
     onError: () => addLog({ id: crypto.randomUUID(), label: `Targeted (${targetedId})`, ok: false, error: "Network error" }),
   });
@@ -1269,8 +1269,8 @@ function PushTestManager() {
   return (
     <div className="space-y-6 max-w-3xl">
       <div>
-        <h2 className="text-xl font-bold mb-1" data-testid="heading-push-tests">Push Notification Test Suite</h2>
-        <p className="text-muted-foreground text-sm">Diagnose and test OneSignal push delivery to Android and iOS devices.</p>
+        <h2 className="text-xl font-bold mb-1" data-testid="heading-push-tests">Notification Suite</h2>
+        <p className="text-muted-foreground text-sm">Send and monitor push notifications to residents on Android and iOS devices.</p>
       </div>
 
       {/* ── Config & Health Card ── */}
@@ -1320,13 +1320,13 @@ function PushTestManager() {
         </CardContent>
       </Card>
 
-      {/* ── Test Buttons ── */}
+      {/* ── Send Notifications ── */}
       <Card data-testid="card-push-actions">
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
-            <Send className="w-4 h-4 text-primary" /> Send Test Notifications
+            <Send className="w-4 h-4 text-primary" /> Send Notifications
           </CardTitle>
-          <CardDescription>All tests send a clearly-labelled test message — safe to run any time.</CardDescription>
+          <CardDescription>Send push notifications directly to residents on their iOS and Android devices.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -1382,12 +1382,12 @@ function PushTestManager() {
         </CardContent>
       </Card>
 
-      {/* ── Live Test Log ── */}
+      {/* ── Activity Log ── */}
       {log.length > 0 && (
         <Card data-testid="card-push-log">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-base">Session Test Log</CardTitle>
+              <CardTitle className="text-base">Activity Log</CardTitle>
               <Button size="sm" variant="ghost" onClick={() => setLog([])} data-testid="button-clear-log">Clear</Button>
             </div>
           </CardHeader>
