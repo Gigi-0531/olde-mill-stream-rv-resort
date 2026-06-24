@@ -1233,12 +1233,23 @@ function PushTestManager() {
     setLog(prev => [{ ...entry, ts: new Date().toLocaleTimeString() }, ...prev].slice(0, 20));
   }
 
+  function friendlyError(errors: any): string {
+    const raw = Array.isArray(errors) ? errors[0] : String(errors);
+    if (!raw) return "Unknown error";
+    if (raw.toLowerCase().includes("not subscribed")) return "No devices subscribed yet — residents need to open the Median app first to register.";
+    if (raw.toLowerCase().includes("no subscribers")) return "No subscribers found. Make sure the Median app is installed on at least one device.";
+    return raw;
+  }
+
   const broadcastMutation = useMutation({
     mutationFn: () => apiRequest("POST", "/api/push/test/broadcast").then(r => r.json()),
     onSuccess: (data) => {
-      addLog({ id: crypto.randomUUID(), label: "Broadcast to All", ok: data.ok, recipients: data.recipients, notificationId: data.id, error: data.errors ? JSON.stringify(data.errors) : undefined });
+      const noSubscribers = !data.errors && (data.recipients ?? 0) === 0;
+      const errMsg = data.errors ? friendlyError(data.errors) : noSubscribers ? "No subscribed devices yet — residents need to open the Median app first." : undefined;
+      const ok = !data.errors && !noSubscribers;
+      addLog({ id: crypto.randomUUID(), label: "Broadcast to All", ok, recipients: data.recipients, notificationId: data.id, error: errMsg });
       recentQuery.refetch();
-      toast({ title: data.ok ? "Broadcast sent!" : "Broadcast failed", description: data.ok ? `Delivered to ${data.recipients} device(s)` : JSON.stringify(data.errors), variant: data.ok ? "default" : "destructive" });
+      toast({ title: ok ? "Broadcast sent!" : "No devices reached", description: ok ? `Delivered to ${data.recipients} device(s)` : errMsg, variant: ok ? "default" : "destructive" });
     },
     onError: () => addLog({ id: crypto.randomUUID(), label: "Broadcast to All", ok: false, error: "Network error" }),
   });
@@ -1246,9 +1257,12 @@ function PushTestManager() {
   const androidMutation = useMutation({
     mutationFn: () => apiRequest("POST", "/api/push/test/android").then(r => r.json()),
     onSuccess: (data) => {
-      addLog({ id: crypto.randomUUID(), label: "Android Only", ok: data.ok, recipients: data.recipients, notificationId: data.id, error: data.errors ? JSON.stringify(data.errors) : undefined });
+      const noSubscribers = !data.errors && (data.recipients ?? 0) === 0;
+      const errMsg = data.errors ? friendlyError(data.errors) : noSubscribers ? "No Android devices subscribed yet." : undefined;
+      const ok = !data.errors && !noSubscribers;
+      addLog({ id: crypto.randomUUID(), label: "Android Only", ok, recipients: data.recipients, notificationId: data.id, error: errMsg });
       recentQuery.refetch();
-      toast({ title: data.ok ? "Android notification sent!" : "Android notification failed", description: data.ok ? `Delivered to ${data.recipients} Android device(s)` : JSON.stringify(data.errors), variant: data.ok ? "default" : "destructive" });
+      toast({ title: ok ? "Android notification sent!" : "No Android devices reached", description: ok ? `Delivered to ${data.recipients} Android device(s)` : errMsg, variant: ok ? "default" : "destructive" });
     },
     onError: () => addLog({ id: crypto.randomUUID(), label: "Android Only", ok: false, error: "Network error" }),
   });
@@ -1256,9 +1270,12 @@ function PushTestManager() {
   const targetedMutation = useMutation({
     mutationFn: (externalId: string) => apiRequest("POST", "/api/push/test/targeted", { externalId }).then(r => r.json()),
     onSuccess: (data) => {
-      addLog({ id: crypto.randomUUID(), label: `Targeted (${targetedId})`, ok: data.ok, recipients: data.recipients, notificationId: data.id, error: data.errors ? JSON.stringify(data.errors) : undefined });
+      const noSubscribers = !data.errors && (data.recipients ?? 0) === 0;
+      const errMsg = data.errors ? friendlyError(data.errors) : noSubscribers ? `User ${targetedId} has not opened the Median app yet — no device linked.` : undefined;
+      const ok = !data.errors && !noSubscribers;
+      addLog({ id: crypto.randomUUID(), label: `Targeted (${targetedId})`, ok, recipients: data.recipients, notificationId: data.id, error: errMsg });
       recentQuery.refetch();
-      toast({ title: data.ok ? "Targeted notification sent!" : "Targeted notification failed", description: data.ok ? `Delivered to ${data.recipients} device(s)` : JSON.stringify(data.errors), variant: data.ok ? "default" : "destructive" });
+      toast({ title: ok ? "Notification sent!" : "Device not found", description: ok ? `Delivered to ${data.recipients} device(s)` : errMsg, variant: ok ? "default" : "destructive" });
     },
     onError: () => addLog({ id: crypto.randomUUID(), label: `Targeted (${targetedId})`, ok: false, error: "Network error" }),
   });
